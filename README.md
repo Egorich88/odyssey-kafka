@@ -119,7 +119,8 @@ Workflow разделен на три независимых автоматиз�
 - `egorich27/kafka-control-frontend`
 
 ## 🔔 Уведомления о релизах
-При выходе нового тега v* автоматически отправляется уведомление в два канала **«Odyssey - Kafka Monitoring & Management»**:
+
+Автоматически отправляется уведомление о выходе нового релиза в канал: **«Odyssey - Kafka Monitoring & Management»**:
 
 <img src="https://cdn.simpleicons.org/telegram/26A5E4" width="16" height="16" alt="Telegram"> **Telegram** — сообщение с описанием изменений и скриншотом релиза.
 
@@ -145,7 +146,7 @@ Releases.
 Проект создан как демонстрация современных DevOps-подходов:
 от консольных скриптов до production-готовых микросервисов с полным CI/CD.
 
-«Movement – life!»
+«**Movement – life!**»
 
 ## 📄 Лицензия
 
