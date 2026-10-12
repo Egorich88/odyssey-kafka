@@ -1,11 +1,12 @@
 {
-  "name": "kafka-control-frontend",
+  "name": "odyssey-frontend",
   "private": true,
   "version": "4.2.35",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vite --mode public",
+    "build": "vite build --mode public",
+    "build:public": "vite build --mode public",
     "preview": "vite preview"
   },
   "dependencies": {

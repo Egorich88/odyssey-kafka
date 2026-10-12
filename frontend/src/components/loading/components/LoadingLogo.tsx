@@ -19,7 +19,7 @@
  * @file LoadingLogo.tsx
  * =============================================================================
  *
- * Логотип стартового экрана Kafka System Control.
+ * Логотип стартового экрана Odyssey.
  *
  * Компонент отвечает исключительно за отображение логотипа
  * во время первоначальной загрузки приложения.
@@ -39,7 +39,7 @@ export default function LoadingLogo() {
 
             <img
                 src="/logo.svg"
-                alt="Kafka System Control"
+                alt="Odyssey"
                 draggable={false}
             />
 

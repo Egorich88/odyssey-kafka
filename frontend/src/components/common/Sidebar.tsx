@@ -15,12 +15,12 @@
  */
 
 /**
- * @fileoverview Боковое меню (Sidebar) приложения Kafka System Control.
+ * @fileoverview Боковое меню приложения Odyssey.
  * Содержит логотип, информацию о версии, выбор/добавление кластера,
  * основную навигацию по разделам, настройки и футер с лицензией.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from 'react-tooltip';
 import { NavLink } from 'react-router-dom';
@@ -33,16 +33,10 @@ import {
   FiSearch,
   FiSliders,
   FiShield,
-  FiAlertTriangle,
-  FiFileText,
-  FiTerminal,
   FiSettings,
   FiGithub,
   FiUser,
   FiSidebar,
-  FiLink,
-  FiDatabase,
-  FiCode
 } from 'react-icons/fi';
 import { SiApache } from 'react-icons/si';
 import packageJson from '../../../package.json';
@@ -50,6 +44,7 @@ import Dropdown from '../common/Dropdown';
 import { getLatestVersion } from '../../services/versionService';
 import { useCluster } from '../../contexts/ClusterContext';
 import ThemeToggle from '../common/ThemeToggle';
+import { enterpriseSidebarItems } from '@odyssey/registry';
 
 // =============================================================================
 // Вспомогательные функции для работы с версиями
@@ -95,6 +90,30 @@ interface SidebarProps {
   onEditCluster: () => void;
   clusterUnavailable?: boolean;
 }
+
+interface SidebarItem {
+  title: string;
+  path: string;
+  icon: ComponentType<any>;
+  titleKey?: string;
+}
+
+// Публичные страницы, готовые к показу в стандартной сборке.
+const CORE_ITEMS: SidebarItem[] = [
+  { title: 'Брокеры', titleKey: 'brokers', path: '/brokers', icon: FiServer },
+  { title: 'Топики', titleKey: 'topics', path: '/topics', icon: FiLayers },
+  { title: 'Группы потребителей', titleKey: 'consumerGroups', path: '/groups', icon: FiUsers },
+  { title: 'Поиск сообщений', titleKey: 'searchMessages', path: '/search', icon: FiSearch },
+  { title: 'ACL', titleKey: 'acl', path: '/acls', icon: FiShield },
+];
+
+// Enterprise-пункты появляются только если расширение зарегистрировано.
+const ENTERPRISE_INTEGRATIONS = enterpriseSidebarItems.filter((item) =>
+  ['/connect', '/ksqldb', '/schema-registry'].includes(item.path)
+);
+const ENTERPRISE_OPERATIONS = enterpriseSidebarItems.filter((item) =>
+  ['/alerts', '/audit', '/console'].includes(item.path)
+);
 
 export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailable = false }: SidebarProps) {
   const { clusters, currentCluster, changeCluster } = useCluster();
@@ -176,15 +195,15 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
 
             {/* Логотип */}
             {/* ==========================================================
-                Брендинг Kafka System Control
+                Брендинг Odyssey
 
                 Слева:
                 фирменный графический знак.
 
                 Справа:
-                короткий wordmark KSC.
+                короткий wordmark Odyssey.
 
-                Полное название Kafka System Control
+                Полное название Odyssey
                 в Sidebar не используется — здесь нужен
                 компактный фирменный идентификатор.
                ========================================================== */}
@@ -278,148 +297,92 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             )}
         </div>
 
-        {/* -------------------- Основная навигация (отображается только при выбранном кластере) -------------------- */}
+        {/* Основная навигация. При недоступном кластере блокируются все Kafka-разделы. */}
         {hasCluster && (
           <nav className={`sidebar-nav ${navigationDisabled ? 'is-disabled' : ''}`}>
-            {/* Обзор */}
-            <NavLink to="/" end className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('overview') : undefined}>
+            <NavLink
+              to="/"
+              end
+              className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
+              onClick={(event) => { if (navigationDisabled) event.preventDefault(); }}
+              data-tooltip-id={collapsed || navigationDisabled ? 'sidebar-tooltip' : undefined}
+              data-tooltip-content={collapsed || navigationDisabled ? t('overview') : undefined}
+              aria-disabled={navigationDisabled}
+              tabIndex={navigationDisabled ? -1 : undefined}
+            >
               <FiHome />
-              {!collapsed && (
-                <span>{t('overview')}</span>
-              )}
+              {!collapsed && <span>{t('overview')}</span>}
             </NavLink>
 
-            {/* ----------------------------------------------------------
-                Разделитель навигации
-            ----------------------------------------------------------- */}
             <div className="sidebar-divider" />
 
-            {/* Брокеры */}
-            <NavLink to="/brokers" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('brokers') : undefined}>
-              <FiServer />
-              {!collapsed && (
-                <span>{t('brokers')}</span>
-              )}
-            </NavLink>
+            {CORE_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const label = t(item.titleKey || item.title);
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
+                  onClick={(event) => { if (navigationDisabled) event.preventDefault(); }}
+                  data-tooltip-id={collapsed || navigationDisabled ? 'sidebar-tooltip' : undefined}
+                  data-tooltip-content={collapsed || navigationDisabled ? label : undefined}
+                  aria-disabled={navigationDisabled}
+                  tabIndex={navigationDisabled ? -1 : undefined}
+                >
+                  <Icon />
+                  {!collapsed && <span>{label}</span>}
+                </NavLink>
+              );
+            })}
 
-            {/* Топики */}
-            <NavLink to="/topics" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('topics') : undefined}>
-              <FiLayers />
-              {!collapsed && (
-                <span>{t('topics')}</span>
-              )}
-            </NavLink>
+            {ENTERPRISE_INTEGRATIONS.length > 0 && (
+              <>
+                <div className="sidebar-divider sidebar-divider-integrations" />
+                {ENTERPRISE_INTEGRATIONS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
+                      onClick={(event) => { if (navigationDisabled) event.preventDefault(); }}
+                      data-tooltip-id={collapsed || navigationDisabled ? 'sidebar-tooltip' : undefined}
+                      data-tooltip-content={collapsed || navigationDisabled ? item.title : undefined}
+                      aria-disabled={navigationDisabled}
+                      tabIndex={navigationDisabled ? -1 : undefined}
+                    >
+                      <Icon />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  );
+                })}
+              </>
+            )}
 
-            {/* Группы потребителей */}
-            <NavLink to="/groups" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('consumerGroups') : undefined}>
-              <FiUsers />
-              {!collapsed && (
-              <span>{t('consumerGroups')}</span>
-              )}
-            </NavLink>
-
-            {/* Поиск сообщений */}
-            <NavLink to="/search" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('searchMessages') : undefined}>
-              <FiSearch />
-              {!collapsed && (
-              <span>{t('searchMessages')}</span>
-              )}
-            </NavLink>
-
-            {/* ACL */}
-            <NavLink to="/acls" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('acl') : undefined}>
-              <FiShield />
-              {!collapsed && (
-              <span>{t('acl')}</span>
-              )}
-            </NavLink>
-
-            {/* Будущие Kafka-интеграции */}
-            <div className="sidebar-divider sidebar-divider-integrations" />
-
-            <NavLink to="/connect" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('kafkaConnect') : undefined}>
-              <FiLink />
-              {!collapsed && (
-              <span>{t('kafkaConnect')}</span>
-              )}
-            </NavLink>
-
-            <NavLink to="/ksqldb" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('ksqlDb') : undefined}>
-              <FiCode />
-              {!collapsed && (
-              <span>{t('ksqlDb')}</span>
-              )}
-            </NavLink>
-
-            <NavLink to="/schema-registry" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('schemaRegistry') : undefined}>
-              <FiDatabase />
-              {!collapsed && (
-              <span>{t('schemaRegistry')}</span>
-              )}
-            </NavLink>
-
-            {/* Операционные разделы */}
-            <div className="sidebar-divider" />
-
-            {/* Оповещения */}
-            <NavLink to="/alerts" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('alerts') : undefined}>
-              <FiAlertTriangle />
-              {!collapsed && (
-              <span>{t('alerts')}</span>
-              )}
-            </NavLink>
-
-            {/* Аудит */}
-            <NavLink to="/audit" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('audit') : undefined}>
-              <FiFileText />
-              {!collapsed && (
-              <span>{t('audit')}</span>
-              )}
-            </NavLink>
-
-            {/* Консоль Kafka */}
-            <NavLink to="/console" className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
-                onClick={(event) => navigationDisabled && event.preventDefault()}
-                data-tooltip-id={collapsed ? "sidebar-tooltip" : undefined}
-                data-tooltip-content={collapsed ? t('console') : undefined}>
-              <FiTerminal />
-              {!collapsed && (
-              <span>{t('console')}</span>
-              )}
-            </NavLink>
+            {ENTERPRISE_OPERATIONS.length > 0 && (
+              <>
+                <div className="sidebar-divider" />
+                {ENTERPRISE_OPERATIONS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
+                      onClick={(event) => { if (navigationDisabled) event.preventDefault(); }}
+                      data-tooltip-id={collapsed || navigationDisabled ? 'sidebar-tooltip' : undefined}
+                      data-tooltip-content={collapsed || navigationDisabled ? item.title : undefined}
+                      aria-disabled={navigationDisabled}
+                      tabIndex={navigationDisabled ? -1 : undefined}
+                    >
+                      <Icon />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  );
+                })}
+              </>
+            )}
           </nav>
         )}
       </div>
@@ -460,7 +423,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
         <div className="sidebar-footer">
           <div className="footer-links-row">
             <a
-              href="https://github.com/Egorich88/kafka-system-control-4"
+              href="https://github.com/Egorich88/odyssey-kafka"
               target="_blank"
               rel="noopener noreferrer"
               className="footer-icon-link"
@@ -485,7 +448,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
           </div>
 
           <a
-            href="https://github.com/Egorich88/kafka-system-control-4/releases"
+            href="https://github.com/Egorich88/odyssey-kafka/releases"
             target="_blank"
             rel="noopener noreferrer"
             className={`sidebar-version ${hasUpdate ? 'update-available' : ''} ${animateVersion ? 'animate' : ''}`}

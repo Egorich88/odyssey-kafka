@@ -16,7 +16,7 @@
 
 /**
  * @file main.tsx
- * Точка входа frontend-приложения KSC.
+ * Точка входа frontend-приложения Odyssey.
  *
  * Статический splash из index.html показывается раньше React.
  * После монтирования его место занимает React LoadingScreen.
@@ -38,7 +38,7 @@ import LoadingBootstrap from './components/loading/LoadingBootstrap';
 const rootElement = document.getElementById('root');
 
 if (!rootElement) {
-  throw new Error('Kafka System Control: root element "#root" was not found.');
+  throw new Error('Odyssey: root element "#root" was not found.');
 }
 
 ReactDOM.createRoot(rootElement).render(

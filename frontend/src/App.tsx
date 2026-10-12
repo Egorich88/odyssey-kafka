@@ -19,7 +19,7 @@
   * @file App.tsx
   * =============================================================================
   *
-  * Корневой компонент приложения Kafka System Control.
+  * Корневой компонент приложения Odyssey.
   *
   * Назначение файла:
   * - определяет основную структуру React-приложения;
@@ -43,30 +43,24 @@
   * App.jsx является точкой сборки всего интерфейса приложения.
   * =============================================================================
   */
-
-// React Router
+import React from 'react';// Маршрутизация
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-// Layout
+// Общий макет
 import Layout from './components/layout/Layout';
 
-// Pages
+// Страницы
 import Overview from './pages/Overview';
 import Brokers from './pages/Brokers';
-import Console from './pages/Console';
 import Topics from './pages/Topics';
 import ConsumerGroupsPage from './pages/consumer-groups/ConsumerGroupsPage';
 import Acl from './pages/Acl';
 import Search from './pages/Search';
 import Settings from './pages/Settings';
-import AuditPage from './pages/audit/AuditPage';
-import KafkaConnectPage from './pages/kafka-connect/KafkaConnectPage';
-import KsqlDbPage from './pages/ksqldb/KsqlDbPage';
-import SchemaRegistryPage from './pages/schema-registry/SchemaRegistryPage';
-import Alerts from './pages/Alerts';
 import User from './pages/User';
+import { enterpriseRoutes } from '@odyssey/registry';
 
-// Contexts
+// Контексты
 import { ClusterProvider } from './contexts/ClusterContext';
 
 function App() {
@@ -105,26 +99,19 @@ function App() {
 
             {/* Поиск сообщений */}
             <Route path="search" element={<Search />} />
-
-            {/* Аудит действий пользователей и системы */}
-            <Route path="audit" element={<AuditPage />} />
-
-            {/* Консоль Kafka */}
-            <Route path="console" element={<Console />} />
-
-            {/* Оповещения */}
-            <Route path="alerts" element={<Alerts />} />
-
-            {/* Пользователь */}
+{/* Пользователь */}
             <Route path="user" element={<User />} />
 
-            {/* Будущие Kafka-интеграции */}
-            <Route path="connect" element={<KafkaConnectPage />} />
-            <Route path="ksqldb" element={<KsqlDbPage />} />
-            <Route path="schema-registry" element={<SchemaRegistryPage />} />
-
-             {/* Настройки приложения */}
+            {/* Настройки приложения */}
             <Route path="/settings" element={<Settings />} />
+
+            {enterpriseRoutes.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={React.createElement(route.element)}
+              />
+            ))}
           </Route>
         </Routes>
       </BrowserRouter>

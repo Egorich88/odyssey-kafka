@@ -10,8 +10,26 @@
   min-height: 0;
   display: grid;
   place-items: center;
+  position: relative;
+  overflow: hidden;
   background: var(--bg-primary);
 }
+
+/* Индикатор состояния кластера остаётся заметным при любом размере панели. */
+.cluster-status-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--accent-hover);
+  box-shadow: 0 0 14px rgba(85, 230, 220, .28);
+}
+
+.cluster-status-screen.is-unavailable::before {
+  background: var(--danger-color, #ef4444);
+  box-shadow: 0 0 16px rgba(239, 68, 68, .42);
+}
+
 
 .cluster-status-content {
   display: flex;

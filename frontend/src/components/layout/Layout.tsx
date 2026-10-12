@@ -19,7 +19,7 @@
  * @file Layout.tsx
  * =============================================================================
  *
- * Основной макет (Layout) приложения Kafka System Control.
+ * Основной макет (Layout) приложения Odyssey.
  *
  * @description
  * Формирует общий каркас пользовательского интерфейса:
@@ -197,7 +197,10 @@ const Layout = () => {
     : configuredPage;
 
   const kafkaRequiredPage = !['/settings', '/user'].includes(location.pathname) && !isWelcome;
-  const clusterUnavailable = Boolean(currentCluster && currentCluster.connectionStatus && ['checking', 'unknown', 'error', 'disconnected'].includes(currentCluster.connectionStatus));
+  // Для Kafka-страниц кластер доступен только после подтверждённого статуса connected.
+  // Отсутствующий статус также считается проверкой, а не разрешением открыть страницу.
+  const clusterStatus = currentCluster?.connectionStatus ?? 'checking';
+  const clusterUnavailable = Boolean(currentCluster && clusterStatus !== 'connected');
 
   return (
     <div className="app-layout sidebar-dark">
@@ -219,7 +222,7 @@ const Layout = () => {
 
           <div className="main-content-body">
             {kafkaRequiredPage && clusterUnavailable ? (
-              <ClusterStatusScreen status={currentCluster?.connectionStatus ?? 'unknown'} />
+              <ClusterStatusScreen status={clusterStatus} />
             ) : (
               <Outlet />
             )}
