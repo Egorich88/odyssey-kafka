@@ -1,26 +1,19 @@
 <img width="1254" height="1254" alt="Startt" src="https://github.com/user-attachments/assets/834dcd94-cf62-42b7-97d7-055ec4a46647" />
 
-# Odyssey
+# ODYSSEY 
 
 **Русский** | [English](README_ENG.md)
 
-<p align="left">
-  <a href="https://github.com/Egorich88/odyssey-kafka/blob/main/LICENSE">
-    <img src="https://badgen.net/github/license/Egorich88/odyssey-kafka?color=blue&label=License" alt="License">
-  </a>
-  <a href="https://github.com/Egorich88/odyssey-kafka/releases">
-    <img src="https://img.shields.io/github/v/release/Egorich88/odyssey-kafka?label=Latest%20Release" alt="GitHub release">
-  </a>
-  <a href="https://github.com/Egorich88/odyssey-kafka/actions/workflows/ci-cd.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/Egorich88/odyssey-kafka/ci-cd.yml?branch=main&label=CI%2FCD" alt="CI/CD">
-  </a>
-</p>
+## Docker Hub Statistics
+
+![ODYSSEY Docker Hub Statistics](https://raw.githubusercontent.com/Egorich88/odyssey-kafka/main/.github/assets/dockerhub-card.svg)
+
 
 Odyssey — современный легковесный веб-интерфейс (**Kafka Monitoring & Management**) для визуального администрирования Apache Kafka. Построен на Go и React с нуля: от консольных утилит до production-готового микросервиса с автоматизированным CI/CD, контейнеризацией, уведомлениями о релизах и возможностью оркестрации в Kubernetes.
 
 > Раньше проект назывался Kafka System Control (KSC). Новое имя — Odyssey — отражает суть инструмента: быть надёжным штурвалом и картой для инженера в бушующем море данных Apache Kafka.
 
-## 🌊 Почему Odyssey
+## 🌊 Почему Odyssey?
 
 **Сильный бренд вместо «безликости»**
 Прежнее техническое название отлично описывало суть, но звучало перегруженно. Odyssey — короткое, запоминающееся имя, которое легко пишется в консоли, быстро гуглится и формирует уникальный ИТ-бренд инфраструктурного ПО.

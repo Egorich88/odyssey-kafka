@@ -1,0 +1,79 @@
+# Copyright 2026 Egor Khomenko (Egorich88)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+name: Update Docker Hub Card
+
+on:
+  schedule:
+    - cron: "17 0,6,12,18 * * *"
+
+  release:
+    types: [published]
+
+  workflow_dispatch:
+
+  push:
+    paths:
+      - ".github/scripts/**"
+      - ".github/workflows/dockerhub-card.yml"
+      - ".github/assets/dockerhub-logo.png"
+      - ".github/assets/frontend-icon.png"
+      - ".github/assets/backend-icon.png"
+      - ".github/assets/logo.png"
+      - ".github/assets/Comfortaa.woff2"
+      - ".github/assets/OdysseyDisplay.woff2"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: dockerhub-card
+  cancel-in-progress: false
+
+jobs:
+  update-card:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate Docker Hub card
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --yes tsx .github/scripts/dockerhub-card.ts
+
+      - name: Commit updated card
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add .github/assets/dockerhub-card.svg
+
+          if git diff --cached --quiet; then
+            echo "Card has not changed."
+            exit 0
+          fi
+
+          git commit -m "chore: update Docker Hub card"
+          git push origin HEAD:main

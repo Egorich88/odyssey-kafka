@@ -4,17 +4,10 @@
 
 [Русский](README.md) | **English**
 
-<p align="left">
-  <a href="https://github.com/Egorich88/odyssey-kafka/blob/main/LICENSE">
-    <img src="https://badgen.net/github/license/Egorich88/odyssey-kafka?color=blue&label=License" alt="License">
-  </a>
-  <a href="https://github.com/Egorich88/odyssey-kafka/releases">
-    <img src="https://img.shields.io/github/v/release/Egorich88/odyssey-kafka?label=Latest%20Release" alt="GitHub release">
-  </a>
-  <a href="https://github.com/Egorich88/odyssey-kafka/actions/workflows/ci-cd.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/Egorich88/odyssey-kafka/ci-cd.yml?branch=main&label=CI%2FCD" alt="CI/CD">
-  </a>
-</p>
+## Docker Hub Statistics
+
+![ODYSSEY Docker Hub Statistics](https://raw.githubusercontent.com/Egorich88/odyssey-kafka/main/.github/assets/dockerhub-card.svg)
+
 
 Odyssey is a modern web interface (Kafka Monitoring & Management) for administering
 Apache Kafka. Built with Go and React from scratch: from console utilities to
