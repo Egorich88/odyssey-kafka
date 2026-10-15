@@ -7,6 +7,13 @@
 
 /**
  * @file certificates.go
+ * @project Odyssey new 4.2.36
+ * @description Получение информации о TLS-сертификатах Kafka.
+ * @changes Добавлено получение сертификатов, предъявляемых брокерами при TLS-подключении.
+ */
+
+/**
+ * @file certificates.go
  * Обнаружение TLS-сертификатов и связанных файлов Kafka.
  *
  * Refactor 4.2.35:
@@ -22,7 +29,10 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -35,6 +45,7 @@ import (
 
 type CertificateInfo struct {
 	Name       string `json:"name"`
+	Status     string `json:"status"`
 	Path       string `json:"path"`
 	Type       string `json:"type"`
 	ExpiresAt  string `json:"expiresAt"`
@@ -83,9 +94,36 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	nearest := 0
-	for _, cert := range result {
-		if cert.DaysLeft >= 0 && (nearest == 0 || cert.DaysLeft < nearest) {
+	// Получаем сертификаты, которые реально предъявляют брокеры при TLS.
+	// Проверка допускает самоподписанные сертификаты только для чтения их
+	// метаданных; это соединение не используется для выполнения Kafka-команд.
+	for _, endpoint := range strings.Split(bootstrap, ",") {
+		endpoint = strings.TrimSpace(endpoint)
+		if endpoint == "" {
+			continue
+		}
+		if info, ok := readRemoteTLSCertificate(endpoint); ok {
+			key := info.Path
+			if !seen[key] {
+				seen[key] = true
+				result = append(result, info)
+			}
+		}
+	}
+
+	nearest := -1
+	for index := range result {
+		if result[index].DaysLeft < 0 {
+			result[index].Status = "unknown"
+		} else if result[index].DaysLeft < 7 {
+			result[index].Status = "critical"
+		} else if result[index].DaysLeft < 30 {
+			result[index].Status = "warning"
+		} else {
+			result[index].Status = "valid"
+		}
+		cert := result[index]
+		if cert.DaysLeft >= 0 && (nearest < 0 || cert.DaysLeft < nearest) {
 			nearest = cert.DaysLeft
 		}
 	}
@@ -101,6 +139,52 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+func readRemoteTLSCertificate(endpoint string) (CertificateInfo, bool) {
+	dialer := &net.Dialer{Timeout: 3 * time.Second}
+	connection, err := tls.DialWithDialer(dialer, "tcp", endpoint, &tls.Config{
+		InsecureSkipVerify: true, // Только получение метаданных сертификата.
+		MinVersion:         tls.VersionTLS12,
+	})
+	if err != nil {
+		return CertificateInfo{}, false
+	}
+	defer connection.Close()
+
+	state := connection.ConnectionState()
+	if len(state.PeerCertificates) == 0 {
+		return CertificateInfo{}, false
+	}
+	certificate := state.PeerCertificates[0]
+	return certificateInfoFromX509(endpoint, certificate), true
+}
+
+func certificateInfoFromX509(endpoint string, certificate *x509.Certificate) CertificateInfo {
+	days := int(time.Until(certificate.NotAfter).Hours() / 24)
+	if days < 0 {
+		days = -1
+	}
+	commonName := certificate.Subject.CommonName
+	if commonName == "" {
+		commonName = endpoint
+	}
+	sans := make([]string, 0, len(certificate.DNSNames)+len(certificate.IPAddresses))
+	sans = append(sans, certificate.DNSNames...)
+	for _, address := range certificate.IPAddresses {
+		sans = append(sans, address.String())
+	}
+	return CertificateInfo{
+		Name:       commonName,
+		Path:       fmt.Sprintf("TLS: %s", endpoint),
+		Type:       "TLS X.509",
+		ExpiresAt:  certificate.NotAfter.Format(time.RFC3339),
+		DaysLeft:   days,
+		Subject:    certificate.Subject.String(),
+		Issuer:     certificate.Issuer.String(),
+		CommonName: commonName,
+		SAN:        strings.Join(sans, ", "),
+	}
 }
 
 func findLocalKeystores() []string {

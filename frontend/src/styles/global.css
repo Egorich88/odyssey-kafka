@@ -5,6 +5,13 @@
  */
 
 /**
+ * @file global.css
+ * @project Odyssey new 4.2.36
+ * @description Глобальные стили приложения и подключение фирменного шрифта.
+ * @changes Добавлен @font-face для OdysseyDisplay и резервные шрифты.
+ */
+
+/**
  * =============================================================================
  * @file global.css
  * =============================================================================
@@ -44,6 +51,14 @@
    APPLICATION
    Базовые стили всего приложения.
    ============================================================================= */
+
+@font-face {
+  font-family: "OdysseyDisplay";
+  src: url("/fonts/OdysseyDisplay.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

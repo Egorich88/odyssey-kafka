@@ -3,6 +3,13 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
+/**
+ * @file cluster-status-screen.css
+ * @project Odyssey new 4.2.36
+ * @description Стили экрана недоступности Kafka-кластера.
+ * @changes Перенесён профессиональный эффект мигающей линии с сохранением красного статуса.
+ */
+
 /* Единый экран недоступности/первичного подключения Kafka-кластера. */
 .cluster-status-screen {
   width: 100%;
@@ -20,13 +27,16 @@
   content: '';
   position: absolute;
   inset: 0 0 auto;
-  height: 4px;
-  background: var(--accent-hover);
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent-hover) 35%, #55e6dc 50%, var(--accent-hover) 65%, transparent 100%);
+  background-size: 220% 100%;
+  animation: clusterStatusLine 1.8s linear infinite;
   box-shadow: 0 0 14px rgba(85, 230, 220, .28);
 }
 
 .cluster-status-screen.is-unavailable::before {
-  background: var(--danger-color, #ef4444);
+  background: linear-gradient(90deg, transparent 0%, var(--danger-color, #ef4444) 35%, #ff6b6b 50%, var(--danger-color, #ef4444) 65%, transparent 100%);
+  background-size: 220% 100%;
   box-shadow: 0 0 16px rgba(239, 68, 68, .42);
 }
 
@@ -110,6 +120,8 @@
   font-size: 14px;
   line-height: 1.5;
 }
+
+@keyframes clusterStatusLine { from { background-position: 100% 0; } to { background-position: -120% 0; } }
 
 @keyframes clusterStatusGlow {
   0%, 100% { opacity: .48; transform: translateX(-50%) scaleX(.82); }

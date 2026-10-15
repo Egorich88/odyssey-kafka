@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * @file versionService.js
+ * @project Odyssey new 4.2.36
+ * @description Сервис проверки актуальной версии Odyssey.
+ * @changes Проверка версии выполняется через бэкенд.
+ */
+
  /**
   * @fileoverview
   * Сервис для получения информации о последней версии Odyssey
@@ -23,17 +30,13 @@
   */
 export async function getLatestVersion() {
   try {
-    const response = await fetch(
-      'https://api.github.com/repos/Egorich88/kafka-system-control-4/releases/latest'
-    );
-
-    if (!response.ok) {
-      return null;
-    }
-
+    const response = await fetch('/api/version/check', {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
     const data = await response.json();
-
-    return data.tag_name.replace(/^v/, '');
+    return data.checked ? (data.latestVersion || null) : null;
   } catch {
     return null;
   }

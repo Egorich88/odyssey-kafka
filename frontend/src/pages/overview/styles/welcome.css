@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * @file welcome.css
+ * @project Odyssey new 4.2.36
+ * @description Стили приветственного экрана.
+ * @changes Применён шрифт OdysseyDisplay к фирменному заголовку.
+ */
+
 /* WELCOME-СТРАНИЦА (приветственный экран) */
 
 .welcome-page {
@@ -215,8 +222,8 @@
 .welcome-subtitle {
     margin: 0;
     color: var(--text-primary);
-    font-family: "Century Gothic", "Arial Narrow", "Segoe UI", sans-serif;
-    font-size: clamp(38px, 4vw, 54px);
+    font-family: "OdysseyDisplay", "Century Gothic", "Arial Narrow", "Segoe UI", sans-serif;
+    font-size: clamp(58px, 4vw, 54px);
     font-weight: 300;
     letter-spacing: clamp(9px, 1.05vw, 15px);
     line-height: 1;
@@ -226,7 +233,7 @@
 .welcome-tagline {
     margin-top: 14px;
     color: #55e6dc;
-    font-family: "Century Gothic", "Arial Narrow", "Segoe UI", sans-serif;
+    font-family: "OdysseyDisplay", "Century Gothic", "Arial Narrow", "Segoe UI", sans-serif;
     font-size: clamp(11px, 1.05vw, 14px);
     font-weight: 500;
     letter-spacing: clamp(3px, .55vw, 7px);

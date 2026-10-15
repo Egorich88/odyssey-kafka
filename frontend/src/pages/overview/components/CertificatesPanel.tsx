@@ -5,6 +5,13 @@
 
 /**
  * @file CertificatesPanel.tsx
+ * @project Odyssey new 4.2.36
+ * @description Панель отображения сертификатов Kafka.
+ * @changes Убраны моковые данные и значок щита/фильтра в выпадающих фильтрах; данные берутся с API.
+ */
+
+/**
+ * @file CertificatesPanel.tsx
  * Таблица сертификатов Kafka и связанных TLS-файлов.
  *
  * Refactor 4.2.35:
@@ -16,7 +23,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { FiChevronDown, FiChevronUp, FiFilter, FiShield } from 'react-icons/fi';
+import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import PanelInfo from '../../../components/common/PanelInfo';
 import PanelFullscreenButton from './PanelFullscreenButton';
 import { useCluster } from '../../../contexts/ClusterContext';
@@ -44,14 +51,6 @@ interface ResponseData {
 type SortKey = 'name' | 'type' | 'expiresAt' | 'daysLeft' | 'path' | 'subject';
 type ExpiryFilter = 'ALL' | 'OK' | 'WARNING' | 'CRITICAL';
 type TypeFilter = 'ALL' | string;
-
-const DEMO_CERTIFICATES: Certificate[] = [
-  { name: 'kafka-broker.crt', path: '/etc/kafka/tls/kafka-broker.crt', type: 'X.509 / CRT', expiresAt: '2027-03-25', daysLeft: 184, subject: 'CN=kafka.example.local', issuer: 'Corporate CA', commonName: 'kafka.example.local', san: 'DNS:kafka.example.local' },
-  { name: 'client.p12', path: '/etc/kafka/tls/client.p12', type: 'PKCS#12 / P12', expiresAt: '2026-12-24', daysLeft: 92, subject: 'CN=kafka-client', issuer: 'Corporate CA', commonName: 'kafka-client', san: 'DNS:kafka-client' },
-  { name: 'truststore.jks', path: '/etc/kafka/secrets/truststore.jks', type: 'JKS Truststore', expiresAt: '2026-10-24', daysLeft: 31, subject: 'CN=Corporate CA', issuer: 'Corporate CA', commonName: 'Corporate CA', san: '—' },
-  { name: 'server.pfx', path: '/etc/kafka/tls/server.pfx', type: 'PKCS#12 / PFX', expiresAt: '2026-10-01', daysLeft: 8, subject: 'CN=broker.example.local', issuer: "Let's Encrypt", commonName: 'broker.example.local', san: 'DNS:broker.example.local' },
-  { name: 'private.p8', path: '/etc/kafka/tls/private.p8', type: 'PKCS#8 / P8', expiresAt: '', daysLeft: -1, subject: 'Приватный ключ', issuer: '—', commonName: '—', san: '—' },
-];
 
 function expiryStatus(days: number): 'ok' | 'warning' | 'critical' | 'neutral' {
   if (days < 0) return 'neutral';
@@ -99,10 +98,9 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
   }, [currentCluster?.id, currentCluster?.brokers, currentCluster?.bootstrapServers, refreshKey]);
 
   const realCertificates = data?.certificates ?? [];
-  const isDemo = realCertificates.length === 0;
-  const certificates = isDemo ? DEMO_CERTIFICATES : realCertificates;
-  const count = data?.count ?? (isDemo ? DEMO_CERTIFICATES.length : 0);
-  const nearest = data?.nearestDays ?? (isDemo ? Math.min(...DEMO_CERTIFICATES.filter((item) => item.daysLeft >= 0).map((item) => item.daysLeft)) : 0);
+  const certificates = realCertificates;
+  const count = data?.count ?? 0;
+  const nearest = data?.nearestDays ?? 0;
 
   const types = useMemo(() => Array.from(new Set(certificates.map((item) => item.type).filter(Boolean))).sort(), [certificates]);
 
@@ -135,7 +133,7 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
     <div className="dashboard-panel certificate-panel">
       <div className="panel-header certificate-panel-header">
         <div className="panel-title-with-info">
-          <span className="certificate-title-icon"><FiShield /></span>
+          
           <PanelInfo
             title="Сертификаты Kafka"
             description="Список TLS-сертификатов и связанных хранилищ Kafka. Отображаются срок действия, расположение и данные Subject/Issuer, если их удалось прочитать."
@@ -151,7 +149,6 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
           <div className="certificate-summary-nearest">Ближайшее истечение: <strong>{nearest >= 0 ? `${nearest} дн.` : '—'}</strong></div>
           <div className="certificate-filters">
             <div className="certificate-filter">
-              <FiFilter />
               <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Тип сертификата">
                 <option value="ALL">Все типы</option>
                 {types.map((type) => <option key={type} value={type}>{type}</option>)}
@@ -166,20 +163,25 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
               </select>
             </div>
           </div>
-          {isDemo && <span className="certificate-demo-badge">Пример</span>}
+
         </div>
 
         <div className="certificate-table-wrap">
           <div className="certificate-table">
             <div className="certificate-table-row header">
-              <button type="button" onClick={() => changeSort('name')}>Сертификат <FiFilter /></button>
-              <button type="button" onClick={() => changeSort('type')}>Тип <FiFilter /></button>
+              <button type="button" onClick={() => changeSort('name')}>Сертификат</button>
+              <button type="button" onClick={() => changeSort('type')}>Тип</button>
               <button type="button" onClick={() => changeSort('expiresAt')}>Истекает <SortIcon column="expiresAt" /></button>
               <button type="button" onClick={() => changeSort('daysLeft')}>Осталось <SortIcon column="daysLeft" /></button>
-              <button type="button" onClick={() => changeSort('path')}>Расположение <FiFilter /></button>
-              <button type="button" onClick={() => changeSort('subject')}>Subject / Issuer <FiFilter /></button>
+              <button type="button" onClick={() => changeSort('path')}>Расположение</button>
+              <button type="button" onClick={() => changeSort('subject')}>Subject / Issuer</button>
             </div>
 
+            {filteredCertificates.length === 0 && (
+              <div className="certificate-empty-state">
+                {data?.message || (data ? 'Сертификаты не обнаружены в доступных TLS-источниках кластера.' : 'Не удалось получить данные о сертификатах. Проверьте подключение к кластеру.')}
+              </div>
+            )}
             {filteredCertificates.map((certificate) => {
               const status = expiryStatus(certificate.daysLeft);
               return (

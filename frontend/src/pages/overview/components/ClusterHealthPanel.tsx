@@ -16,6 +16,13 @@
 
 /**
  * @file ClusterHealthPanel.tsx
+ * @project Odyssey new 4.2.36
+ * @description Сводная панель состояния Kafka-кластера.
+ * @changes Добавлены подсказки к индикаторам статуса.
+ */
+
+/**
+ * @file ClusterHealthPanel.tsx
  * Сводная панель состояния Kafka-кластера.
  *
  * В верхней части расположены KPI Overview, ниже — таблица брокеров.
@@ -93,7 +100,7 @@ export default function ClusterHealthPanel({ refreshKey, overview, consumerGroup
           />
           <span>Состояние кластера</span>
         </div>
-        <div className={`cluster-status-inline ${meta.className}`}>
+        <div className={`cluster-status-inline ${meta.className}`} title={meta.description} aria-label={meta.description}>
           <StatusIcon />
           <span>{meta.title}</span>
         </div>

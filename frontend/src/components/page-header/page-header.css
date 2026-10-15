@@ -16,6 +16,13 @@
 
 /**
  * @file page-header.css
+ * @project Odyssey new 4.2.36
+ * @description Стили заголовка страницы и выбора периода.
+ * @changes Выравнены иконки периода и исправлена ширина меню абсолютного диапазона.
+ */
+
+/**
+ * @file page-header.css
  * Стили общей верхней панели KSC.
  *
  * Разделитель использует фирменный цвет Sidebar. Во время загрузки
@@ -397,3 +404,13 @@
     width: min(228px, calc(100vw - 32px));
   }
 }
+
+/* Иконки выбора периода закреплены по краям кнопки. */
+.page-header-time-button { display: inline-flex; align-items: center; gap: 9px; }
+.page-header-time-button .time-range-calendar { order: 0; flex: 0 0 auto; }
+.page-header-time-button > span { order: 1; min-width: 0; }
+.page-header-time-button .time-range-chevron { order: 2; flex: 0 0 auto; margin-left: auto; }
+.page-header-time-menu { min-width: min(360px, calc(100vw - 32px)); max-width: calc(100vw - 32px); }
+.page-header-datetime-grid { min-width: 0; }
+.page-header-datetime-grid label { min-width: 0; }
+.page-header-datetime-grid input { width: 100%; min-width: 0; }

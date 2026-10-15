@@ -3,6 +3,13 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
+/**
+ * @file certificates-panel.css
+ * @project Odyssey new 4.2.36
+ * @description Стили панели сертификатов Kafka.
+ * @changes Увеличен размер текста фильтров и приведены выпадающие списки к теме.
+ */
+
 /** @file certificates-panel.css Таблица сертификатов Kafka. */
 
 .certificate-panel { min-width: 0; min-height: 0; }
@@ -15,9 +22,9 @@
 .certificate-summary-nearest strong { color: var(--text-primary); }
 .certificate-filters { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .certificate-filter { position: relative; display: flex; align-items: center; color: var(--text-secondary); }
-.certificate-filter > svg { position: absolute; left: 8px; z-index: 1; pointer-events: none; font-size: 13px; }
-.certificate-filter select { appearance: none; height: 30px; min-width: 112px; padding: 0 24px 0 10px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--dropdown-bg); color: var(--text-primary); font: inherit; font-size: 10px; outline: none; cursor: pointer; }
-.certificate-filter:first-child select { padding-left: 27px; }
+
+.certificate-filter select { appearance: none; height: 30px; min-width: 112px; padding: 0 24px 0 10px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--dropdown-bg); color: var(--text-primary); font: inherit; font-size: 13px; outline: none; cursor: pointer; }
+.certificate-filter:first-child select { padding-left: 11px; }
 .certificate-filter select:focus { border-color: var(--accent-hover); box-shadow: 0 0 0 2px var(--input-focus); }
 .certificate-demo-badge { padding: 3px 7px; border: 1px solid var(--border-color); border-radius: 5px; color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
 .certificate-table-wrap { flex: 1; min-height: 0; overflow: auto; border-top: 1px solid var(--border-color); scrollbar-width: thin; scrollbar-color: var(--sidebar-divider-color) transparent; }
@@ -43,3 +50,5 @@
 .certificate-empty { padding: 12px; text-align: center; color: var(--text-secondary); font-size: 11px; }
 
 @media (max-width: 1000px) { .certificate-toolbar { flex-wrap: wrap; } .certificate-filters { margin-left: 0; } }
+
+.certificate-empty-state { padding: 24px 12px; color: var(--text-secondary); font-size: 13px; text-align: center; }

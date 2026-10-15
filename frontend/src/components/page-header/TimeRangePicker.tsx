@@ -15,6 +15,13 @@
  */
 
 /**
+ * @file TimeRangePicker.tsx
+ * @project Odyssey new 4.2.36
+ * @description Компонент выбора периода для панелей обзора.
+ * @changes Исправлено размещение иконок и адаптивность кнопки выбора периода.
+ */
+
+/**
  * =============================================================================
  * @file TimeRangePicker.tsx
  * =============================================================================
@@ -116,9 +123,9 @@ export default function TimeRangePicker({ value, onChange }: Props) {
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <FiCalendar className="page-header-control-icon" />
+        <FiCalendar className="page-header-control-icon time-range-calendar" />
         <span>{label}</span>
-        <FiChevronDown className="page-header-chevron" />
+        <FiChevronDown className="page-header-chevron time-range-chevron" />
       </button>
 
       {open && (

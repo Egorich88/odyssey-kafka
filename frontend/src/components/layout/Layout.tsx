@@ -15,6 +15,13 @@
  */
 
 /**
+ * @file Layout.tsx
+ * @project Odyssey new 4.2.36
+ * @description Общий макет приложения и блокировка страниц при недоступности Kafka.
+ * @changes Уточнено условие блокировки контента и убран заголовок приветствия.
+ */
+
+/**
  * =============================================================================
  * @file Layout.tsx
  * =============================================================================
@@ -190,7 +197,7 @@ const Layout = () => {
   const isWelcome = !currentCluster && clusters.length === 0 && (location.pathname === '/' || location.pathname === '/overview');
   const currentPage = isWelcome
     ? {
-        title: 'Добро пожаловать',
+        title: '',
         description: '',
         mode: 'default' as const,
       }
@@ -200,7 +207,7 @@ const Layout = () => {
   // Для Kafka-страниц кластер доступен только после подтверждённого статуса connected.
   // Отсутствующий статус также считается проверкой, а не разрешением открыть страницу.
   const clusterStatus = currentCluster?.connectionStatus ?? 'checking';
-  const clusterUnavailable = Boolean(currentCluster && clusterStatus !== 'connected');
+  const clusterUnavailable = Boolean(kafkaRequiredPage && (!currentCluster || clusterStatus !== 'connected'));
 
   return (
     <div className="app-layout sidebar-dark">

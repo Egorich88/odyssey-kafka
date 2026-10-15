@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * @file consumer-lag-panel.css
+ * @project Odyssey new 4.2.36
+ * @description Стили панели групп потребителей и истории lag.
+ * @changes Добавлены цвета статусов Stable, Empty, Rebalancing и Dead.
+ */
+
 /* Стили панели Consumer Lag: график сверху, таблица снизу. */
 
 .consumer-lag-panel {
@@ -333,3 +340,9 @@
         min-width: 700px;
     }
 }
+
+/* Цвета статусов групп потребителей в таблице и подсказках. */
+.consumer-status-stable { color: #22c55e; background: rgba(34, 197, 94, .12); border-color: rgba(34, 197, 94, .35); }
+.consumer-status-empty { color: #9ca3af; background: rgba(156, 163, 175, .12); border-color: rgba(156, 163, 175, .3); }
+.consumer-status-rebalancing { color: #f59e0b; background: rgba(245, 158, 11, .12); border-color: rgba(245, 158, 11, .35); }
+.consumer-status-dead { color: #ef4444; background: rgba(239, 68, 68, .12); border-color: rgba(239, 68, 68, .35); }

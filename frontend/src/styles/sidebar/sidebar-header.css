@@ -5,6 +5,13 @@
  * you may not use this file except in compliance with the License.
  */
 
+/**
+ * @file sidebar-header.css
+ * @project Odyssey new 4.2.36
+ * @description Стили заголовка и брендинга боковой панели.
+ * @changes Применён шрифт OdysseyDisplay к названию продукта.
+ */
+
 .sidebar-logo {
     display: flex;
     flex-direction: column;
@@ -51,7 +58,7 @@
 .sidebar-brand-name {
     display: inline-flex;
     align-items: center;
-    font-family: 'Inter', sans-serif;
+    font-family: 'OdysseyDisplay', 'Century Gothic', 'Segoe UI', sans-serif;
     font-size: 21px;
     font-weight: 600;
     letter-spacing: 1.6px;

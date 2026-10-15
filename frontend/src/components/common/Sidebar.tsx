@@ -15,6 +15,13 @@
  */
 
 /**
+ * @file Sidebar.tsx
+ * @project Odyssey new 4.2.36
+ * @description Навигационная боковая панель Odyssey.
+ * @changes Название оформлено фирменным шрифтом; статус версии доступен без наведения и ведёт в настройки.
+ */
+
+/**
  * @fileoverview Боковое меню приложения Odyssey.
  * Содержит логотип, информацию о версии, выбор/добавление кластера,
  * основную навигацию по разделам, настройки и футер с лицензией.
@@ -121,22 +128,21 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
   const version = packageJson.version;
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [animateVersion, setAnimateVersion] = useState(false);
+  const [showVersionHint, setShowVersionHint] = useState(false);
 
   // Состояние боковой панели
   const [collapsed, setCollapsed] = useState(false);
   const [logoHovered, setLogoHovered] = useState(false);
 
-  // ----- Проверка наличия обновлений (не чаще раза в час) -----
+  // Проверяем версию при запуске, чтобы кратко показать её статус без наведения.
   useEffect(() => {
-    const lastCheck = localStorage.getItem('lastVersionCheck');
-    const now = Date.now();
-    const oneHour = 60 * 60 * 1000;
-    if (!lastCheck || now - Number(lastCheck) > oneHour) {
-      getLatestVersion().then(remoteVersion => {
-        setLatestVersion(remoteVersion);
-        localStorage.setItem('lastVersionCheck', now.toString());
-      });
-    }
+    let cancelled = false;
+    getLatestVersion().then((remoteVersion) => {
+      if (cancelled) return;
+      setLatestVersion(remoteVersion);
+      localStorage.setItem('lastVersionCheck', Date.now().toString());
+    });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -160,6 +166,14 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
   const localIsNewer = versionState === -1;
   const hasCluster = clusters.length > 0 && Boolean(currentCluster);
   const navigationDisabled = hasCluster && clusterUnavailable;
+
+  useEffect(() => {
+    if (!latestVersion) return;
+    setShowVersionHint(true);
+    const timer = window.setTimeout(() => setShowVersionHint(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, [latestVersion]);
+
 
   useEffect(() => {
       if (!hasUpdate) return;
@@ -265,6 +279,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
                             statusResolver={(cluster) =>
                                 cluster?.connectionStatus || 'unknown'
                             }
+                            searchable={false}
                         />
                     )}
 
@@ -447,10 +462,9 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             </a>
           </div>
 
-          <a
-            href="https://github.com/Egorich88/odyssey-kafka/releases"
-            target="_blank"
-            rel="noopener noreferrer"
+          <NavLink
+            to="/settings"
+            aria-label={hasUpdate ? `Доступна новая версия ${latestVersion}. Открыть настройки обновления` : 'Открыть настройки версии'}
             className={`sidebar-version ${hasUpdate ? 'update-available' : ''} ${animateVersion ? 'animate' : ''}`}
             data-tooltip-id="sidebar-tooltip"
             data-tooltip-content={
@@ -461,10 +475,13 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
                   : `${t('sidebar.currentVersion')} ${version}`
             }
           >
-            <span className="version-label">
-              {`ver. ${version}`}
-            </span>
-          </a>
+            <span className="version-label">{`ver. ${version}`}</span>
+          </NavLink>
+          {showVersionHint && latestVersion && (
+            <NavLink to="/settings" className={`sidebar-version-hint ${hasUpdate ? 'update-available' : ''}`}>
+              {hasUpdate ? `Доступна новая версия ${latestVersion}` : 'Версия актуальна'}
+            </NavLink>
+          )}
         </div>
       </div>
       <Tooltip id="sidebar-tooltip" place="right" offset={12} />

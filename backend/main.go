@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * @file main.go
+ * @project Odyssey new 4.2.36
+ * @description Регистрация REST API приложения.
+ * @changes Добавлены маршруты проверки версии, запуска обновления и потока прогресса.
+ */
+
 // Package main — точка входа бэкенда для Kafka System Control.
 // Предоставляет REST API для управления топиками, сообщениями,
 // а также метриками для дашборда.
@@ -196,6 +203,11 @@ func main() {
 	http.HandleFunc("/api/overview/consumer-lag", GetConsumerLagHandler)
 	http.HandleFunc("/api/overview/events", getDashboardEventsHandler)
 	http.HandleFunc("/api/overview/certificates", getCertificatesHandler)
+
+	// Проверка актуальной версии и серверный поток прогресса обновления.
+	http.HandleFunc("/api/version/check", checkVersionHandler)
+	http.HandleFunc("/api/version/update", updateStartHandler)
+	http.HandleFunc("/api/version/update/events", updateEventsHandler)
 
 	// ----- Health check для кластера -----
 	// Эндпоинт проверяет доступность Kafka-брокера.
