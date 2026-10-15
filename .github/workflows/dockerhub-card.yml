@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 name: Update Docker Hub Card
 
 on:
@@ -34,6 +33,7 @@ on:
       - ".github/assets/logo.png"
       - ".github/assets/Comfortaa.woff2"
       - ".github/assets/OdysseyDisplay.woff2"
+      - "frontend/package.json"
 
 permissions:
   contents: write
@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.1.0
         with:
           ref: main
 
@@ -61,6 +61,7 @@ jobs:
       - name: Generate Docker Hub card
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: npx --yes tsx .github/scripts/dockerhub-card.ts
 
       - name: Commit updated card

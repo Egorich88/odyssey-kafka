@@ -202,7 +202,7 @@ Downloads
     font-size="13"
     font-family="Segoe UI"
     fill="#8B949E">
-Updated 13 days ago
+Updated 2 hours ago
 </text>
 
 <a xlink:href="https://hub.docker.com/r/egorich27/kafka-control-frontend" target="_blank">
@@ -293,7 +293,7 @@ egorich27/kafka-control-backend
     font-family="Segoe UI"
     font-weight="700"
     fill="#FFFFFF">
-10.8K
+10.9K
 </text>
 
 <text
@@ -317,7 +317,7 @@ Downloads
     font-size="13"
     font-family="Segoe UI"
     fill="#8B949E">
-Updated 13 days ago
+Updated 2 hours ago
 </text>
 
 <a xlink:href="https://hub.docker.com/r/egorich27/kafka-control-backend" target="_blank">
@@ -449,11 +449,11 @@ RELEASE
         font-family="Segoe UI, sans-serif"
         font-weight="700"
         fill="#FFFFFF">
-v4.2.35
+v4.2.36
 </text>
 </a>
 
-<a xlink:href="https://github.com/Egorich88/odyssey-kafka/actions/runs/36828529803" target="_blank">
+<a xlink:href="https://github.com/Egorich88/odyssey-kafka/actions/runs/38729709614" target="_blank">
     <rect
         x="641"
         y="344"

@@ -13,8 +13,11 @@ const GITHUB_REPO = "odyssey-kafka";
 const GITHUB_WORKFLOW_FILE = "ci-cd.yml";
 const GITHUB_BRANCH = "main";
 
+const LICENSE_SPDX = "Apache-2.0";
+
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const ASSETS_DIR = path.join(REPO_ROOT, ".github", "assets");
+const PACKAGE_JSON_PATH = path.join(REPO_ROOT, "frontend", "package.json");
 
 interface IconPaths {
     dockerhub: string;
@@ -41,21 +44,11 @@ interface RepoInfo {
     hubUrl: string;
 }
 
-interface GitHubRelease {
-    tag_name: string;
-    published_at: string;
-}
-
-interface GitHubRepoMeta {
-    license: { spdx_id: string; name: string } | null;
-}
-
 interface GitHubWorkflowRuns {
     workflow_runs: Array<{
         conclusion: "success" | "failure" | "cancelled" | "skipped" | "neutral" | null;
         status: string;
         html_url: string;
-        updated_at: string;
     }>;
 }
 
@@ -86,13 +79,13 @@ const LOGO_TEXT_GAP = 20;
 
 /* ---------- BADGES ---------- */
 
-const BADGE_HEIGHT = 24;              // ← было 28, стало 24
+const BADGE_HEIGHT = 24;
 const BADGE_GAP = 14;
-const BADGE_FONT_SIZE = 11;           // ← было 12, стало 11
-const BADGE_RADIUS = 4;               // ← было 5, стало 4
+const BADGE_FONT_SIZE = 11;
+const BADGE_RADIUS = 4;
 const BADGE_BORDER = "#30363D";
 
-const BADGE_BOTTOM_OFFSET = 32;       // ← отступ от низа SVG (было 40, стало 32 → badge ниже)
+const BADGE_BOTTOM_OFFSET = 32;
 const BADGE_Y = SVG_HEIGHT - BADGE_BOTTOM_OFFSET - BADGE_HEIGHT;
 
 const BADGE_LABEL_BG = "#21262D";
@@ -101,8 +94,7 @@ const BADGE_LABEL_FG = "#C9D1D9";
 const BADGE_COLORS = {
     success: "#238636",
     failure: "#DA3633",
-    neutral: "#6E7681",
-    unknown: "#6E7681"
+    neutral: "#6E7681"
 } as const;
 
 /* ---------- ASSETS ---------- */
@@ -115,6 +107,20 @@ const ICONS: IconPaths = {
     comfortaa: path.join(ASSETS_DIR, "Comfortaa.woff2"),
     odysseyDisplay: path.join(ASSETS_DIR, "OdysseyDisplay.woff2")
 };
+
+/* ---------- DOCKER HUB API ---------- */
+
+async function fetchRepository(repository: string): Promise<RepositoryResponse> {
+    const response = await fetch(
+        `https://hub.docker.com/v2/repositories/${repository}/`
+    );
+
+    if (!response.ok) {
+        throw new Error(`Docker Hub API error: ${repository}`);
+    }
+
+    return await response.json() as RepositoryResponse;
+}
 
 /* ---------- GITHUB API ---------- */
 
@@ -129,34 +135,6 @@ function githubHeaders(): Record<string, string> {
     }
 
     return headers;
-}
-
-async function fetchLatestRelease(): Promise<GitHubRelease | null> {
-    const response = await fetch(
-        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
-        { headers: githubHeaders() }
-    );
-
-    if (!response.ok) {
-        console.warn(`⚠️  GitHub release not found (${response.status})`);
-        return null;
-    }
-
-    return await response.json() as GitHubRelease;
-}
-
-async function fetchRepoMeta(): Promise<GitHubRepoMeta | null> {
-    const response = await fetch(
-        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`,
-        { headers: githubHeaders() }
-    );
-
-    if (!response.ok) {
-        console.warn(`⚠️  GitHub repo meta not found (${response.status})`);
-        return null;
-    }
-
-    return await response.json() as GitHubRepoMeta;
 }
 
 async function fetchWorkflowStatus(): Promise<GitHubWorkflowRuns["workflow_runs"][number] | null> {
@@ -174,18 +152,6 @@ async function fetchWorkflowStatus(): Promise<GitHubWorkflowRuns["workflow_runs"
 
     const data = await response.json() as GitHubWorkflowRuns;
     return data.workflow_runs[0] ?? null;
-}
-
-async function fetchRepository(repository: string): Promise<RepositoryResponse> {
-    const response = await fetch(
-        `https://hub.docker.com/v2/repositories/${repository}/`
-    );
-
-    if (!response.ok) {
-        throw new Error(`Docker Hub API error: ${repository}`);
-    }
-
-    return await response.json() as RepositoryResponse;
 }
 
 /* ---------- HELPERS ---------- */
@@ -225,6 +191,43 @@ function assertIconExists(filePath: string, label: string): void {
 
 function estimateTextWidth(text: string, fontSize: number): number {
     return Math.ceil(text.length * fontSize * 0.62);
+}
+
+/* ---------- VERSION RESOLUTION (гибрид) ---------- */
+
+function readPackageVersion(): string | null {
+    if (!fs.existsSync(PACKAGE_JSON_PATH)) {
+        console.warn(`⚠️  package.json not found at: ${PACKAGE_JSON_PATH}`);
+        return null;
+    }
+
+    try {
+        const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8")) as {
+            version?: string;
+        };
+        return pkg.version ?? null;
+    } catch (e) {
+        console.warn(`⚠️  Failed to parse ${PACKAGE_JSON_PATH}:`, e);
+        return null;
+    }
+}
+
+function normalizeTag(tag: string): string {
+    return tag.startsWith("v") ? tag : `v${tag}`;
+}
+
+function resolveVersion(): { value: string; source: "release" | "package.json" } | null {
+    const releaseTag = process.env.RELEASE_TAG?.trim();
+    if (releaseTag) {
+        return { value: normalizeTag(releaseTag), source: "release" };
+    }
+
+    const pkgVersion = readPackageVersion();
+    if (pkgVersion) {
+        return { value: normalizeTag(pkgVersion), source: "package.json" };
+    }
+
+    return null;
 }
 
 /* ---------- BADGE BUILDER ---------- */
@@ -361,11 +364,7 @@ ${parts.join("\n")}
 /* ---------- MAIN ---------- */
 
 const frontend = await fetchRepository(FRONTEND_REPO);
-const backend = await fetchRepository(BACKEND_REPO);
-
-const release = await fetchLatestRelease();
-const repoMeta = await fetchRepoMeta();
-const workflowRun = await fetchWorkflowStatus();
+const backend  = await fetchRepository(BACKEND_REPO);
 
 assertIconExists(ICONS.dockerhub, "dockerhub");
 assertIconExists(ICONS.frontend, "frontend");
@@ -375,10 +374,10 @@ assertIconExists(ICONS.comfortaa, "comfortaa");
 assertIconExists(ICONS.odysseyDisplay, "odysseyDisplay");
 
 const dockerhubIconBase64 = fs.readFileSync(ICONS.dockerhub).toString("base64");
-const frontendIconBase64 = fs.readFileSync(ICONS.frontend).toString("base64");
-const backendIconBase64 = fs.readFileSync(ICONS.backend).toString("base64");
-const odysseyIconBase64 = fs.readFileSync(ICONS.odyssey).toString("base64");
-const comfortaaBase64 = fs.readFileSync(ICONS.comfortaa).toString("base64");
+const frontendIconBase64  = fs.readFileSync(ICONS.frontend).toString("base64");
+const backendIconBase64   = fs.readFileSync(ICONS.backend).toString("base64");
+const odysseyIconBase64   = fs.readFileSync(ICONS.odyssey).toString("base64");
+const comfortaaBase64     = fs.readFileSync(ICONS.comfortaa).toString("base64");
 const odysseyDisplayBase64 = fs.readFileSync(ICONS.odysseyDisplay).toString("base64");
 
 const frontendInfo: RepoInfo = {
@@ -403,28 +402,35 @@ const backendInfo: RepoInfo = {
 
 const badges: BadgeSpec[] = [];
 
-if (repoMeta?.license?.spdx_id) {
-    badges.push({
-        label: "LICENSE",
-        value: repoMeta.license.spdx_id,
-        valueColor: "#1F6FEB",
-        href: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/blob/main/LICENSE`
-    });
-}
+/* --- LICENSE --- */
+badges.push({
+    label: "LICENSE",
+    value: LICENSE_SPDX,
+    valueColor: "#1F6FEB",
+    href: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/blob/main/LICENSE`
+});
 
-if (release) {
+/* --- RELEASE --- */
+const version = resolveVersion();
+if (version) {
+    console.log(`ℹ️  Version source: ${version.source} → ${version.value}`);
     badges.push({
         label: "RELEASE",
-        value: release.tag_name,
+        value: version.value,
         valueColor: "#238636",
         href: `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`
     });
+} else {
+    console.warn("⚠️  Version not resolved — RELEASE badge skipped");
 }
 
+/* --- CI/CD --- */
+const workflowRun = await fetchWorkflowStatus();
 if (workflowRun) {
     const concl = workflowRun.conclusion ?? workflowRun.status;
     const isOk = concl === "success";
     const isBad = concl === "failure" || concl === "cancelled";
+
     const color = isOk
         ? BADGE_COLORS.success
         : isBad
@@ -443,6 +449,8 @@ if (workflowRun) {
         valueColor: color,
         href: workflowRun.html_url
     });
+} else {
+    console.warn("⚠️  Workflow run not found — CI/CD badge skipped");
 }
 
 const badgeRowSvg = buildBadgeRow(badges, SVG_WIDTH / 2, BADGE_Y);
@@ -451,8 +459,8 @@ const badgeRowSvg = buildBadgeRow(badges, SVG_WIDTH / 2, BADGE_Y);
 
 const LINK_BTN_SIZE = 42;
 const LINK_BTN_PADDING = 16;
-const LINK_BTN_LEFT_X  = CARD_LEFT_X  + CARD_WIDTH - LINK_BTN_PADDING - LINK_BTN_SIZE;
-const LINK_BTN_RIGHT_X = CARD_RIGHT_X + CARD_WIDTH - LINK_BTN_PADDING - LINK_BTN_SIZE;
+const LINK_BTN_LEFT_X  = CARD_LEFT_X  + CARD_WIDTH  - LINK_BTN_PADDING - LINK_BTN_SIZE;
+const LINK_BTN_RIGHT_X = CARD_RIGHT_X + CARD_WIDTH  - LINK_BTN_PADDING - LINK_BTN_SIZE;
 
 /* ---------- SVG ---------- */
 
