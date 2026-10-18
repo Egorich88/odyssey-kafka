@@ -18,7 +18,8 @@
  * @file Sidebar.tsx
  * @project Odyssey new 4.2.36
  * @description Навигационная боковая панель Odyssey.
- * @changes Название оформлено фирменным шрифтом; статус версии доступен без наведения и ведёт в настройки.
+ * @changes Футер сведён в одну строку (версия · ник + иконки GitHub/Apache),
+ *           плашка статуса версии появляется абсолютно над строкой.
  */
 
 /**
@@ -59,8 +60,6 @@ import { enterpriseSidebarItems } from '@odyssey/registry';
 
 /**
  * Нормализует строку версии: удаляет ведущий символ 'v', если он есть.
- * @param {string} version - Сырая строка версии (например, "v1.2.3" или "1.2.3").
- * @returns {string} Нормализованная версия без префикса 'v'.
  */
 function normalizeVersion(version: string): string {
   return version.replace(/^v/, '');
@@ -68,9 +67,7 @@ function normalizeVersion(version: string): string {
 
 /**
  * Сравнивает локальную и удалённую версии.
- * @param {string} local  - Локальная версия (из package.json).
- * @param {string} remote - Удалённая версия (с GitHub).
- * @returns {number} 1, если удалённая новее; -1, если локальная новее; 0, если равны.
+ * @returns 1, если удалённая новее; -1, если локальная новее; 0, если равны.
  */
 function compareVersions(local: string, remote: string): number {
   const l = local.split('.').map(Number);
@@ -86,12 +83,6 @@ function compareVersions(local: string, remote: string): number {
 // Основной компонент Sidebar
 // =============================================================================
 
-/**
- * Боковая панель навигации.
- * @param {Object} props
- * @param {Function} props.onAddCluster   - Колбэк для добавления нового кластера.
- * @param {Function} props.onEditCluster  - Колбэк для редактирования текущего кластера.
- */
 interface SidebarProps {
   onAddCluster: () => void;
   onEditCluster: () => void;
@@ -130,11 +121,10 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
   const [animateVersion, setAnimateVersion] = useState(false);
   const [showVersionHint, setShowVersionHint] = useState(false);
 
-  // Состояние боковой панели
   const [collapsed, setCollapsed] = useState(false);
   const [logoHovered, setLogoHovered] = useState(false);
 
-  // Проверяем версию при запуске, чтобы кратко показать её статус без наведения.
+  // Проверяем версию при запуске.
   useEffect(() => {
     let cancelled = false;
     getLatestVersion().then((remoteVersion) => {
@@ -148,25 +138,18 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
   useEffect(() => {
     const timer = setTimeout(() => {
       setAnimateVersion(true);
-
-      setTimeout(() => {
-        setAnimateVersion(false);
-      }, 2000);
-
+      setTimeout(() => setAnimateVersion(false), 2000);
     }, 2000);
-
     return () => clearTimeout(timer);
   }, []);
 
-
-
-  // Результат сравнения версий
   const versionState = latestVersion ? compareVersions(version, latestVersion) : 0;
   const hasUpdate = versionState === 1;
   const localIsNewer = versionState === -1;
   const hasCluster = clusters.length > 0 && Boolean(currentCluster);
   const navigationDisabled = hasCluster && clusterUnavailable;
 
+  // Кратковременно показываем плашку статуса версии над футером.
   useEffect(() => {
     if (!latestVersion) return;
     setShowVersionHint(true);
@@ -174,23 +157,14 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
     return () => window.clearTimeout(timer);
   }, [latestVersion]);
 
-
   useEffect(() => {
-      if (!hasUpdate) return;
-
-      const interval = setInterval(() => {
-        setAnimateVersion(true);
-
-        setTimeout(() => {
-          setAnimateVersion(false);
-        }, 2000);
-
-      }, 60000);
-
-      return () => clearInterval(interval);
-    }, [hasUpdate]);
-
-
+    if (!hasUpdate) return;
+    const interval = setInterval(() => {
+      setAnimateVersion(true);
+      setTimeout(() => setAnimateVersion(false), 2000);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [hasUpdate]);
 
   // =========================================================================
   // Рендер
@@ -199,29 +173,8 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       {/* -------------------- Верхняя область (логотип + кластер) -------------------- */}
       <div className="sidebar-top">
-        {/* Логотип и название проекта */}
         <div className="sidebar-logo">
-
-          {/* ----------------------------------------------------------
-              Верхняя строка Sidebar
-          ----------------------------------------------------------- */}
           <div className="sidebar-header">
-
-            {/* Логотип */}
-            {/* ==========================================================
-                Брендинг Odyssey
-
-                Слева:
-                фирменный графический знак.
-
-                Справа:
-                короткий wordmark Odyssey.
-
-                Полное название Odyssey
-                в Sidebar не используется — здесь нужен
-                компактный фирменный идентификатор.
-               ========================================================== */}
-
             <button
               type="button"
               className={`sidebar-logo-brand ${collapsed && logoHovered ? 'is-expand-hover' : ''}`}
@@ -235,21 +188,14 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
               {collapsed && logoHovered ? (
                 <FiSidebar className="sidebar-logo-expand-icon" aria-hidden="true" />
               ) : (
-                <img
-                  src="/logo.svg"
-                  alt="ODYSSEY"
-                  className="sidebar-logo-image"
-                />
+                <img src="/logo.svg" alt="ODYSSEY" className="sidebar-logo-image" />
               )}
 
               {!collapsed && (
-                <span className="sidebar-brand-name">
-                  ODYSSEY
-                </span>
+                <span className="sidebar-brand-name">ODYSSEY</span>
               )}
             </button>
 
-            {/* Кнопка сворачивания боковой панели */}
             <button
                 className="sidebar-collapse-button"
                 onClick={() => setCollapsed(!collapsed)}
@@ -258,12 +204,9 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             >
               <FiSidebar />
             </button>
-
           </div>
-
         </div>
 
-        {/* Блок выбора / добавления кластера */}
         <div className="sidebar-cluster">
             {hasCluster ? (
                 <div className={`cluster-row ${collapsed ? 'collapsed' : ''}`}>
@@ -302,17 +245,13 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
                         <FiPlus />
                     </button>
                 ) : (
-                    <div
-                        className="cluster-add-link"
-                        onClick={onAddCluster}
-                    >
+                    <div className="cluster-add-link" onClick={onAddCluster}>
                         {t('sidebar.addCluster')}
                     </div>
                 )
             )}
         </div>
 
-        {/* Основная навигация. При недоступном кластере блокируются все Kafka-разделы. */}
         {hasCluster && (
           <nav className={`sidebar-nav ${navigationDisabled ? 'is-disabled' : ''}`}>
             <NavLink
@@ -404,7 +343,6 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
 
       {/* -------------------- Нижняя область -------------------- */}
       <div className="sidebar-bottom">
-        {/* Настройки + быстрый переключатель темы */}
         <nav className="sidebar-bottom-nav">
           <div className="sidebar-settings-row">
             <NavLink
@@ -431,11 +369,49 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
           </NavLink>
         </nav>
 
-        {/* Полная разделительная линия находится в .sidebar-footer.
-            Дополнительную короткую линию здесь не используем. */}
-
-        {/* Футер: GitHub + Apache License и версия */}
+        {/* Футер: одна строка (версия · ник + иконки), плашка — абсолютно сверху */}
         <div className="sidebar-footer">
+          {showVersionHint && latestVersion && (
+            <NavLink
+              to="/settings"
+              className={`sidebar-version-hint ${hasUpdate ? 'update-available' : ''}`}
+            >
+              {hasUpdate ? `Доступна новая версия ${latestVersion}` : 'Версия актуальна'}
+            </NavLink>
+          )}
+
+          <div className="sidebar-footer-meta">
+            <NavLink
+              to="/settings"
+              aria-label={hasUpdate ? `Доступна новая версия ${latestVersion}. Открыть настройки обновления` : 'Открыть настройки версии'}
+              className={`sidebar-version ${hasUpdate ? 'update-available' : ''} ${animateVersion ? 'animate' : ''}`}
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content={
+                hasUpdate
+                  ? `${t('sidebar.updateAvailable')} ${latestVersion}`
+                  : localIsNewer
+                    ? t('sidebar.localVersionNewer')
+                    : `${t('sidebar.currentVersion')} ${version}`
+              }
+            >
+              <span className="version-label">{`ver. ${version}`}</span>
+            </NavLink>
+
+            <span className="sidebar-meta-separator" aria-hidden="true">·</span>
+
+            <a
+              className="sidebar-author"
+              href="https://github.com/Egorich88"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content="Владелец продукта"
+              aria-label="Владелец продукта"
+            >
+              Egorich88
+            </a>
+          </div>
+
           <div className="footer-links-row">
             <a
               href="https://github.com/Egorich88/odyssey-kafka"
@@ -461,27 +437,6 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
               <SiApache className="footer-license-icon" />
             </a>
           </div>
-
-          <NavLink
-            to="/settings"
-            aria-label={hasUpdate ? `Доступна новая версия ${latestVersion}. Открыть настройки обновления` : 'Открыть настройки версии'}
-            className={`sidebar-version ${hasUpdate ? 'update-available' : ''} ${animateVersion ? 'animate' : ''}`}
-            data-tooltip-id="sidebar-tooltip"
-            data-tooltip-content={
-              hasUpdate
-                ? `${t('sidebar.updateAvailable')} ${latestVersion}`
-                : localIsNewer
-                  ? t('sidebar.localVersionNewer')
-                  : `${t('sidebar.currentVersion')} ${version}`
-            }
-          >
-            <span className="version-label">{`ver. ${version}`}</span>
-          </NavLink>
-          {showVersionHint && latestVersion && (
-            <NavLink to="/settings" className={`sidebar-version-hint ${hasUpdate ? 'update-available' : ''}`}>
-              {hasUpdate ? `Доступна новая версия ${latestVersion}` : 'Версия актуальна'}
-            </NavLink>
-          )}
         </div>
       </div>
       <Tooltip id="sidebar-tooltip" place="right" offset={12} />

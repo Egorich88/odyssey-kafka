@@ -18,26 +18,56 @@
  * @file footer.css
  * @project Odyssey new 4.2.36
  * @description Стили нижней области боковой панели.
- * @changes Добавлено кратковременное уведомление о статусе версии со ссылкой на настройки.
+ * @changes Футер — одна строка с разделительной полосой сверху;
+ *           плашка статуса версии абсолютно над строкой;
+ *           в свёрнутом сайдбаре остаются только иконки GitHub/Apache.
  */
 
+/* ============================================================
+   Контейнер футера — одна строка + разделитель сверху
+   ============================================================ */
+
 .sidebar-footer {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 5px 20px 0;
+    padding: 8px 20px 8px;
+    border-top: 1px solid var(--border-color);
     color: var(--text-secondary);
     font-size: 12px;
 }
+
+/* ============================================================
+   Левая часть: версия · ник
+   ============================================================ */
+
+.sidebar-footer-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.sidebar-meta-separator {
+    color: var(--text-secondary);
+    opacity: 0.35;
+    font-size: 11px;
+    line-height: 1;
+    user-select: none;
+}
+
+/* ============================================================
+   Правая часть: иконки GitHub и Apache
+   ============================================================ */
 
 .footer-links-row {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
-    min-height: 26px;
-    order: 2;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .footer-icon-link {
@@ -69,13 +99,46 @@
     stroke-width: 1.8;
 }
 
+/* ============================================================
+   Ник автора
+   ============================================================ */
+
+.sidebar-author {
+    display: inline-flex;
+    align-items: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: 0.2px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    transition: color .18s ease, opacity .18s ease;
+}
+
+.sidebar-author:hover {
+    color: var(--accent-hover);
+    opacity: 1;
+}
+
+.sidebar-author:focus-visible {
+    outline: 2px solid var(--accent-hover);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ============================================================
+   Версия
+   ============================================================ */
+
 .sidebar-version {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
-    min-height: 26px;
+    min-height: 20px;
     margin: 0;
-    order: 1;
     text-decoration: none;
     font-family: 'Inter', sans-serif;
     font-size: 12px;
@@ -92,11 +155,6 @@
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-}
-
-@keyframes versionGradientMove {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 100% 50%; }
 }
 
 @keyframes versionGradientFlow {
@@ -117,45 +175,79 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation:
-        versionGradientMove 8s linear infinite,
-        versionGradientFlow 2s linear;
+    animation: versionGradientFlow 2s linear;
 }
 
+/* ============================================================
+   Плашка статуса версии — слева над «ver.», перекрывает линию
+   ============================================================ */
+
+.sidebar-version-hint {
+    position: absolute;
+    left: 20px;                  /* над «ver.» */
+    bottom: calc(100% - 7px);    /* опущена ближе к тексту, перекрывает border-top */
+    transform: none;
+    z-index: 5;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    max-width: calc(100% - 40px);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--text-primary);
+
+    /* Инверсия по теме: тёмная тема — светлая плашка/тёмный текст,
+       светлая тема — тёмная плашка/светлый текст */
+    background: var(--text-primary);
+    color: var(--bg-primary);
+
+    font-size: 10px;
+    line-height: 1.3;
+    text-align: left;
+    text-decoration: none;
+    white-space: nowrap;
+
+    pointer-events: auto;
+    animation: sidebarVersionHintIn .22s ease-out;
+}
+
+.sidebar-version-hint.update-available {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #0f1117;
+}
+
+@keyframes sidebarVersionHintIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Свёрнутый сайдбар — остаются только иконки GitHub/Apache
+   ============================================================ */
+
 .sidebar.collapsed .sidebar-footer {
+    justify-content: center;
+    gap: 6px;
     padding-left: 8px;
     padding-right: 8px;
 }
 
 .sidebar.collapsed .footer-links-row {
-    gap: 5px;
+    justify-content: center;
+    gap: 6px;
 }
 
 .sidebar.collapsed .footer-icon-link {
     width: 22px;
 }
 
+/* В свёрнутом сайдбаре ник, разделитель, плашку и версию скрываем. */
+.sidebar.collapsed .sidebar-author,
+.sidebar.collapsed .sidebar-meta-separator,
+.sidebar.collapsed .sidebar-version-hint,
 .sidebar.collapsed .sidebar-version {
-    font-size: 9px;
+    display: none;
 }
-
-/* В узком Sidebar три элемента в одну строку не помещаются —
-   сохраняем чистую вертикальную композицию. */
-.sidebar.collapsed .sidebar-footer {
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-
-.sidebar.collapsed .footer-links-row {
-    order: 1;
-}
-
-.sidebar.collapsed .sidebar-version {
-    order: 2;
-    justify-content: center;
-}
-
-.sidebar-version-hint { display: block; max-width: 100%; margin: 5px auto 0; padding: 4px 7px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--sidebar-hover); color: var(--text-secondary); font-size: 10px; line-height: 1.35; text-align: center; text-decoration: none; animation: sidebarVersionHintIn .22s ease-out; }
-.sidebar-version-hint.update-available { color: #f59e0b; border-color: rgba(245,158,11,.35); }
-@keyframes sidebarVersionHintIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
