@@ -1,5 +1,5 @@
 # Архитектура Consumer Groups:
-![img.png](img.png)
+
 
 ---
 
