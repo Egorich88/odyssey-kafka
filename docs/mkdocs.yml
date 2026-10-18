@@ -1,0 +1,41 @@
+site_name: Odyssey Documentation
+site_url: https://Egorich88.github.io/odyssey-kafka/
+site_description: Kafka Monitoring & Management
+repo_url: https://github.com/Egorich88/odyssey-kafka
+repo_name: Egorich88/odyssey-kafka
+
+theme:
+  name: material
+  language: ru
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+  - include-markdown
+
+nav:
+  - Главная: index.md
+  - Быстрый старт: getting-started.md
+  - Архитектура: architecture.md
+  - Frontend:
+      - Overview: frontend/overview.md
+      - Consumer Groups: frontend/consumer-groups.md
+      - UI Refactor: frontend/ui-refactor.md

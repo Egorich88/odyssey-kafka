@@ -17,13 +17,20 @@
 /**
  * @file welcome.css
  * @project Odyssey new 4.2.36
- * @description Стили приветственного экрана.
- * @changes Применён шрифт OdysseyDisplay к фирменному заголовку.
+ * @description Стили приветственного экрана (кластер ещё не выбран):
+ * логотип со свечением, название ODYSSEY, теглайн, подсказка
+ * «+ Добавить кластер» и ссылка на документацию. Также содержит стили
+ * экрана недоступного кластера.
  */
 
-/* WELCOME-СТРАНИЦА (приветственный экран) */
+/* ============================================================
+   Оболочка приветственного экрана
+   ============================================================ */
 
+/* На всю ширину/высоту, контент по центру сверху, мягкий фон.
+   position: relative — точка отсчёта для кнопки «Документация». */
 .welcome-page {
+    position: relative;
     width: 100%;
     min-height: 100vh;
     display: flex;
@@ -33,6 +40,7 @@
     background: radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 45%), var(--bg-primary);
 }
 
+/* Карточка приветствия: скруглённая, с тенью и декоративным свечением. */
 .welcome-card {
     width: 100%;
     max-width: 1100px;
@@ -47,6 +55,7 @@
     overflow: hidden;
 }
 
+/* Верхний радиальный блик внутри карточки (декор, не перехватывает клики). */
 .welcome-card::before {
     content: '';
     position: absolute;
@@ -59,166 +68,90 @@
    Контейнер логотипа
    ============================================================ */
 
+/* Центрирует логотип; overflow: visible нужен, чтобы свечение
+   под логотипом не обрезалось. */
 .welcome-logo-wrap {
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    /*
-     * После логотипа должно остаться пространство
-     * для свечения и затем для названия.
-     */
     margin-bottom: 0;
     padding-bottom: 12px;
-    /*
-     * Важно:
-     * свечение должно иметь возможность выйти
-     * ниже границ самого логотипа.
-     */
     overflow: visible;
 }
 
-
 /* ============================================================
-   ФИРМЕННОЕ СВЕЧЕНИЕ ПОД ЛОГОТИПОМ
-   ============================================================
-
-   В отличие от старой версии, свечение находится
-   НЕ за логотипом.
-
-   Оно начинается непосредственно под нижней частью
-   графического знака.
-
-   Идея взята из loading screen:
-   несколько уровней свечения + пульсация.
+   Фирменное свечение под логотипом
    ============================================================ */
 
+/* Мятная полоса-свечение под логотипом: эллиптический градиент,
+   пульсирует анимацией welcome-logo-glow. */
 .welcome-logo-wrap::after {
     content: '';
-
     position: absolute;
-
     left: 50%;
-
-    /*
-     * Нижняя граница свечения находится
-     * непосредственно под логотипом.
-     */
     bottom: -10px;
-
     transform: translateX(-50%);
-
     width: 170px;
     height: 4px;
-
     border-radius: 50%;
-
     background:
         radial-gradient(
             ellipse at center,
-
-            /*
-             * Яркое центральное ядро.
-             */
             rgba(85, 230, 220, 0.85) 0%,
-
-            /*
-             * Среднее мятное свечение.
-             */
             rgba(34, 220, 200, 0.55) 28%,
-
-            /*
-             * Рассеянный край.
-             */
             rgba(34, 220, 200, 0.22) 52%,
-
-            /*
-             * Полностью исчезает.
-             */
             transparent 78%
         );
-
-
-
-    /*
-     * Теперь свечение находится ПОВЕРХ фона,
-     * но ниже визуальной области логотипа.
-     */
     z-index: 1;
-
     opacity: 0.65;
-
     pointer-events: none;
-
     animation: welcome-logo-glow 2.2s ease-in-out infinite;
 }
 
-
-/* ============================================================
-   Пульсация фирменного свечения
-   ============================================================ */
-
+/* Пульсация свечения: плавное расширение/сжатие и изменение прозрачности. */
 @keyframes welcome-logo-glow {
-
     0%,
     100% {
         opacity: 0.45;
-
-        transform:
-            translateX(-50%)
-            scaleX(0.82)
-            scaleY(0.82);
-
-
+        transform: translateX(-50%) scaleX(0.82) scaleY(0.82);
     }
-
     50% {
         opacity: 1;
-
-        transform:
-            translateX(-50%)
-            scaleX(1.08)
-            scaleY(1.05);
-
-
+        transform: translateX(-50%) scaleX(1.08) scaleY(1.05);
     }
 }
+
 /* ============================================================
    Логотип приветственной страницы
    ============================================================ */
 
+/* Сам логотип: выше свечения (z-index: 2), с мягкой тенью. */
 .welcome-logo {
     width: 160px;
     max-width: 100%;
     height: auto;
-
     display: block;
-
     position: relative;
-
-    /*
-     * Сам логотип находится выше свечения.
-     */
     z-index: 2;
-
-    /*
-     * Небольшая собственная тень.
-     * Она не заменяет нижнее свечение.
-     */
-    filter:
-        drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
 }
 
 /* ============================================================
    Брендинг ODYSSEY
    ============================================================ */
 
+/* Блок с названием и теглайном; overflow: hidden не даёт
+   длинному теглайну раздуть карточку. */
 .welcome-branding {
     margin-top: 24px;
-    margin-bottom: 30px;
+    margin-bottom: 18px;
     text-align: center;
+    max-width: 100%;
+    overflow: hidden;
 }
 
+/* Крупное название ODYSSEY: фирменный шрифт, тонкий вес, широкая разрядка. */
 .welcome-subtitle {
     margin: 0;
     color: var(--text-primary);
@@ -230,132 +163,106 @@
     padding-left: clamp(9px, 1.05vw, 15px);
 }
 
+/* KAFKA MONITORING & MANAGEMENT: тонкий геометрический шрифт Questrial,
+   разрядка чуть шире, чем у ODYSSEY, в одну строку с обрезкой по ellipsis. */
 .welcome-tagline {
     margin-top: 14px;
     color: #55e6dc;
-    font-family: "OdysseyDisplay", "Century Gothic", "Arial Narrow", "Segoe UI", sans-serif;
-    font-size: clamp(11px, 1.05vw, 14px);
-    font-weight: 500;
-    letter-spacing: clamp(3px, .55vw, 7px);
+    font-family: "Questrial", "Century Gothic", "Segoe UI", sans-serif;
+    font-size: clamp(13px, 1.15vw, 16px);
+    font-weight: 400;
+    letter-spacing: clamp(4px, .8vw, 7px);
     line-height: 1;
     white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.welcome-feature {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    margin-bottom: 10px;
-}
+/* ============================================================
+   Описание
+   ============================================================ */
 
-.welcome-icon-box {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    min-width: 28px;
-    color: #60a5fa;
-    font-size: 24px;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 0;
-}
-
-.welcome-feature-text {
-    font-size: 20px;
-    line-height: 1.3;
+/* Строка-подсказка «Чтобы начать работу — нажмите + Добавить кластер». */
+.welcome-description {
+    margin: 6px 0 0;
+    font-size: 15px;
+    line-height: 1.4;
     font-weight: 400;
     color: var(--text-secondary);
+    opacity: 0.85;
+    text-align: center;
 }
 
-.welcome-feature-text a {
-    color: #3b82f6;
-    text-decoration: none;
-    transition: 0.2s;
-}
-
-.welcome-feature-text a:hover {
-    color: #60a5fa;
-}
-
+/* Синий акцент «+ Добавить кластер»: только цвет, без жирности. */
 .welcome-highlight {
     color: #3b82f6;
     font-weight: 400;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
 }
 
-.welcome-divider {
-    width: calc(100% - 120px);
-    margin-left: auto;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.10);
-    margin-bottom: 26px;
-}
+/* ============================================================
+   Ссылка «Документация» — правый верхний угол карточки
+   ============================================================ */
 
-.welcome-divider.large {
-    width: 100%;
-    height: 2px;
-    margin: 22px auto 14px;
-    background: linear-gradient(90deg,
-        rgba(255, 255, 255, 0),
-        rgba(96, 165, 250, 0.42),
-        rgba(255, 255, 255, 0)
-    );
-}
-
-.welcome-github-icon {
-    font-size: 32px;
-    flex-shrink: 0;
-    opacity: 0.95;
-}
-
-.welcome-github {
-    margin-top: 6px;
-    display: flex;
-    justify-content: center;
+.welcome-docs-link {
+    position: absolute;
+    top: 20px;
+    right: 22px;
+    z-index: 10;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    width: 100%;
-    text-decoration: none;
-    color: var(--text-secondary);
-    font-size: 15px;
+    gap: 8px;
+    padding: 7px 13px;
+    border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 13px;
     font-weight: 500;
-    transition: 0.2s ease;
+    color: var(--text-secondary);
+    text-decoration: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: color .18s ease, border-color .18s ease, background .18s ease;
 }
 
-.welcome-github:hover {
-    color: #3b82f6;
+.welcome-docs-link:hover {
+    color: #60a5fa;
+    border-color: rgba(96, 165, 250, 0.45);
+    background: rgba(96, 165, 250, 0.08);
 }
 
-.welcome-github svg {
-    font-size: 28px;
+.welcome-docs-link:focus-visible {
+    outline: 2px solid #93c5fd;
+    outline-offset: 2px;
 }
 
-.welcome-star {
-    color: #3b82f6;
+.welcome-docs-icon {
+    font-size: 15px;
+    flex-shrink: 0;
 }
-/* Адаптивность для мобильных устройств (медиа-запросы) */
+
+/* ============================================================
+   Адаптивность для мобильных устройств
+   ============================================================ */
+
+/* Планшеты: меньше горизонтальные отступы карточки и логотип. */
 @media (max-width: 900px) {
     .welcome-card {
         padding: 56px 40px;
-    }
-    .welcome-title {
-        font-size: 48px;
     }
     .welcome-logo {
         width: 150px;
     }
 }
+
+/* Телефоны: компактная карточка, меньше название, логотип и подсказка;
+   ссылка на документацию прижимается к краю. */
 @media (max-width: 640px) {
     .welcome-card {
         padding: 42px 24px;
         border-radius: 24px;
-    }
-    .welcome-title {
-        font-size: 36px;
-        line-height: 1.1;
     }
     .welcome-subtitle {
         font-size: 20px;
@@ -363,21 +270,25 @@
     .welcome-logo {
         width: 140px;
     }
-    .welcome-feature {
-        gap: 16px;
+    .welcome-description {
+        font-size: 14px;
     }
-    .welcome-feature-text {
-        font-size: 17px;
-        line-height: 1.6;
+    .welcome-docs-link {
+        top: 12px;
+        right: 12px;
+        padding: 6px 10px;
+        font-size: 12px;
     }
-    .welcome-icon-box {
-        width: 38px;
-        height: 38px;
-        min-width: 38px;
-        font-size: 22px;
+    .welcome-docs-icon {
+        font-size: 14px;
     }
 }
-/* Экран недоступного выбранного Kafka-кластера. */
+
+/* ============================================================
+   Экран недоступного выбранного Kafka-кластера
+   ============================================================ */
+
+/* Полноэкранный центр: логотип, свечение и текст ошибки подключения. */
 .cluster-unavailable-screen {
     width:100%;
     height:100%;
