@@ -18,8 +18,8 @@
  * @file Sidebar.tsx
  * @project Odyssey new 4.2.36
  * @description Навигационная боковая панель Odyssey.
- * @changes Футер сведён в одну строку (версия · ник + иконки GitHub/Apache),
- *           плашка статуса версии появляется абсолютно над строкой.
+ * @changes Иконки GitHub/Apache в футере показываются только при выбранном
+ *           кластере; без кластера — только версия и ник по центру.
  */
 
 /**
@@ -369,8 +369,8 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
           </NavLink>
         </nav>
 
-        {/* Футер: одна строка (версия · ник + иконки), плашка — абсолютно сверху */}
-        <div className="sidebar-footer">
+        {/* Футер: одна строка; иконки — только когда кластер выбран */}
+        <div className={`sidebar-footer ${!hasCluster ? 'sidebar-footer--solo' : ''}`}>
           {showVersionHint && latestVersion && (
             <NavLink
               to="/settings"
@@ -381,6 +381,20 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
           )}
 
           <div className="sidebar-footer-meta">
+            <a
+              className="sidebar-author"
+              href="https://github.com/Egorich88"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content="Владелец продукта"
+              aria-label="Владелец продукта"
+            >
+              Egorich88
+            </a>
+
+            <span className="sidebar-meta-separator" aria-hidden="true">·</span>
+
             <NavLink
               to="/settings"
               aria-label={hasUpdate ? `Доступна новая версия ${latestVersion}. Открыть настройки обновления` : 'Открыть настройки версии'}
@@ -396,47 +410,35 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             >
               <span className="version-label">{`ver. ${version}`}</span>
             </NavLink>
-
-            <span className="sidebar-meta-separator" aria-hidden="true">·</span>
-
-            <a
-              className="sidebar-author"
-              href="https://github.com/Egorich88"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content="Владелец продукта"
-              aria-label="Владелец продукта"
-            >
-              Egorich88
-            </a>
           </div>
 
-          <div className="footer-links-row">
-            <a
-              href="https://github.com/Egorich88/odyssey-kafka"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-icon-link"
-              data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content={t('sidebar.github')}
-              aria-label={t('sidebar.github')}
-            >
-              <FiGithub className="footer-github-icon" />
-            </a>
+          {hasCluster && (
+            <div className="footer-links-row">
+              <a
+                href="https://github.com/Egorich88/odyssey-kafka"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-icon-link"
+                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-content={t('sidebar.github')}
+                aria-label={t('sidebar.github')}
+              >
+                <FiGithub className="footer-github-icon" />
+              </a>
 
-            <a
-              href="https://www.apache.org/licenses/LICENSE-2.0"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-icon-link"
-              data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content={t('sidebar.apache')}
-              aria-label={t('sidebar.apache')}
-            >
-              <SiApache className="footer-license-icon" />
-            </a>
-          </div>
+              <a
+                href="https://www.apache.org/licenses/LICENSE-2.0"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-icon-link"
+                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-content={t('sidebar.apache')}
+                aria-label={t('sidebar.apache')}
+              >
+                <SiApache className="footer-license-icon" />
+              </a>
+            </div>
+          )}
         </div>
       </div>
       <Tooltip id="sidebar-tooltip" place="right" offset={12} />

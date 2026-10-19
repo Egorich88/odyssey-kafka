@@ -18,9 +18,9 @@
  * @file footer.css
  * @project Odyssey new 4.2.36
  * @description Стили нижней области боковой панели.
- * @changes Футер — одна строка с разделительной полосой сверху;
- *           плашка статуса версии абсолютно над строкой;
- *           в свёрнутом сайдбаре остаются только иконки GitHub/Apache.
+ * @changes Одна строка с разделителем сверху; плашка статуса справа над
+ *           строкой. Без кластера — только ник и версия по центру.
+ *           С кластером — ник · версия + иконки GitHub/Apache.
  */
 
 /* ============================================================
@@ -39,8 +39,13 @@
     font-size: 12px;
 }
 
+/* Нет кластера — в футере только ник и версия, по центру */
+.sidebar-footer--solo {
+    justify-content: center;
+}
+
 /* ============================================================
-   Левая часть: версия · ник
+   Левая часть: ник · версия
    ============================================================ */
 
 .sidebar-footer-meta {
@@ -179,13 +184,14 @@
 }
 
 /* ============================================================
-   Плашка статуса версии — слева над «ver.», перекрывает линию
+   Плашка статуса версии — сверху справа над строкой,
+   перекрывает линию, размер как у тултипа
    ============================================================ */
 
 .sidebar-version-hint {
     position: absolute;
-    left: 20px;                  /* над «ver.» */
-    bottom: calc(100% - 7px);    /* опущена ближе к тексту, перекрывает border-top */
+    right: 16px;
+    bottom: calc(100% - 9px);
     transform: none;
     z-index: 5;
 
@@ -193,23 +199,24 @@
     align-items: center;
     justify-content: center;
 
-    max-width: calc(100% - 40px);
-    padding: 3px 8px;
-    border-radius: 6px;
+    max-width: calc(100% - 32px);
+    padding: 5px 11px;
+    border-radius: 7px;
     border: 1px solid var(--text-primary);
 
-    /* Инверсия по теме: тёмная тема — светлая плашка/тёмный текст,
-       светлая тема — тёмная плашка/светлый текст */
     background: var(--text-primary);
     color: var(--bg-primary);
 
-    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
     line-height: 1.3;
-    text-align: left;
+    text-align: center;
     text-decoration: none;
     white-space: nowrap;
 
     pointer-events: auto;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
     animation: sidebarVersionHintIn .22s ease-out;
 }
 
@@ -225,7 +232,7 @@
 }
 
 /* ============================================================
-   Свёрнутый сайдбар — остаются только иконки GitHub/Apache
+   Свёрнутый сайдбар
    ============================================================ */
 
 .sidebar.collapsed .sidebar-footer {
@@ -244,10 +251,16 @@
     width: 22px;
 }
 
-/* В свёрнутом сайдбаре ник, разделитель, плашку и версию скрываем. */
+/* С кластером: ник, разделитель, плашку и версию скрываем — только иконки. */
 .sidebar.collapsed .sidebar-author,
 .sidebar.collapsed .sidebar-meta-separator,
 .sidebar.collapsed .sidebar-version-hint,
 .sidebar.collapsed .sidebar-version {
     display: none;
+}
+
+/* Без кластера: иконок нет — показываем только версию, по центру. */
+.sidebar.collapsed .sidebar-footer--solo .sidebar-version {
+    display: inline-flex;
+    font-size: 9px;
 }

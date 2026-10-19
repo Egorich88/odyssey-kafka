@@ -11,7 +11,8 @@
  *
  * Отображает два состояния:
  * 1. Кластер не выбран — приветственный экран (welcome) с логотипом,
- *    названием, подсказкой, как добавить кластер, и ссылкой на документацию.
+ *    названием, подсказкой, ссылкой на документацию и подписанными
+ *    ссылками GitHub / Apache License 2.0.
  * 2. Кластер выбран — дашборд из панелей: состояние кластера, сертификаты,
  *    пропускная способность, топики, отставание потребителей, события.
  *
@@ -22,7 +23,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { FiBookOpen } from 'react-icons/fi';
+import { Tooltip } from 'react-tooltip';
+import { FiBookOpen, FiGithub } from 'react-icons/fi';
+import { SiApache } from 'react-icons/si';
 import './overview/styles/overview.css';
 import { useCluster } from '../contexts/ClusterContext';
 import { useDashboardControls } from '../contexts/DashboardControlsContext';
@@ -48,8 +51,7 @@ interface OverviewData {
 }
 
 export default function Overview(): JSX.Element {
-  // Текущий выбранный кластер и элементы управления дашбордом (диапазон времени,
-  // регистрация обработчика обновления, индикатор загрузки страницы).
+  // Текущий выбранный кластер и элементы управления дашбордом.
   const { currentCluster } = useCluster();
   const { timeRange, registerRefreshHandler, setPageLoading } = useDashboardControls();
 
@@ -63,14 +65,12 @@ export default function Overview(): JSX.Element {
   // заставляя дочерние панели перезапросить свои данные.
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Идентификатор последнего запроса — защита от гонок:
-  // устаревший ответ не должен перезаписать более свежие данные.
+  // Идентификатор последнего запроса — защита от гонок.
   const requestIdRef = useRef(0);
-  // Идентификатор кластера на прошлом рендере — чтобы отличать
-  // переключение кластера от обычного обновления.
+  // Идентификатор кластера на прошлом рендере.
   const previousClusterIdRef = useRef<string | null>(null);
 
-  // Диапазон времени для API и для панелей (относительный или абсолютный).
+  // Диапазон времени для API и для панелей.
   const apiRange = timeRange.type === 'relative' ? timeRange.id : '24h';
   const panelTimeRange = timeRange.type === 'relative'
     ? timeRange.id
@@ -81,8 +81,7 @@ export default function Overview(): JSX.Element {
   const bootstrap = currentCluster?.brokers || currentCluster?.bootstrapServers || '';
 
   /**
-   * Сбрасывает данные дашборда при переключении кластера,
-   * чтобы не показывать показатели предыдущего кластера.
+   * Сбрасывает данные дашборда при переключении кластера.
    */
   const clearForClusterSwitch = useCallback(() => {
     setOverview(null);
@@ -95,8 +94,6 @@ export default function Overview(): JSX.Element {
 
   /**
    * Загружает данные дашборда: сводку, группы потребителей и пропускную способность.
-   * Параллельные запросы, защита от гонок по requestId, индикатор загрузки.
-   * Ошибки логируются, но не меняют статус подключения к Kafka.
    */
   const loadDashboard = useCallback(async () => {
     if (!currentCluster) return;
@@ -107,7 +104,6 @@ export default function Overview(): JSX.Element {
     setPageLoading(true);
 
     // Очищаем данные только при фактическом переключении кластера.
-    // Обычный refresh сохраняет текущий график до прихода новых данных.
     if (previousClusterIdRef.current !== currentClusterId) {
       previousClusterIdRef.current = currentClusterId;
       clearForClusterSwitch();
@@ -131,7 +127,6 @@ export default function Overview(): JSX.Element {
       setOverview(overviewResponse.data);
       setConsumerGroups(groupsResponse.data.groups || []);
 
-      // Последняя точка графика даёт текущие входящий/исходящий потоки.
       const points = throughputResponse.data.points || [];
       setThroughputData(points);
       const latest = points[points.length - 1];
@@ -140,7 +135,6 @@ export default function Overview(): JSX.Element {
       setRefreshKey((value) => value + 1);
     } catch (error) {
       // Ошибка обновления данных не равна потере Kafka-соединения.
-      // ClusterContext отдельно контролирует доступность выбранного кластера.
       console.error('Ошибка обновления данных Overview:', error);
     } finally {
       if (requestId === requestIdRef.current) setPageLoading(false);
@@ -169,9 +163,11 @@ export default function Overview(): JSX.Element {
             target="_blank"
             rel="noreferrer"
             className="welcome-docs-link"
+            data-tooltip-id="welcome-tooltip"
+            data-tooltip-content="Открыть документацию"
+            aria-label="Открыть документацию"
           >
             <FiBookOpen className="welcome-docs-icon" />
-            <span>Документация</span>
           </a>
 
           <div className="welcome-logo-wrap">
@@ -187,7 +183,36 @@ export default function Overview(): JSX.Element {
             Чтобы начать работу — нажмите{' '}
             <span className="welcome-highlight">+ Добавить кластер</span>
           </div>
+
+          <div className="welcome-links">
+            <a
+              href="https://github.com/Egorich88/odyssey-kafka"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="welcome-link"
+              data-tooltip-id="welcome-tooltip"
+              data-tooltip-content="Открыть на GitHub"
+              aria-label="Открыть на GitHub"
+            >
+              <FiGithub />
+              <span>GitHub</span>
+            </a>
+            <a
+              href="https://www.apache.org/licenses/LICENSE-2.0"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="welcome-link"
+              data-tooltip-id="welcome-tooltip"
+              data-tooltip-content="Apache License 2.0"
+              aria-label="Apache License 2.0"
+            >
+              <SiApache />
+              <span>Apache License 2.0</span>
+            </a>
+          </div>
         </div>
+
+        <Tooltip id="welcome-tooltip" place="bottom" offset={10} />
       </div>
     );
   }
