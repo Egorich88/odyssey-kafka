@@ -70,7 +70,8 @@
 
 ## 🏗️ Архитектура
 
-![Architecture diagram](https://github.com/user-attachments/assets/ccdf7bc3-770c-4159-94f3-24129e8ed8bd)
+<img width="1536" height="1024" alt="Архитектура Odyssey_ Kafka и инфраструктура" src="https://github.com/user-attachments/assets/15193d2f-585e-4dd2-918c-42af7e68ce07" />
+
 
 | Компонент | Технологии |
 |---|---|
