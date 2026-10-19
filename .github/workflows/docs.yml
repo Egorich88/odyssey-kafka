@@ -23,5 +23,5 @@ jobs:
       - run: mkdocs build --strict -f docs/mkdocs.yml
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: docs/site
+          path: site
       - uses: actions/deploy-pages@v5

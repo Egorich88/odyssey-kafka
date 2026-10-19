@@ -32,6 +32,7 @@ plugins:
   - include-markdown
 
 docs_dir: .
+site_dir: ../site
 
 nav:
   - Главная: index.md
