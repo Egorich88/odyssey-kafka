@@ -31,6 +31,8 @@ plugins:
   - search
   - include-markdown
 
+docs_dir: .
+
 nav:
   - Главная: index.md
   - Быстрый старт: getting-started.md

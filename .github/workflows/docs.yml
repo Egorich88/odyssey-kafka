@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install mkdocs-material mkdocs-include-markdown-plugin
-      - run: mkdocs build --strict
+      - run: mkdocs build --strict -f docs/mkdocs.yml
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site
+          path: docs/site
       - uses: actions/deploy-pages@v5
