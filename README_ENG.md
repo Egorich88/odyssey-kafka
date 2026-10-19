@@ -1,3 +1,4 @@
+<!-- readme-en:start -->
 <img width="1254" height="1254" alt="Startt" src="https://github.com/user-attachments/assets/834dcd94-cf62-42b7-97d7-055ec4a46647" />
 
 # Odyssey
@@ -171,3 +172,4 @@ The name "Kafka" and the Kafka logo are registered trademarks of The Apache Soft
 ## Powered by
 
 <img width="461" height="176" alt="Монтажная область 1" src="https://github.com/user-attachments/assets/65593be3-d1f2-4c96-90a3-210702ea3c29" />
+<!-- readme-en:end -->

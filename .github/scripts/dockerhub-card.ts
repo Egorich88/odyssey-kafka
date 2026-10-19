@@ -79,13 +79,13 @@ const LOGO_TEXT_GAP = 20;
 
 /* ---------- BADGES ---------- */
 
-const BADGE_HEIGHT = 24;
-const BADGE_GAP = 14;
-const BADGE_FONT_SIZE = 11;
-const BADGE_RADIUS = 4;
+const BADGE_HEIGHT = 36;
+const BADGE_GAP = 18;
+const BADGE_FONT_SIZE = 15;
+const BADGE_RADIUS = 6;
 const BADGE_BORDER = "#30363D";
 
-const BADGE_BOTTOM_OFFSET = 32;
+const BADGE_BOTTOM_OFFSET = 0;
 const BADGE_Y = SVG_HEIGHT - BADGE_BOTTOM_OFFSET - BADGE_HEIGHT;
 
 const BADGE_LABEL_BG = "#21262D";
