@@ -70,7 +70,7 @@ Positioning Odyssey as **Kafka Monitoring & Management** immediately states that
 
 ## 🏗️ Architecture
 
-![Architecture diagram](https://github.com/user-attachments/assets/ccdf7bc3-770c-4159-94f3-24129e8ed8bd)
+<img width="1536" height="1024" alt="Архитектура Odyssey_ Kafka и инфраструктура" src="https://github.com/user-attachments/assets/aa5e249e-2fc9-4601-b9cb-46bccfe3d673" />
 
 | Component | Technologies |
 |---|---|
