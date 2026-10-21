@@ -86,11 +86,12 @@
 .events-row {
   min-height: 33px;
   padding: 5px 8px;
-  border-radius: 6px;
-  background: var(--card-bg);
+  border-radius: 0;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border-color);
   flex: 0 0 auto;
 }
-.events-row:hover { background: var(--table-row-hover); }
+.events-row:hover { background: var(--panel-bg); }
 .events-cell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 13px; line-height: 1.35; }
 .event-time { font-variant-numeric: tabular-nums; }
 .event-level-cell { display: flex; align-items: center; }

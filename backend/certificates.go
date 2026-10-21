@@ -54,6 +54,7 @@ type CertificateInfo struct {
 	Issuer     string `json:"issuer,omitempty"`
 	CommonName string `json:"commonName,omitempty"`
 	SAN        string `json:"san,omitempty"`
+	Error      string `json:"error,omitempty"` // Причина, если сертификат/endpoint недоступен.
 }
 
 type CertificatesResponse struct {
@@ -102,12 +103,16 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 		if endpoint == "" {
 			continue
 		}
-		if info, ok := readRemoteTLSCertificate(endpoint); ok {
-			key := info.Path
-			if !seen[key] {
-				seen[key] = true
-				result = append(result, info)
-			}
+		info, ok := readRemoteTLSCertificate(endpoint)
+		if !ok {
+			// Показываем явно, что TLS-сертификат по адресу получить не удалось.
+			// Это не подменяет отсутствие сертификатов и помогает диагностировать доступ.
+			info = CertificateInfo{Name: endpoint, Path: "TLS: " + endpoint, Type: "TLS X.509", DaysLeft: -1, Error: "Не получилось подключиться к сертификату"}
+		}
+		key := info.Path
+		if !seen[key] {
+			seen[key] = true
+			result = append(result, info)
 		}
 	}
 
@@ -204,9 +209,11 @@ func findLocalKeystores() []string {
 		add(os.Getenv(env))
 	}
 
+	// Ищем только в каталогах Kafka. Общие системные каталоги /etc/ssl
+	// и /etc/pki намеренно исключены: их файлы не обязательно относятся к Kafka.
 	for _, base := range []string{
 		"/etc/kafka", "/opt/kafka/config", "/opt/bitnami/kafka/config",
-		"/var/lib/kafka", "/kafka/config", "/etc/ssl", "/etc/pki",
+		"/var/lib/kafka", "/kafka/config",
 	} {
 		_ = filepath.Walk(base, func(path string, info os.FileInfo, err error) error {
 			if err != nil || info == nil || info.IsDir() {

@@ -42,7 +42,9 @@ package main
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,17 +80,27 @@ func getClusterHealthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Health-check должен быть быстрым и не выполнять тяжёлые Admin API-запросы.
+	// Сначала строго проверяем формат каждого адреса. Это позволяет сразу
+	// отклонить пустые элементы, отсутствующий порт и буквы вместо номера порта.
+	brokers := strings.Split(bootstrap, ",")
+	for _, broker := range brokers {
+		broker = strings.TrimSpace(broker)
+		host, port, splitErr := net.SplitHostPort(broker)
+		portNumber, portErr := strconv.Atoi(port)
+		if splitErr != nil || strings.TrimSpace(host) == "" || portErr != nil || portNumber < 1 || portNumber > 65535 {
+			_ = json.NewEncoder(w).Encode(KafkaConnectionHealthResponse{Status: "disconnected", Error: "Некорректный адрес брокера: " + broker})
+			return
+		}
+	}
+
+	// Health-check должен подтвердить не только TCP-соединение, но и ответ Kafka Admin API.
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_8_0_0
 	config.Net.DialTimeout = 5 * time.Second
 	config.Net.ReadTimeout = 4 * time.Second
 	config.Net.WriteTimeout = 4 * time.Second
 
-	// Для health-check достаточно установить клиентское соединение.
-	// Дополнительный вызов Topics() убран: на больших/медленных кластерах
-	// он мог превышать браузерный timeout и ложно показывать «недоступен».
-	client, err := sarama.NewClient(strings.Split(bootstrap, ","), config)
+	client, err := sarama.NewClient(brokers, config)
 	if err != nil {
 		// Не удалось подключиться — кластер недоступен
 		response := KafkaConnectionHealthResponse{
@@ -100,7 +112,13 @@ func getClusterHealthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Close()
 
-	// Все проверки пройдены — кластер доступен
+	// Проверяем реальный ответ Kafka, а не только успешное создание клиента.
+	if _, err := client.Topics(); err != nil {
+		_ = json.NewEncoder(w).Encode(KafkaConnectionHealthResponse{Status: "disconnected", Error: "Kafka не ответила на запрос списка топиков: " + err.Error()})
+		return
+	}
+
+	// Все проверки пройдены — кластер доступен.
 	response := KafkaConnectionHealthResponse{Status: "connected"}
 	_ = json.NewEncoder(w).Encode(response)
 }

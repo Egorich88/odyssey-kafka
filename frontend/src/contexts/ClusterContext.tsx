@@ -48,6 +48,20 @@ interface ClusterContextValue {
 
 const ClusterContext = createContext<ClusterContextValue | undefined>(undefined);
 const STORAGE_KEY = 'kafka_clusters';
+
+// Проверяем синтаксис host:port до сетевого запроса, чтобы неверный ввод
+// не оставлял интерфейс в промежуточном состоянии проверки. Имена хостов могут содержать буквы.
+function hasValidBootstrap(value: string): boolean {
+  const entries = value.split(',');
+  if (!entries.length) return false;
+  return entries.every((entry) => {
+    const item = entry.trim();
+    const match = item.match(/^(\[[0-9a-fA-F:]+\]|[^\s:,]+):(\d{1,5})$/);
+    if (!match) return false;
+    const port = Number(match[2]);
+    return port >= 1 && port <= 65535;
+  });
+}
 const CURRENT_CLUSTER_KEY = 'ksc_current_cluster_id';
 
 export function ClusterProvider({ children }: { children: ReactNode }) {
@@ -71,8 +85,9 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
 
   const checkClusterStatus = useCallback(async (cluster: KafkaCluster, initialCheck = false) => {
     const bootstrap = cluster.brokers || cluster.bootstrapServers;
-    if (!bootstrap) {
-      updateClusterStatus(cluster.id, 'error');
+    if (!bootstrap || !hasValidBootstrap(bootstrap)) {
+      // Неверный формат сразу означает недоступность: никаких «загрузка/проверка».
+      updateClusterStatus(cluster.id, 'disconnected');
       return;
     }
 
@@ -115,9 +130,15 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) return;
 
-      const parsed = JSON.parse(stored) as KafkaCluster[];
-      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      const storedClusters = JSON.parse(stored) as KafkaCluster[];
+      if (!Array.isArray(storedClusters) || storedClusters.length === 0) return;
 
+      // Сохранённый статус connected устаревает после перезапуска приложения.
+      // Каждый кластер должен заново пройти сетевую проверку перед показом страниц.
+      const parsed = storedClusters.map((cluster) => ({
+        ...cluster,
+        connectionStatus: hasValidBootstrap(String(cluster.brokers || cluster.bootstrapServers || '')) ? 'checking' as ClusterConnectionStatus : 'disconnected' as ClusterConnectionStatus,
+      }));
       setClusters(parsed);
       const savedId = localStorage.getItem(CURRENT_CLUSTER_KEY);
       const selected = parsed.find((cluster) => cluster.id === savedId) ?? parsed[0];
@@ -156,14 +177,14 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
     const newCluster: KafkaCluster = {
       ...cluster,
       id: Date.now().toString(),
-      connectionStatus: 'checking',
+      connectionStatus: hasValidBootstrap(String(cluster.brokers || cluster.bootstrapServers || '')) ? 'checking' : 'disconnected',
     };
     setClusters((previous) => [...previous, newCluster]);
     setCurrentClusterId(newCluster.id);
   }, []);
 
   const updateCluster = useCallback((updatedCluster: KafkaCluster) => {
-    const nextCluster = { ...updatedCluster, connectionStatus: 'checking' as ClusterConnectionStatus };
+    const nextCluster = { ...updatedCluster, connectionStatus: hasValidBootstrap(String(updatedCluster.brokers || updatedCluster.bootstrapServers || '')) ? 'checking' as ClusterConnectionStatus : 'disconnected' as ClusterConnectionStatus };
     setClusters((previous) => previous.map((cluster) => (
       cluster.id === updatedCluster.id ? nextCluster : cluster
     )));

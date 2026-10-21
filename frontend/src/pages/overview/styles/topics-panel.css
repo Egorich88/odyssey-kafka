@@ -124,16 +124,30 @@
     gap: 10px;
 }
 
-.topics-legend-header span:first-child {
-    font-weight: 600;
-    flex: 1;
+.topics-legend-header button {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
 }
 
-.topics-legend-header span:nth-child(2),
-.topics-legend-header span:nth-child(3) {
-    text-align: right;
-    opacity: .8;
-}
+.topics-legend-header button:first-child { font-weight: 650; }
+.topics-legend-header button:nth-child(2),
+.topics-legend-header button:nth-child(3) { justify-content: flex-end; text-align: right; }
+.topics-legend-header button:hover { color: var(--text-primary); }
+.topics-legend-header button svg { width: 13px; height: 13px; flex: 0 0 auto; }
+
 
 .topics-legend-color {
     width: 9px;
@@ -266,3 +280,17 @@ path:focus {
 }
 
 .topics-legend-max { color: var(--text-secondary); font-weight: 500; }
+
+/* Заголовки таблицы топиков сортируются только по клику; стрелка видна для активного поля. */
+.topics-legend-header button { min-width: 0; display: inline-flex; align-items: center; justify-content: flex-start; gap: 3px; padding: 0; border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; text-align: left; }
+.topics-legend-header button:hover { color: var(--text-primary); }
+.topics-legend-header button svg { width: 13px; height: 13px; flex: 0 0 auto; }
+
+/* Заголовки сортировки выравниваются по тем же колонкам, что и значения. */
+.topics-legend-header button:nth-child(2),
+.topics-legend-header button:nth-child(3) {
+    justify-content: flex-end;
+    text-align: right;
+}
+.topics-legend-header button:hover { color: var(--text-primary); }
+.topics-legend-header button svg { width: 13px; height: 13px; flex: 0 0 auto; }

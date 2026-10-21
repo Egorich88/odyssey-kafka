@@ -252,8 +252,8 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             )}
         </div>
 
-        {hasCluster && (
-          <nav className={`sidebar-nav ${navigationDisabled ? 'is-disabled' : ''}`}>
+        {hasCluster && !clusterUnavailable && (
+          <nav className="sidebar-nav">
             <NavLink
               to="/"
               end

@@ -44,6 +44,7 @@ import '../styles/topics-panel.css';
 import { useCluster } from '../../../contexts/ClusterContext';
 import PanelInfo from '../../../components/common/PanelInfo';
 import PanelFullscreenButton from './PanelFullscreenButton';
+import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 interface TopicPoint { time: string; timestamp?: number; topic: string; value: number; }
 
@@ -91,6 +92,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPan
   const [allTopics, setAllTopics] = useState([]);
   const [rawData, setRawData] = useState<TopicPoint[]>([]);
   const [loading, setLoading] = useState(false);
+  const [legendSort, setLegendSort] = useState<{ key: 'topic' | 'current' | 'max'; asc: boolean } | null>(null);
 
   // -------------------------------------------------------------------------
   // Загрузка данных с бэкенда с учётом периода
@@ -163,6 +165,20 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPan
   const topicMax = (topic: string) => {
     return rawData.reduce((max, point) => Math.max(max, Number(point.topic === topic ? point.value || 0 : 0)), 0);
   };
+
+  // Сортировка таблицы включается только нажатием на заголовок.
+  const sortedVisibleTopics = [...visibleTopics].sort((a, b) => {
+    if (!legendSort) return 0;
+    const left = legendSort.key === 'topic' ? a.toLocaleLowerCase() : legendSort.key === 'current' ? Number(lastPoint[a] || 0) : topicMax(a);
+    const right = legendSort.key === 'topic' ? b.toLocaleLowerCase() : legendSort.key === 'current' ? Number(lastPoint[b] || 0) : topicMax(b);
+    const compare = typeof left === 'string' && typeof right === 'string' ? left.localeCompare(right) : Number(left) - Number(right);
+    return legendSort.asc ? compare : -compare;
+  });
+
+  const toggleLegendSort = (key: 'topic' | 'current' | 'max') => {
+    setLegendSort((previous) => previous?.key === key ? { key, asc: !previous.asc } : { key, asc: true });
+  };
+  const sortIcon = (key: 'topic' | 'current' | 'max') => legendSort?.key === key ? (legendSort.asc ? <FiChevronUp /> : <FiChevronDown />) : null;
 
   // -------------------------------------------------------------------------
   // Обработчики кликов по легенде и фону графика
@@ -327,15 +343,15 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPan
 
           {/* Легенда – показывает только активные топики */}
           <div className="topics-legend">
-            <div className="topics-legend-header">
-              <span>Топик</span>
-              <span>Текущее</span>
-              <span>Макс.</span>
+            <div className="topics-legend-header" role="row">
+              <button type="button" onClick={() => toggleLegendSort('topic')} aria-label="Сортировать по топику" aria-sort={legendSort?.key === 'topic' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>Топик {sortIcon('topic')}</button>
+              <button type="button" onClick={() => toggleLegendSort('current')} aria-label="Сортировать по текущему значению" aria-sort={legendSort?.key === 'current' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>Текущее {sortIcon('current')}</button>
+              <button type="button" onClick={() => toggleLegendSort('max')} aria-label="Сортировать по максимальному значению" aria-sort={legendSort?.key === 'max' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>Макс. {sortIcon('max')}</button>
             </div>
             {visibleTopics.length === 0 ? (
               <div className="topics-legend-placeholder">Нет активных топиков за выбранный период</div>
             ) : (
-              visibleTopics.map(topic => (
+              sortedVisibleTopics.map(topic => (
                 <div
                   key={topic}
                   className={`topics-legend-row ${
