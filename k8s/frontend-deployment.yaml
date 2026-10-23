@@ -28,6 +28,6 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: egorich27/kafka-control-frontend:4.2.37   # замени на свой registry
+          image: egorich27/kafka-control-frontend:latest   # замени на свой registry
           ports:
             - containerPort: 80

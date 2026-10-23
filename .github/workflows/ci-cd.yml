@@ -123,7 +123,7 @@ jobs:
       # ---- FRONTEND ----
       - name: Extract metadata for frontend
         id: meta-frontend
-        uses: docker/metadata-action@v7
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKER_IMAGE_FRONTEND }}
           tags: |
@@ -142,33 +142,41 @@ jobs:
           cache-to: type=gha,mode=max
 
       # ---- ГЕНЕРАЦИЯ CHANGELOG ----
+
       - name: Generate changelog
         id: changelog
+        shell: bash
         run: |
-          PREV_TAG=$(git tag --sort=-creatordate | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
+          set -euo pipefail
 
-          if [ -z "$PREV_TAG" ]; then
-            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          CURRENT_TAG="${GITHUB_REF_NAME}"
+          PREV_TAG="$(git tag --sort=-creatordate \
+            | grep -Fvx "$CURRENT_TAG" \
+            | head -n 1 || true)"
+
+          if [[ -n "$PREV_TAG" ]]; then
+            RANGE="${PREV_TAG}..${CURRENT_TAG}"
+          else
+            RANGE="$CURRENT_TAG"
           fi
 
-          echo "Previous tag: $PREV_TAG"
-          echo "Current tag: $GITHUB_REF_NAME"
+          CHANGES="$(git log "$RANGE" \
+            --pretty=format:'- %s' \
+            --no-merges || true)"
 
-          CHANGES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges || true)
-
-          if [ -z "$CHANGES" ]; then
+          if [[ -z "$CHANGES" ]]; then
             CHANGES="- Изменения не указаны"
           fi
 
           {
-            echo "changes<<EOF"
-            echo "$CHANGES"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+            echo "changes<<CHANGELOG_EOF"
+            printf '%s\n' "$CHANGES"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       # ---- СОЗДАНИЕ GITHUB RELEASE ----
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
