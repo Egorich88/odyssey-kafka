@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: egorich27/kafka-control-backend:latest   # замени на свой registry
+          image: egorich27/kafka-control-backend:4.2.37  # замени на свой registry
           ports:
             - containerPort: 8080
           env:
