@@ -1,4 +1,4 @@
-module kafka-system-control-4/backend
+module odyssey-kafka/backend
 
 		go 1.27
 

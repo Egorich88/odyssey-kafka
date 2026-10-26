@@ -54,7 +54,7 @@ EXPOSE 8080
 
 # Метаданные образа согласно спецификации OpenContainers
 LABEL org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.source="https://github.com"
+      org.opencontainers.image.source="https://github.com/Egorich88/odyssey-kafka"
 
 # Запуск приложения
 CMD ["kafka-backend"]

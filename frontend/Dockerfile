@@ -35,7 +35,7 @@ EXPOSE 8080
 
 # Метаданные образа
 LABEL org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.source="https://github.com/Egorich88/kafka-system-control-4"
+      org.opencontainers.image.source="https://github.com/Egorich88/odyssey-kafka"
 
 # Инструкция USER и CMD уже встроены в базовый образ nginxinc, дублировать их не требуется.
 # Контейнер автоматически запустится в безопасном rootless-режиме.
