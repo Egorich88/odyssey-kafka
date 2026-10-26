@@ -154,18 +154,13 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
     <div className="dashboard-panel certificate-panel">
       <div className="panel-header certificate-panel-header">
         <div className="panel-title-with-info">
-          
           <PanelInfo
             title="Сертификаты Kafka"
             description="Список TLS-сертификатов и связанных хранилищ Kafka. Отображаются срок действия, расположение и данные Subject/Issuer, если их удалось прочитать."
           />
           <span>Сертификаты Kafka</span>
         </div>
-        <PanelFullscreenButton />
-      </div>
-
-      <div className="certificate-panel-body">
-        <div className="certificate-toolbar">
+        <div className="certificate-header-controls">
           <div className="certificate-summary-main"><strong>{count}</strong><span>сертификатов</span></div>
           <div className="certificate-summary-nearest">Ближайшее истечение: <strong>{nearest >= 0 ? `${nearest} дн.` : '—'}</strong></div>
           <div className="certificate-filters" ref={filtersRef}>
@@ -182,9 +177,11 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
               </div>}
             </div>
           </div>
-
+          <PanelFullscreenButton />
         </div>
+      </div>
 
+      <div className="certificate-panel-body">
         <div className="certificate-table-wrap">
           <div className="certificate-table">
             <div className="certificate-table-row header">

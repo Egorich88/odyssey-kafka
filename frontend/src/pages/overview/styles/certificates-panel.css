@@ -13,16 +13,19 @@
 /** @file certificates-panel.css Таблица сертификатов Kafka. */
 
 .certificate-panel { min-width: 0; min-height: 0; }
-.certificate-panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 7px 11px 9px; overflow: hidden; }
+.certificate-panel-header { gap: 12px; }
+.certificate-panel-header > .panel-title-with-info { flex: 0 0 auto; min-width: 0; }
+.certificate-header-controls { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-left: auto; }
+.certificate-panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 11px 9px; overflow: hidden; }
 .certificate-title-icon { display: grid; place-items: center; color: #55e6dc; font-size: 18px; }
-.certificate-toolbar { display: flex; align-items: center; gap: 12px; min-height: 34px; padding: 0 3px 7px; }
-.certificate-summary-main { display: flex; align-items: baseline; gap: 6px; }
+.certificate-toolbar { display: flex; align-items: center; justify-content: flex-start; gap: 16px; flex-wrap: nowrap; min-width: 0; }
+.certificate-summary-main { display: inline-flex; align-items: center; gap: 5px; margin: 0; white-space: nowrap; }
 .certificate-summary-main strong { color: var(--text-primary); font-size: 20px; line-height: 1; font-variant-numeric: tabular-nums; }
-.certificate-summary-main span, .certificate-summary-nearest { color: var(--text-secondary); font-size: 12px; }
+.certificate-summary-main span { color: var(--text-secondary); font-size: 12px; }
+.certificate-summary-nearest { display: inline-flex; align-items: center; gap: 5px; margin: 0; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .certificate-summary-nearest strong { color: var(--text-primary); }
-.certificate-filters { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.certificate-filters { display: flex; margin-left: auto; align-items: center; gap: 6px; }
 .certificate-filter { position: relative; display: flex; align-items: center; color: var(--text-secondary); }
-
 .certificate-filter select { appearance: none; height: 30px; min-width: 112px; padding: 0 24px 0 10px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--dropdown-bg); color: var(--text-primary); font: inherit; font-size: 13px; outline: none; cursor: pointer; }
 .certificate-filter:first-child select { padding-left: 11px; }
 .certificate-filter select:focus { border-color: var(--accent-hover); box-shadow: 0 0 0 2px var(--input-focus); }
@@ -49,7 +52,15 @@
 .certificate-metadata small { overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
 .certificate-empty { padding: 12px; text-align: center; color: var(--text-secondary); font-size: 11px; }
 
-@media (max-width: 1000px) { .certificate-toolbar { flex-wrap: wrap; } .certificate-filters { margin-left: 0; } }
+@media (max-width: 1100px) {
+  .certificate-panel-header { align-items: flex-start; flex-wrap: wrap; }
+  .certificate-header-controls { width: 100%; justify-content: flex-start; flex-wrap: wrap; margin-left: 0; }
+}
+
+@media (max-width: 700px) {
+  .certificate-header-controls { gap: 8px; }
+  .certificate-summary-nearest { flex: 1 1 100%; }
+}
 
 .certificate-empty-state { padding: 24px 12px; color: var(--text-secondary); font-size: 13px; text-align: center; }
 
