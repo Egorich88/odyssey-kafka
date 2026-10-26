@@ -69,6 +69,9 @@ func sendJSONError(w http.ResponseWriter, msg string, status int) {
 // =============================================================================
 
 func main() {
+	// Проверка доступности самого Backend без подключения к Kafka.
+	http.HandleFunc("/api/health", getApplicationHealthHandler)
+
 	// ----- Группа маршрутов для управления топиками (обработчики в topics.go) -----
 	http.HandleFunc("/api/topics", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {

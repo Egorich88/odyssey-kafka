@@ -15,22 +15,34 @@
  */
 
 /**
- * Non-blocking startup hook.
+ * =============================================================================
+ * @file useLoading.ts
+ * =============================================================================
+ * Управляет фактическими этапами первоначального запуска Odyssey.
  *
- * The splash screen is responsible only for bootstrapping the frontend.
- * Kafka/backend availability must never prevent the main UI from opening.
- * ClusterContext performs health checks asynchronously after App is mounted.
+ * Статус обновляется непосредственно в раннем HTML-splash: это позволяет
+ * показывать ход запуска до того, как React отрисует основное приложение.
+ * Проверка Backend отделена от проверки Kafka: отсутствие кластера не является
+ * ошибкой запуска и не блокирует переход в интерфейс.
+ * =============================================================================
  */
 
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { LoadingStage, LoadingState } from '../types/loading';
 
 const INITIAL_STATE: LoadingState = {
     progress: 0,
     currentStage: LoadingStage.INITIALIZATION,
     message: 'Инициализация...',
-    completed: false
+    completed: false,
 };
+
+/** Обновляет текст статуса в статическом splash, если он ещё отображается. */
+function setSplashStatus(message: string): void {
+    const status = document.getElementById('initial-splash-status');
+    if (status) status.textContent = message;
+}
 
 export function useLoading(): LoadingState {
     const [state, setState] = useState<LoadingState>(INITIAL_STATE);
@@ -38,36 +50,78 @@ export function useLoading(): LoadingState {
     useEffect(() => {
         let cancelled = false;
 
-        const start = async () => {
-            setState({
-                progress: 35,
-                currentStage: LoadingStage.INITIALIZATION,
-                message: 'Инициализация...',
-                completed: false
-            });
-
-            // Небольшая минимальная длительность нужна, чтобы фирменный
-            // экран запуска не исчезал мгновенно на быстрых машинах.
-            await new Promise<void>(resolve => {
-                window.setTimeout(resolve, 900);
-            });
-
+        /** Синхронно обновляет и React-состояние, и ранний HTML-экран. */
+        const publish = (
+            currentStage: LoadingStage,
+            message: string,
+            progress: number,
+            completed = false,
+        ) => {
             if (cancelled) return;
-
-            // Configuration is read synchronously by ClusterContext.
-            setState({
-                progress: 100,
-                currentStage: LoadingStage.COMPLETE,
-                message: 'Готово',
-                completed: true
-            });
+            setSplashStatus(message);
+            setState({ progress, currentStage, message, completed });
         };
 
-        void start();
+        const initialize = async () => {
+            try {
+                publish(LoadingStage.INITIALIZATION, 'Инициализация приложения...', 10);
 
-        return () => {
-            cancelled = true;
+                // Даём браузеру отобразить первый кадр фирменного splash.
+                await new Promise<void>(resolve => window.requestAnimationFrame(() => resolve()));
+                if (cancelled) return;
+
+                // Читаем сохранённые настройки и проверяем их структуру.
+                publish(LoadingStage.CONFIGURATION, 'Чтение конфигурации...', 30);
+                let clusters: Array<{ id?: string; brokers?: string; bootstrapServers?: string }> = [];
+                try {
+                    const stored = window.localStorage.getItem('kafka_clusters');
+                    if (stored) {
+                        const parsed: unknown = JSON.parse(stored);
+                        if (Array.isArray(parsed)) clusters = parsed;
+                    }
+                } catch (error) {
+                    // Повреждённая конфигурация не должна блокировать запуск UI.
+                    console.warn('Не удалось прочитать сохранённую конфигурацию кластеров:', error);
+                }
+                if (cancelled) return;
+
+                // Отдельно проверяем Backend. Этот endpoint не требует Kafka.
+                publish(LoadingStage.SERVER, 'Проверка доступности Backend...', 55);
+                try {
+                    await axios.get('/api/health', { timeout: 5000 });
+                    if (cancelled) return;
+                    publish(LoadingStage.SERVER, 'Backend доступен', 70);
+                } catch (error) {
+                    if (cancelled) return;
+                    // Backend недоступен — всё равно открываем UI, чтобы пользователь
+                    // увидел интерфейс и мог диагностировать проблему подключения.
+                    console.warn('Backend пока недоступен:', error);
+                    publish(LoadingStage.SERVER, 'Backend недоступен — запускаем интерфейс...', 70);
+                }
+                if (cancelled) return;
+
+                // Не проверяем Kafka повторно здесь: ClusterContext выполняет
+                // настоящий health-check после монтирования App. Пустой список
+                // кластеров — штатная ситуация для первого запуска.
+                if (clusters.length > 0) {
+                    publish(LoadingStage.CLUSTER, 'Настройки кластера найдены — подготовка интерфейса...', 85);
+                } else {
+                    publish(LoadingStage.CONFIGURATION, 'Кластер не настроен — открываем интерфейс добавления...', 85);
+                }
+
+                // Завершаем только frontend bootstrap, а не проверку Kafka.
+                publish(LoadingStage.COMPLETE, 'Запуск интерфейса...', 100, true);
+            } catch (error) {
+                // Не допускаем бесконечного splash при неожиданной ошибке инициализации.
+                console.error('Ошибка первоначальной инициализации Odyssey:', error);
+                if (!cancelled) {
+                    publish(LoadingStage.COMPLETE, 'Запускаем интерфейс в ограниченном режиме...', 100, true);
+                }
+            }
         };
+
+        void initialize();
+        return () => { cancelled = true; };
     }, []);
 
     return state;

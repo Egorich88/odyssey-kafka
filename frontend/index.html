@@ -216,6 +216,18 @@
             gap: 10px;
         }
 
+        /* Статус находится в HTML, поэтому виден ещё до запуска React. */
+        #initial-splash-status {
+            min-height: 20px;
+            margin-top: 12px;
+            color: #d0d7de;
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: .2px;
+            text-align: center;
+        }
+
         .initial-splash-logo-wrap img {
             width: 160px;
             height: auto;
@@ -267,6 +279,7 @@
     <div class="initial-splash-logo-wrap">
         <img src="/logo.svg" alt="ODYSSEY" />
         <span></span>
+        <div id="initial-splash-status" role="status" aria-live="polite">Инициализация...</div>
     </div>
 </div>
 
