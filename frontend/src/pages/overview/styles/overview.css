@@ -202,7 +202,7 @@ body:has(.is-panel-fullscreen)::before {
 }
 
 /* Первый ряд: дополнительно отдаём 5 процентных пунктов ширины панели состояния кластера. */
-.dashboard-row-status { grid-template-columns: minmax(0, 5.1fr) minmax(0, 4.9fr); }
+.dashboard-row-status { grid-template-columns: minmax(0, 5.5fr) minmax(0, 4.5fr); }
 @media (max-width: 1200px) {
   .dashboard-row-status { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
