@@ -604,3 +604,27 @@
   }
   .page-header-time-menu { animation: none; }
 }
+
+
+/* При недоступном кластере верхняя линия остаётся единственным красным
+   индикатором: она движется слева направо и не добавляет отдельную полосу. */
+.page-header-bar.is-cluster-unavailable .page-header-loading-line {
+  opacity: 1;
+  background: transparent;
+  box-shadow: 0 0 6px rgba(239, 68, 68, .18);
+}
+
+.page-header-bar.is-cluster-unavailable .page-header-loading-line::after {
+  width: 18%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(239, 68, 68, .45) 18%,
+    #ef4444 50%,
+    rgba(239, 68, 68, .45) 82%,
+    transparent
+  );
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, .85));
+  animation: pageHeaderLoadingWave 1.8s linear infinite;
+}
+

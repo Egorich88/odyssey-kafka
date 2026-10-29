@@ -207,7 +207,9 @@ const Layout = () => {
   // Для Kafka-страниц кластер доступен только после подтверждённого статуса connected.
   // Отсутствующий статус также считается проверкой, а не разрешением открыть страницу.
   const clusterStatus = currentCluster?.connectionStatus ?? 'checking';
-  const clusterUnavailable = Boolean(kafkaRequiredPage && (!currentCluster || clusterStatus !== 'connected'));
+  // Если выбранный кластер недоступен, блокируем навигацию и контент
+  // на всех маршрутах, включая «Настройки», чтобы состояние было единым.
+  const clusterUnavailable = Boolean(currentCluster && clusterStatus !== 'connected');
 
   return (
     <div className="app-layout sidebar-dark">
@@ -225,10 +227,11 @@ const Layout = () => {
             title={currentPage.title}
             description={currentPage.description}
             mode={currentPage.mode}
+            clusterUnavailable={clusterUnavailable}
           />
 
           <div className="main-content-body">
-            {kafkaRequiredPage && clusterUnavailable ? (
+            {clusterUnavailable && kafkaRequiredPage ? (
               <ClusterStatusScreen status={clusterStatus} />
             ) : (
               <Outlet />

@@ -36,9 +36,11 @@ interface Props {
   title: string;
   description: string;
   mode: PageHeaderMode;
+  /** Подсвечивает верхнюю линию красным, если выбранный кластер недоступен. */
+  clusterUnavailable?: boolean;
 }
 
-export default function PageHeader({ title, description, mode }: Props) {
+export default function PageHeader({ title, description, mode, clusterUnavailable = false }: Props) {
   const {
     timeRange,
     refreshInterval,
@@ -52,7 +54,7 @@ export default function PageHeader({ title, description, mode }: Props) {
   const loading = mode === 'monitoring' && (pageLoading || isRefreshing);
 
   return (
-    <header className={`page-header-bar page-header-${mode} ${loading ? 'is-loading' : ''}`}>
+    <header className={`page-header-bar page-header-${mode} ${loading ? 'is-loading' : ''} ${clusterUnavailable ? 'is-cluster-unavailable' : ''}`}>
       <div className="page-header-loading-line" aria-hidden="true" />
 
       <div className="page-header-title-group">

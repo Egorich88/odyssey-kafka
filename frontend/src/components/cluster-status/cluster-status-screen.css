@@ -22,24 +22,8 @@
   background: var(--bg-primary);
 }
 
-/* Индикатор состояния кластера остаётся заметным при любом размере панели. */
-.cluster-status-screen::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--accent-hover) 35%, #55e6dc 50%, var(--accent-hover) 65%, transparent 100%);
-  background-size: 220% 100%;
-  animation: clusterStatusLine 1.8s linear infinite;
-  box-shadow: 0 0 14px rgba(85, 230, 220, .28);
-}
-
-.cluster-status-screen.is-unavailable::before {
-  background: linear-gradient(90deg, transparent 0%, var(--danger-color, #ef4444) 35%, #ff6b6b 50%, var(--danger-color, #ef4444) 65%, transparent 100%);
-  background-size: 220% 100%;
-  box-shadow: 0 0 16px rgba(239, 68, 68, .42);
-}
-
+/* Верхнюю полосу экрана заглушки не показываем: статус обозначает
+   только горизонтальная линия в шапке приложения. */
 
 .cluster-status-content {
   display: flex;
@@ -68,13 +52,13 @@
 .cluster-status-logo-glow {
   position: absolute;
   left: 50%;
-  bottom: 3px;
+  bottom: 1px;
   width: 118px;
-  height: 4px;
+  height: 3px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: radial-gradient(ellipse at center, #55e6dc 0%, rgba(85,230,220,.55) 35%, transparent 78%);
-  box-shadow: 0 0 8px rgba(85,230,220,.75), 0 0 24px rgba(85,230,220,.4);
+  background: radial-gradient(ellipse at center, #55e6dc 0%, rgba(85,230,220,.72) 38%, rgba(34,220,200,.18) 75%, transparent 100%);
+  box-shadow: 0 0 6px rgba(85,230,220,.8), 0 0 16px rgba(85,230,220,.42), 0 0 30px rgba(85,230,220,.18);
   animation: clusterStatusGlow 1.55s ease-in-out infinite;
 }
 
@@ -102,8 +86,8 @@
 }
 
 .is-unavailable .cluster-status-logo-glow {
-  background: radial-gradient(ellipse at center, var(--danger-color) 0%, color-mix(in srgb, var(--danger-color) 55%, transparent) 35%, transparent 78%);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--danger-color) 75%, transparent), 0 0 26px color-mix(in srgb, var(--danger-color) 40%, transparent);
+  background: radial-gradient(ellipse at center, var(--danger-color, #ef4444) 0%, rgba(239,68,68,.72) 38%, rgba(239,68,68,.18) 75%, transparent 100%);
+  box-shadow: 0 0 6px rgba(239,68,68,.8), 0 0 16px rgba(239,68,68,.42), 0 0 30px rgba(239,68,68,.18);
 }
 
 .cluster-status-content h2 {
