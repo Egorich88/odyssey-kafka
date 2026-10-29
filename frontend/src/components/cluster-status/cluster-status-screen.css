@@ -52,14 +52,27 @@
 .cluster-status-logo-glow {
   position: absolute;
   left: 50%;
-  bottom: 1px;
-  width: 118px;
+  bottom: -1.5px;
+  width: 120px;
   height: 3px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: radial-gradient(ellipse at center, #55e6dc 0%, rgba(85,230,220,.72) 38%, rgba(34,220,200,.18) 75%, transparent 100%);
-  box-shadow: 0 0 6px rgba(85,230,220,.8), 0 0 16px rgba(85,230,220,.42), 0 0 30px rgba(85,230,220,.18);
+
+  background: radial-gradient(
+    ellipse at center,
+    #55e6dc 0%,
+    rgba(85, 230, 220, .72) 38%,
+    rgba(34, 220, 200, .18) 75%,
+    transparent 100%
+  );
+
+  box-shadow:
+    0 0 6px rgba(85, 230, 220, .8),
+    0 0 16px rgba(85, 230, 220, .42),
+    0 0 30px rgba(85, 230, 220, .18);
+
   animation: clusterStatusGlow 1.55s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 .cluster-status-spinner {
@@ -108,8 +121,15 @@
 @keyframes clusterStatusLine { from { background-position: 100% 0; } to { background-position: -120% 0; } }
 
 @keyframes clusterStatusGlow {
-  0%, 100% { opacity: .48; transform: translateX(-50%) scaleX(.82); }
-  50% { opacity: 1; transform: translateX(-50%) scaleX(1.08); }
+  0%, 100% {
+    opacity: .48;
+    transform: translateX(-50%) scaleX(.84);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1.08);
+  }
 }
 
 @keyframes clusterStatusSpin {
