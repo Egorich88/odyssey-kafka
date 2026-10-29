@@ -220,6 +220,10 @@ export default function ClusterConfigPanel({
             mTLS
           </option>
 
+          <option value="SASL_GSSAPI">
+            Kerberos / GSSAPI
+          </option>
+
         </select>
 
         {(config.authType ===
@@ -251,6 +255,32 @@ export default function ClusterConfigPanel({
               onChange={handleChange}
             />
 
+            <label>SCRAM mechanism (used for SASL_SCRAM)</label>
+            <select name="saslMechanism" value={config.saslMechanism || 'SCRAM-SHA-512'} onChange={handleChange}>
+              <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
+              <option value="SCRAM-SHA-512">SCRAM-SHA-512</option>
+            </select>
+
+            <label>CA certificate (for internal TLS CA)</label>
+            <textarea rows="3" name="ca" value={config.ca || ''} onChange={handleChange} />
+
+          </>
+        )}
+
+        {config.authType === 'SASL_GSSAPI' && (
+          <>
+            <label>Kerberos username / principal</label>
+            <input name="kerberosUsername" value={config.kerberosUsername || ''} onChange={handleChange} />
+            <label>Kerberos password (or configure keytab)</label>
+            <input type="password" name="kerberosPassword" value={config.kerberosPassword || ''} onChange={handleChange} />
+            <label>Realm</label>
+            <input name="kerberosRealm" value={config.kerberosRealm || ''} onChange={handleChange} />
+            <label>Service name</label>
+            <input name="kerberosServiceName" value={config.kerberosServiceName || 'kafka'} onChange={handleChange} />
+            <label>krb5.conf path inside backend</label>
+            <input name="kerberosConfigPath" value={config.kerberosConfigPath || '/etc/krb5.conf'} onChange={handleChange} />
+            <label>Keytab path inside backend (optional)</label>
+            <input name="kerberosKeytabPath" value={config.kerberosKeytabPath || ''} onChange={handleChange} />
           </>
         )}
 

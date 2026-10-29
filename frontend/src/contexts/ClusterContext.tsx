@@ -95,6 +95,28 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
     if (initialCheck) updateClusterStatus(cluster.id, 'checking');
 
     try {
+      // Перед health-check регистрируем профиль в backend. Секреты не передаются
+      // в каждом API-запросе: backend держит валидированную конфигурацию в памяти.
+      // При перезапуске backend профиль автоматически регистрируется заново.
+      const authType = String(cluster.authType || 'PLAINTEXT');
+      const saslMechanism = String(cluster.saslMechanism || 'PLAIN');
+      await axios.post('/api/clusters/config', {
+        brokers: bootstrap,
+        authType,
+        username: String(cluster.username || ''),
+        password: String(cluster.password || ''),
+        cert: String(cluster.cert || ''),
+        key: String(cluster.key || ''),
+        ca: String(cluster.ca || ''),
+        saslMechanism,
+        kerberosUsername: String(cluster.kerberosUsername || ''),
+        kerberosPassword: String(cluster.kerberosPassword || ''),
+        kerberosRealm: String(cluster.kerberosRealm || ''),
+        kerberosServiceName: String(cluster.kerberosServiceName || 'kafka'),
+        kerberosConfigPath: String(cluster.kerberosConfigPath || '/etc/krb5.conf'),
+        kerberosKeytabPath: String(cluster.kerberosKeytabPath || ''),
+      }, { timeout: 7000 });
+
       const response = await axios.get<{ status?: string }>('/api/clusters/health', {
         headers: { 'X-Kafka-Bootstrap': bootstrap },
         // Backend выполняет быстрый health-check. 12 секунд оставляем как
@@ -191,12 +213,24 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeCluster = useCallback((clusterId: string) => {
-    setClusters((previous) => {
-      const next = previous.filter((cluster) => cluster.id !== clusterId);
-      if (clusterId === currentClusterId) setCurrentClusterId(next[0]?.id ?? null);
-      return next;
-    });
-  }, [currentClusterId]);
+    const removed = clusters.find((cluster) => cluster.id === clusterId);
+    const next = clusters.filter((cluster) => cluster.id !== clusterId);
+    const removedBootstrap = removed?.brokers || removed?.bootstrapServers;
+    const stillUsed = Boolean(removedBootstrap && next.some(
+      (cluster) => (cluster.brokers || cluster.bootstrapServers) === removedBootstrap
+    ));
+
+    // Clear credentials from backend memory when no saved cluster uses this bootstrap.
+    if (removedBootstrap && !stillUsed) {
+      void axios.delete('/api/clusters/config', {
+        headers: { 'X-Kafka-Bootstrap': removedBootstrap },
+        timeout: 3000,
+      }).catch(() => undefined);
+    }
+
+    setClusters(next);
+    if (clusterId === currentClusterId) setCurrentClusterId(next[0]?.id ?? null);
+  }, [clusters, currentClusterId]);
 
   const changeCluster = useCallback((cluster: KafkaCluster) => {
     // Сразу переводим новый кластер в checking: старые данные и старый статус

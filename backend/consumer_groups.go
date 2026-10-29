@@ -318,7 +318,7 @@ func getConsumerGroupDetailsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createKafkaClientForConsumerGroups(bootstrap string) (sarama.Client, error) {
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 	return sarama.NewClient([]string{bootstrap}, config)
 }

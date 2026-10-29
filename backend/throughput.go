@@ -244,7 +244,7 @@ func (tc *ThroughputCollector) collect() {
 // - map[TopicPartitionKey]int64 – текущие latest offsets (входящие)
 // - map[group]map[TopicPartitionKey]int64 – текущие committed offsets (исходящие)
 func (tc *ThroughputCollector) fetchDetailedMetrics() (map[TopicPartitionKey]int64, map[string]map[TopicPartitionKey]int64, error) {
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(tc.bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{tc.bootstrap}, config)

@@ -111,7 +111,7 @@ func getMessagesHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Подключение к Kafka
 	bootstrap := getBootstrapFromRequest(r)
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 	config.Consumer.Return.Errors = true
 
@@ -264,7 +264,7 @@ func getPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bootstrap := getBootstrapFromRequest(r)
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{bootstrap}, config)

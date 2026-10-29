@@ -180,7 +180,7 @@ func (ec *EventCollector) getBrokerAddress(id int32) string {
 	if addr, ok := ec.brokerAddresses[id]; ok {
 		return addr
 	}
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
 	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
 	if err != nil {
@@ -198,7 +198,7 @@ func (ec *EventCollector) getBrokerAddress(id int32) string {
 }
 
 func (ec *EventCollector) getControllerAddress() string {
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
 	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
 	if err != nil {
@@ -514,7 +514,7 @@ func (ec *EventCollector) collect() {
 }
 
 func (ec *EventCollector) getTopicPartitions(topic string) int32 {
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
 	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
 	if err != nil {
@@ -537,7 +537,7 @@ func (ec *EventCollector) fetchConsumerLags() (map[string]int64, error) {
 	}
 	defer admin.Close()
 
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
 	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
 	if err != nil {
@@ -575,7 +575,7 @@ func (ec *EventCollector) fetchConsumerLags() (map[string]int64, error) {
 }
 
 func (ec *EventCollector) fetchTopicOffsets() (map[string]int64, error) {
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
 	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
 	if err != nil {
@@ -625,7 +625,7 @@ func (ec *EventCollector) fetchTopicMetadata() (map[string]int16, error) {
 }
 
 func (ec *EventCollector) fetchBrokerStatus() (map[int32]bool, error) {
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
 	config.Net.DialTimeout = 2 * time.Second
 	client, err := sarama.NewClient([]string{ec.bootstrap}, config)

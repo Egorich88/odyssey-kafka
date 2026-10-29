@@ -245,7 +245,7 @@ func (lc *LagCollector) fetchConsumerLagsWithTopics() (
 	}
 	defer admin.Close()
 
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(lc.bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{lc.bootstrap}, config)
@@ -334,7 +334,7 @@ func collectConsumerLagRows(bootstrap string) ([]ConsumerLagRow, error) {
 	}
 	defer admin.Close()
 
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{bootstrap}, config)

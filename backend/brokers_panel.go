@@ -77,7 +77,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	// Получаем реальную версию Kafka с логированием
 	kafkaVersion := getRealKafkaVersionWithLog(bootstrap)
 
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{bootstrap}, config)

@@ -94,7 +94,7 @@ func getClusterHealthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Health-check должен подтвердить не только TCP-соединение, но и ответ Kafka Admin API.
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 	config.Net.DialTimeout = 5 * time.Second
 	config.Net.ReadTimeout = 4 * time.Second

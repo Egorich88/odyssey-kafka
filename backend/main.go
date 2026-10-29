@@ -53,8 +53,7 @@ func getBootstrapFromRequest(r *http.Request) string {
 
 // createAdminClient создаёт административный клиент Sarama для управления кластером.
 func createAdminClient(bootstrap string) (sarama.ClusterAdmin, error) {
-	config := sarama.NewConfig()
-	config.Version = sarama.V2_8_0_0
+	config := kafkaConfigForBootstrap(bootstrap)
 	return sarama.NewClusterAdmin([]string{bootstrap}, config)
 }
 
@@ -71,6 +70,13 @@ func sendJSONError(w http.ResponseWriter, msg string, status int) {
 func main() {
 	// Проверка доступности самого Backend без подключения к Kafka.
 	http.HandleFunc("/api/health", getApplicationHealthHandler)
+	http.HandleFunc("/api/clusters/config", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			unregisterKafkaConfigHandler(w, r)
+			return
+		}
+		registerKafkaConfigHandler(w, r)
+	})
 
 	// ----- Группа маршрутов для управления топиками (обработчики в topics.go) -----
 	http.HandleFunc("/api/topics", func(w http.ResponseWriter, r *http.Request) {

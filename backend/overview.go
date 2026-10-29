@@ -83,7 +83,7 @@ func getDashboardMessagesTotalHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	bootstrap := getBootstrapFromRequest(r)
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{bootstrap}, config)
@@ -125,7 +125,7 @@ func getDashboardOverviewHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	bootstrap := getBootstrapFromRequest(r)
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{bootstrap}, config)
@@ -211,7 +211,7 @@ func getDashboardBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	bootstrap := getBootstrapFromRequest(r)
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{bootstrap}, config)
@@ -288,7 +288,7 @@ func getDashboardPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	bootstrap := getBootstrapFromRequest(r)
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient([]string{bootstrap}, config)

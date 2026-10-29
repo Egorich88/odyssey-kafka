@@ -103,7 +103,7 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config := sarama.NewConfig()
+	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 	config.Net.DialTimeout = 3 * time.Second
 	config.Net.ReadTimeout = 2 * time.Second

@@ -103,7 +103,7 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 		if endpoint == "" {
 			continue
 		}
-		info, ok := readRemoteTLSCertificate(endpoint)
+		info, ok := readRemoteTLSCertificate(endpoint, bootstrap)
 		if !ok {
 			// Показываем явно, что TLS-сертификат по адресу получить не удалось.
 			// Это не подменяет отсутствие сертификатов и помогает диагностировать доступ.
@@ -146,12 +146,17 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-func readRemoteTLSCertificate(endpoint string) (CertificateInfo, bool) {
+func readRemoteTLSCertificate(endpoint, bootstrap string) (CertificateInfo, bool) {
 	dialer := &net.Dialer{Timeout: 3 * time.Second}
-	connection, err := tls.DialWithDialer(dialer, "tcp", endpoint, &tls.Config{
-		InsecureSkipVerify: true, // Только получение метаданных сертификата.
-		MinVersion:         tls.VersionTLS12,
-	})
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	// Reuse the selected profile's CA and client certificate so the certificate
+	// panel can inspect a broker that requires mTLS without bypassing verification.
+	if kafkaConfig := kafkaConfigForBootstrap(bootstrap); kafkaConfig.Net.TLS.Enable && kafkaConfig.Net.TLS.Config != nil {
+		tlsConfig = kafkaConfig.Net.TLS.Config.Clone()
+		tlsConfig.MinVersion = tls.VersionTLS12
+		tlsConfig.InsecureSkipVerify = false
+	}
+	connection, err := tls.DialWithDialer(dialer, "tcp", endpoint, tlsConfig)
 	if err != nil {
 		return CertificateInfo{}, false
 	}
