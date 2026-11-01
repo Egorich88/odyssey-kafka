@@ -95,10 +95,10 @@ export default function EventsPanel({ refreshKey }) {
       <div className="events-panel-header">
         <div className="events-title">
           <PanelInfo
-            title="Последние события"
+            title="События"
             description="Показывает последние изменения и проблемы кластера. Для событий Consumer Groups дополнительно отображаются группа, топик и актуальное состояние: Stable, Rebalancing, Empty или Dead."
           />
-          <span>Последние события</span>
+          <span>События</span>
         </div>
         <div className="events-panel-actions">
           <div className="events-filter" ref={filterRef}>

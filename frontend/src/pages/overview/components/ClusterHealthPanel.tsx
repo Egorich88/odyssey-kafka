@@ -29,11 +29,9 @@
  * Все показатели относятся только к текущему выбранному кластеру.
  */
 
-import { FiServer, FiGrid, FiLayers, FiUsers, FiArrowDown, FiArrowUp, FiAlertTriangle, FiCheckCircle, FiAlertCircle, FiXCircle, FiGitBranch } from 'react-icons/fi';
+import { FiServer, FiGrid, FiLayers, FiUsers, FiArrowDown, FiArrowUp, FiAlertTriangle, FiCheckCircle, FiAlertCircle, FiXCircle } from 'react-icons/fi';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import PanelInfo from '../../../components/common/PanelInfo';
-import PanelFullscreenButton from './PanelFullscreenButton';
 import { useCluster } from '../../../contexts/ClusterContext';
 
 interface Props {
@@ -48,7 +46,7 @@ interface Props {
 const STATUS_META: Record<string, { title: string; description: string; className: string; Icon: any }> = {
   healthy: { title: 'Кластер стабилен', description: 'Все контролируемые компоненты работают штатно', className: 'cluster-status-healthy', Icon: FiCheckCircle },
   warning: { title: 'Есть предупреждения', description: 'Кластер доступен, но обнаружены состояния, требующие внимания', className: 'cluster-status-warning', Icon: FiAlertCircle },
-  critical: { title: 'Критическое состояние', description: 'Обнаружена проблема, влияющая на работу кластера', className: 'cluster-status-critical', Icon: FiXCircle },
+  critical: { title: 'Критическое состояние', description: 'Есть недоступные брокеры или партиции без лидера либо остановленные группы потребителей', className: 'cluster-status-critical', Icon: FiXCircle },
   unknown: { title: 'Состояние уточняется', description: 'Получение актуального состояния кластера', className: 'cluster-status-unknown', Icon: FiAlertTriangle },
 };
 
@@ -91,23 +89,15 @@ export default function ClusterHealthPanel({ refreshKey, overview, consumerGroup
   const underReplicated = data?.underReplicated ?? overview?.underReplicated ?? 0;
 
   return (
-    <div className={`dashboard-panel cluster-health-panel ${meta.className}`}>
-      <div className="panel-header">
-        <div className="panel-title-with-info">
-          <PanelInfo
-            title="Состояние кластера"
-            description="Сводка состояния Kafka-кластера и основные показатели нагрузки. Данные относятся только к выбранному кластеру."
-          />
-          <span>Состояние кластера</span>
+    <div className="dashboard-panel cluster-health-panel">
+      <div className="cluster-health-body cluster-health-summary">
+        <div className={`cluster-health-status ${meta.className}`} title={meta.description}>
+          <span className="cluster-health-status-icon"><StatusIcon /></span>
+          <span className="cluster-health-status-copy">
+            <strong>{meta.title}</strong>
+            <small>{meta.description}</small>
+          </span>
         </div>
-        <div className={`cluster-status-inline ${meta.className}`} title={meta.description} aria-label={meta.description}>
-          <StatusIcon />
-          <span>{meta.title}</span>
-        </div>
-        <PanelFullscreenButton />
-      </div>
-
-      <div className="cluster-health-body">
         <div className="cluster-kpi-grid">
           <Kpi icon={<FiServer />} label="Брокеры" value={loading ? '—' : formatNumber(data?.brokerCount)} />
           <Kpi icon={<FiGrid />} label="Топики" value={loading ? '—' : formatNumber(topicCount)} />
@@ -116,27 +106,6 @@ export default function ClusterHealthPanel({ refreshKey, overview, consumerGroup
           <Kpi icon={<FiArrowDown />} label="Входящие сообщения" value={loading ? '—' : `${Number(messagesIn || 0).toFixed(1)} msg/s`} />
           <Kpi icon={<FiArrowUp />} label="Исходящие сообщения" value={loading ? '—' : `${Number(messagesOut || 0).toFixed(1)} msg/s`} />
           <Kpi icon={<FiAlertTriangle />} label="Недореплицированные" value={loading ? '—' : formatNumber(underReplicated)} danger={Number(underReplicated) > 0} />
-        </div>
-
-        <div className="cluster-brokers-table-wrap">
-          <div className="cluster-brokers-table-header">
-            <span>ID</span><span>Адрес</span><span>Статус</span><span>ISR</span><span>Контроллер</span>
-            <span>Лидеры</span><span>Реплики</span><span>CPU</span><span>Память</span><span>Диск (Used/Total)</span><span>Версия</span>
-          </div>
-          {loading ? <div className="cluster-broker-empty">Загрузка данных брокеров...</div> :
-            data?.brokers?.length ? data.brokers.map((broker: any) => (
-              <div className="cluster-brokers-table-row" key={broker.id}>
-                <span>{broker.id}</span>
-                <span className="broker-address">{broker.address}</span>
-                <span className={broker.online ? 'broker-online' : 'broker-offline'}><i />{broker.online ? 'Онлайн' : 'Офлайн'}</span>
-                <span>{formatNumber(broker.isrCount)}/{formatNumber(broker.replicaCount)}</span>
-                <span>{broker.controller ? <em className="broker-controller">Контроллер</em> : '—'}</span>
-                <span>{formatNumber(broker.leaderCount)}</span><span>{formatNumber(broker.replicaCount)}</span>
-                <span>{broker.cpu != null ? `${Number(broker.cpu).toFixed(1)}%` : '—'}</span>
-                <span>{formatMemory(broker.memory)}</span><span>{formatDisk(broker)}</span>
-                <span className="broker-version">{broker.version || '—'}</span>
-              </div>
-            )) : <div className="cluster-broker-empty">Нет доступных брокеров</div>}
         </div>
       </div>
     </div>

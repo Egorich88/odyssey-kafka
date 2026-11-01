@@ -50,13 +50,25 @@
     box-sizing: border-box;
 }
 
+/* Основная рабочая область всех страниц Odyssey.
+   Уменьшены внешние отступы, чтобы увеличить полезную площадь интерфейса:
+   сверху — расстояние от горизонтальной линии заголовка до содержимого;
+   по бокам — расстояние от содержимого до краёв рабочей области;
+   снизу — расстояние до нижнего края окна.
+   Все значения уменьшены примерно в два раза. */
+
 .main-content-body {
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
     width: 100%;
     box-sizing: border-box;
-    padding: clamp(20px, 2vw, 30px) clamp(20px, 2.2vw, 34px) clamp(24px, 2.4vw, 36px);
+
+    padding:
+        clamp(10px, 1vw, 15px)
+        clamp(10px, 1.1vw, 17px)
+        clamp(12px, 1.2vw, 18px);
+
     overflow: hidden;
 }
 
@@ -68,18 +80,16 @@
     box-sizing: border-box;
 }
 
-/*
- * На узких экранах горизонтальный ритм уменьшается, но нижний отступ
- * сохраняется, чтобы последний блок никогда не прилипал к краю окна.
- */
+/* Планшеты: уменьшаем внешние отступы в два раза */
 @media (max-width: 900px) {
     .main-content-body {
-        padding: 18px 20px 28px;
+        padding: 9px 10px 14px;
     }
 }
 
+/* Мобильные устройства: сохраняем компактные отступы */
 @media (max-width: 560px) {
     .main-content-body {
-        padding: 16px 16px 24px;
+        padding: 8px 8px 12px;
     }
 }

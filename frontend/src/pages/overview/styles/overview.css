@@ -1,5 +1,21 @@
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2026 Egor Khomenko (Egorich88)
  * Licensed under the Apache License, Version 2.0.
  */
 
@@ -32,7 +48,13 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(0, 28%) minmax(0, 24%) minmax(0, 48%);
+  /* Верхняя сводка уменьшена примерно на 30%; освободившееся место
+     перераспределено между нижними рядами, чтобы они начинались выше. */
+  grid-template-rows:
+    minmax(58px, 7%)
+    minmax(0, 22.75%)
+    minmax(0, 35.125%)
+    minmax(0, 35.125%);
   gap: var(--dashboard-gap);
   overflow: hidden;
 }
@@ -52,11 +74,11 @@
 }
 
 .dashboard-row-status {
-  grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .dashboard-row-top {
-  grid-template-columns: minmax(300px, 3fr) minmax(0, 7fr);
+  grid-template-columns: minmax(0, .6fr) minmax(0, 1fr);
 }
 
 .dashboard-row-main {
@@ -178,8 +200,11 @@ body:has(.is-panel-fullscreen)::before {
 
 @media (max-width: 1200px) {
   .dashboard-container {
-    grid-template-rows: minmax(0, 30%) minmax(0, 25%) minmax(0, 45%);
+    /* Верхняя сводка уменьшена примерно на 30%; освободившееся место
+     перераспределено между нижними рядами, чтобы они начинались выше. */
+  grid-template-rows: minmax(74px, 10%) minmax(0, 31.5%) minmax(0, 29.25%) minmax(0, 29.25%);
   }
+  .dashboard-row-summary { grid-template-columns: minmax(0, 1fr); }
   .dashboard-row-status,
   .dashboard-row-top,
   .dashboard-row-main {
@@ -193,19 +218,12 @@ body:has(.is-panel-fullscreen)::before {
     overflow: auto;
     grid-template-rows: none;
   }
+  .dashboard-row-summary,
   .dashboard-row-status,
   .dashboard-row-top,
   .dashboard-row-main {
     grid-template-columns: 1fr;
-    min-height: 360px;
+    min-height: 300px;
   }
 }
 
-/* Первый ряд: дополнительно отдаём 5 процентных пунктов ширины панели состояния кластера. */
-.dashboard-row-status { grid-template-columns: minmax(0, 5.5fr) minmax(0, 4.5fr); }
-@media (max-width: 1200px) {
-  .dashboard-row-status { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-}
-@media (max-width: 760px) {
-  .dashboard-row-status { grid-template-columns: 1fr; }
-}

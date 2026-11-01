@@ -71,12 +71,12 @@ export const PAGE_CONFIG: Record<string, PageConfig> = {
   '/search': {
     title: 'Поиск сообщений',
     description: 'Поиск и просмотр сообщений в Kafka',
-    mode: 'default',
+    mode: 'monitoring',
   },
   '/acls': {
     title: 'ACL',
     description: 'Управление политиками доступа Kafka',
-    mode: 'default',
+    mode: 'monitoring',
   },
   '/audit': {
     title: 'Аудит',

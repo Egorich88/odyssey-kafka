@@ -15,9 +15,9 @@
  */
 
 /* ========================= ОБЩИЕ КОНТЕЙНЕРЫ ========================= */
+/* Используем отступы общего Layout, не дублируем их на странице */
 .search-page {
-    padding: 34px;
-    padding-bottom: 50px;
+    padding: 0;
     color: var(--text-primary);
 }
 
@@ -818,9 +818,9 @@
 }
 
 @media (max-width: 720px) {
+    /* На мобильных устройствах также используем отступы общего Layout */
     .search-page {
-        padding: 20px;
-        padding-bottom: 40px;
+        padding: 0;
     }
     .search-toolbar {
         grid-template-columns: 1fr;

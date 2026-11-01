@@ -34,6 +34,7 @@ import TopicsPanel from './overview/components/TopicsPanel';
 import ConsumerLagPanel from './overview/components/ConsumerLagPanel';
 import EventsPanel from './overview/components/EventsPanel';
 import ClusterHealthPanel from './overview/components/ClusterHealthPanel';
+import BrokersPanel from './overview/components/BrokersPanel';
 import CertificatesPanel from './overview/components/CertificatesPanel';
 
 /**
@@ -64,6 +65,15 @@ export default function Overview(): JSX.Element {
   // Ключ обновления: меняется после каждой успешной загрузки,
   // заставляя дочерние панели перезапросить свои данные.
   const [refreshKey, setRefreshKey] = useState(0);
+  const [clusterHealth, setClusterHealth] = useState<any>(null);
+  const [clusterHealthLoaded, setClusterHealthLoaded] = useState(false);
+
+  // Стабильный callback не даёт эффекту ClusterHealthPanel запускать
+  // повторный запрос после каждого обновления родительского компонента.
+  const handleClusterHealthData = useCallback((value: any) => {
+    setClusterHealth(value);
+    setClusterHealthLoaded(true);
+  }, []);
 
   // Идентификатор последнего запроса — защита от гонок.
   const requestIdRef = useRef(0);
@@ -90,6 +100,8 @@ export default function Overview(): JSX.Element {
     setMessagesIn(0);
     setMessagesOut(0);
     setRefreshKey(0);
+    setClusterHealth(null);
+    setClusterHealthLoaded(false);
   }, []);
 
   /**
@@ -220,19 +232,25 @@ export default function Overview(): JSX.Element {
   // Основной дашборд: три ряда панелей.
   return (
     <div className="dashboard-container">
-      {/* Ряд 1: состояние кластера и сертификаты */}
-      <div className="dashboard-row dashboard-row-status">
+      {/* Верхняя строка: сводка состояния кластера на всю ширину. */}
+      <div className="dashboard-row dashboard-row-summary">
         <ClusterHealthPanel
           refreshKey={refreshKey}
           overview={overview}
           consumerGroups={consumerGroups}
           messagesIn={messagesIn}
           messagesOut={messagesOut}
+          onData={handleClusterHealthData}
         />
+      </div>
+
+      {/* Второй ряд: брокеры слева, сертификаты справа. */}
+      <div className="dashboard-row dashboard-row-status">
+        <BrokersPanel data={clusterHealth} loading={!clusterHealthLoaded} />
         <CertificatesPanel refreshKey={refreshKey} />
       </div>
 
-      {/* Ряд 2: пропускная способность и топики */}
+      {/* Третий ряд: общая пропускная способность шире панели топиков. */}
       <div className="dashboard-row dashboard-row-top">
         <div className="panel-throughput">
           <ThroughputPanel data={throughputData} />
@@ -242,7 +260,7 @@ export default function Overview(): JSX.Element {
         </div>
       </div>
 
-      {/* Ряд 3: отставание потребителей и последние события */}
+      {/* Нижний ряд: отставание потребителей и события. */}
       <div className="dashboard-row dashboard-row-main">
         <div className="panel-lag">
           <ConsumerLagPanel timeRange={panelTimeRange} refreshKey={refreshKey} />
