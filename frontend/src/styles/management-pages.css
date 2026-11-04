@@ -67,7 +67,6 @@
 .management-panel {
   overflow: hidden;
   border-radius: var(--panel-radius);
-  border-radius: 18px;
   background: var(--card-bg);
   box-shadow: var(--shadow-primary);
 }
