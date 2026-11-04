@@ -18,18 +18,19 @@
  * @file ClusterHealthPanel.tsx
  * @project Odyssey new 4.2.36
  * @description Сводная панель состояния Kafka-кластера.
- * @changes Добавлены подсказки к индикаторам статуса.
+ * @changes Компактная сводка, тематические подсказки и единая строка показателей.
  */
 
 /**
  * @file ClusterHealthPanel.tsx
  * Сводная панель состояния Kafka-кластера.
  *
- * В верхней части расположены KPI Overview, ниже — таблица брокеров.
+ * В верхней части расположены статус кластера, версия Kafka и ключевые показатели.
  * Все показатели относятся только к текущему выбранному кластеру.
  */
 
 import { FiServer, FiGrid, FiLayers, FiUsers, FiArrowDown, FiArrowUp, FiAlertTriangle, FiCheckCircle, FiAlertCircle, FiXCircle } from 'react-icons/fi';
+import { SiApachekafka } from 'react-icons/si';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useCluster } from '../../../contexts/ClusterContext';
@@ -55,6 +56,40 @@ const formatMemory = (value: unknown) => value == null ? '—' : `${Math.round(N
 const formatDisk = (broker: any) => broker.diskUsage != null && broker.diskTotal > 0
   ? `${Number(broker.diskUsage).toFixed(1)}/${Number(broker.diskTotal).toFixed(0)} GB`
   : '—';
+
+// Собирает версии из ответа health API, не предполагая, что у всех брокеров
+// обязательно одна и та же версия. Неизвестные значения не считаются версией.
+function getKafkaVersionSummary(brokers: any[] = []): { label: string; details: string; state: 'single' | 'different' | 'partial' | 'unknown' } {
+  const entries = brokers.map((broker) => ({
+    id: broker?.id,
+    address: broker?.address || 'адрес неизвестен',
+    version: typeof broker?.version === 'string' ? broker.version.trim() : '',
+  }));
+
+  const knownVersions = Array.from(new Set(
+    entries
+      .map((broker) => broker.version)
+      .filter((version) => version && version.toLowerCase() !== 'unknown')
+  )).sort();
+
+  const details = entries.length
+    ? entries.map((broker) => `Брокер ${broker.id ?? '—'} (${broker.address}): ${broker.version && broker.version.toLowerCase() !== 'unknown' ? broker.version : 'версия неизвестна'}`).join('\n')
+    : 'Данные о версиях брокеров отсутствуют';
+
+  if (knownVersions.length > 1) {
+    return { label: 'Разные версии', details, state: 'different' };
+  }
+
+  if (knownVersions.length === 1 && entries.some((broker) => !broker.version || broker.version.toLowerCase() === 'unknown')) {
+    return { label: 'Не у всех брокеров', details, state: 'partial' };
+  }
+
+  if (knownVersions.length === 1) {
+    return { label: knownVersions[0], details, state: 'single' };
+  }
+
+  return { label: 'Версия неизвестна', details, state: 'unknown' };
+}
 
 export default function ClusterHealthPanel({ refreshKey, overview, consumerGroups, messagesIn, messagesOut, onData }: Props): JSX.Element {
   const { currentCluster } = useCluster();
@@ -87,16 +122,39 @@ export default function ClusterHealthPanel({ refreshKey, overview, consumerGroup
   const topicCount = overview?.topics ?? overview?.topicCount ?? 0;
   const groupCount = consumerGroups?.length ?? overview?.consumerGroups ?? 0;
   const underReplicated = data?.underReplicated ?? overview?.underReplicated ?? 0;
+  const kafkaVersion = getKafkaVersionSummary(data?.brokers || []);
 
   return (
     <div className="dashboard-panel cluster-health-panel">
       <div className="cluster-health-body cluster-health-summary">
-        <div className={`cluster-health-status ${meta.className}`} title={meta.description}>
-          <span className="cluster-health-status-icon"><StatusIcon /></span>
-          <span className="cluster-health-status-copy">
-            <strong>{meta.title}</strong>
-            <small>{meta.description}</small>
-          </span>
+        <div className="cluster-health-heading">
+          <div className={`cluster-health-status ${meta.className}`}>
+            <span
+              className="cluster-health-status-icon"
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content={meta.description}
+              aria-label={meta.description}
+            >
+              <StatusIcon />
+            </span>
+
+            <span className="cluster-health-status-copy">
+              <strong>{meta.title}</strong>
+            </span>
+          </div>
+
+          <div
+            className={`cluster-kafka-version is-${kafkaVersion.state}`}
+            data-tooltip-id="sidebar-tooltip"
+            data-tooltip-content={`Сведения о версиях брокеров\n${kafkaVersion.details}`}
+            aria-label={`Версия Apache Kafka: ${kafkaVersion.label}. ${kafkaVersion.details}`}
+          >
+            <SiApachekafka className="cluster-kafka-version-logo" aria-hidden="true" />
+            <span>{kafkaVersion.label}</span>
+            {(kafkaVersion.state === 'different' || kafkaVersion.state === 'partial') && (
+              <FiAlertTriangle className="cluster-kafka-version-warning" aria-hidden="true" />
+            )}
+          </div>
         </div>
         <div className="cluster-kpi-grid">
           <Kpi icon={<FiServer />} label="Брокеры" value={loading ? '—' : formatNumber(data?.brokerCount)} />
@@ -116,7 +174,10 @@ function Kpi({ icon, label, value, danger = false }: { icon: JSX.Element; label:
   return (
     <div className={`cluster-kpi ${danger ? 'is-danger' : ''}`}>
       <span className="cluster-kpi-icon">{icon}</span>
-      <div className="cluster-kpi-copy"><span>{label}</span><strong>{value}</strong></div>
+      <div className="cluster-kpi-copy">
+        <span title={label}>{label}</span>
+        <strong>{value}</strong>
+      </div>
     </div>
   );
 }

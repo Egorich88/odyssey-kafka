@@ -43,7 +43,7 @@
 .settings-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 24px;
+    border-radius: var(--panel-radius);
     padding: 28px;
     backdrop-filter: blur(10px);
 }

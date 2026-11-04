@@ -96,7 +96,7 @@
   box-sizing: border-box;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--panel-radius);
   box-shadow: var(--shadow-primary);
 }
 
@@ -160,7 +160,7 @@ body:has(.is-panel-fullscreen)::before {
   min-height: 0 !important;
   transform: translate(-50%, -50%) !important;
   margin: 0 !important;
-  border-radius: 16px !important;
+  border-radius: var(--panel-radius) !important;
   box-shadow: 0 30px 90px rgba(0, 0, 0, .58) !important;
 }
 

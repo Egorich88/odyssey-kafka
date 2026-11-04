@@ -47,7 +47,7 @@
 .management-card {
   padding: 18px 20px;
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--panel-radius);
   background: var(--card-bg);
   box-shadow: var(--shadow-primary);
 }
@@ -66,7 +66,7 @@
 
 .management-panel {
   overflow: hidden;
-  border: 1px solid var(--border-color);
+  border-radius: var(--panel-radius);
   border-radius: 18px;
   background: var(--card-bg);
   box-shadow: var(--shadow-primary);

@@ -68,7 +68,7 @@
     background: var(--panel-bg);
 
     border: 1px solid var(--border-color);
-    border-radius: 14px;
+    border-radius: var(--panel-radius);
 
 }
 

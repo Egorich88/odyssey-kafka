@@ -35,7 +35,7 @@
 
     border: 1px solid var(--border-color);
 
-    border-radius: 16px;
+    border-radius: var(--panel-radius);
 
     padding: 20px;
 

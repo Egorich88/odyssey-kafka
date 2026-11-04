@@ -42,7 +42,7 @@
     overflow: hidden;
     background: var(--panel-bg);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
+    border-radius: var(--panel-radius);
 }
 
 /* -----------------------------------------------------------------------------

@@ -22,7 +22,7 @@
 
 /* Таблица конфигурации — с прокруткой */
 .topic-config-wrapper {
-    border-radius: 14px;
+    border-radius: var(--panel-radius);
     border: 1px solid var(--border-color);
     background: var(--card-bg);
     flex: 1;
@@ -99,7 +99,7 @@
 .config-edit-box {
     margin-top: 22px;
     padding: 20px;
-    border-radius: 18px;
+    border-radius: var(--panel-radius);
     background: var(--card-bg);
     border: 1px solid var(--border-color);
 }

@@ -545,7 +545,7 @@
 
     border: 1px solid var(--border-color);
 
-    border-radius: 16px;
+    border-radius: var(--panel-radius);
 
     scrollbar-gutter: stable;
 
@@ -568,7 +568,7 @@
 
     border: 1px solid var(--border-color);
 
-    border-radius: 16px;
+    border-radius: var(--panel-radius);
 
 }
 

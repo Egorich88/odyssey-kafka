@@ -7,7 +7,7 @@
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    border-radius: 18px;
+    border-radius: var(--panel-radius);
     border: 1px solid var(--border-color);
     background: var(--card-bg);
 }

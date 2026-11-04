@@ -59,7 +59,7 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
         <div className="panel-title-with-info">
           <PanelInfo
             title="Брокеры"
-            description="Состояние брокеров Kafka, распределение лидеров и реплик, доступная метрика загрузки CPU, память, диск и версия. Нагрузка отображает фактический процент CPU, полученный backend."
+            description="Состояние брокеров Kafka, распределение лидеров и реплик, доступная метрика загрузки CPU, память и диск. Нагрузка отображает фактический процент CPU, полученный backend."
           />
           <span>Брокеры</span>
         </div>
@@ -68,7 +68,7 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
       <div className="cluster-brokers-table-wrap">
         <div className="cluster-brokers-table-header">
           <span>ID</span><span>Адрес</span><span>Статус</span><span>ISR</span><span>Контроллер</span>
-          <span>Лидеры</span><span>Реплики</span><span>Нагрузка</span><span>Память</span><span>Диск (Used/Total)</span><span>Версия</span>
+          <span>Лидеры</span><span>Реплики</span><span>Нагрузка</span><span>Память</span><span>Диск (Used/Total)</span>
         </div>
         {loading ? <div className="cluster-broker-empty">Загрузка данных брокеров...</div> :
           brokers.length ? brokers.map((broker: any) => (
@@ -81,7 +81,6 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
               <span>{number(broker.leaderCount)}</span><span>{number(broker.replicaCount)}</span>
               <LoadCell value={broker.cpu} />
               <span>{memory(broker.memory)}</span><span>{disk(broker)}</span>
-              <span className="broker-version">{broker.version || '—'}</span>
             </div>
           )) : <div className="cluster-broker-empty">Нет доступных брокеров</div>}
       </div>

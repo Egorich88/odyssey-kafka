@@ -126,7 +126,7 @@
     margin-top: 14px;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 24px;
+    border-radius: var(--panel-radius);
     padding: 24px;
     padding-bottom: 36px;
     backdrop-filter: blur(10px);
@@ -169,7 +169,7 @@
     max-height: 340px;
     overflow-y: auto;
     overflow-x: auto;
-    border-radius: 18px;
+    border-radius: var(--panel-radius);
     border: 1px solid var(--border-color);
     margin-top: 18px;
     position: relative;
@@ -314,7 +314,7 @@
 /* ========================= КАРТОЧКА СООБЩЕНИЯ ========================= */
 .message-card {
     padding: 20px;
-    border-radius: 18px;
+    border-radius: var(--panel-radius);
     background: var(--panel-bg);
     border: 1px solid rgba(255,255,255,0.06);
     transition: 0.18s ease;
@@ -363,7 +363,7 @@
 /* ========================= ДЕТАЛИ СООБЩЕНИЯ ========================= */
 .message-detail-panel {
     margin-top: 18px;
-    border-radius: 22px;
+    border-radius: var(--panel-radius);
     border: 1px solid var(--border-color);
     background: var(--panel-bg);
     padding: 24px;
@@ -579,7 +579,7 @@
 .search-toolbar-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 24px;
+    border-radius: var(--panel-radius);
     padding: 24px;
     backdrop-filter: blur(10px);
     position: relative;
