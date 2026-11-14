@@ -341,7 +341,7 @@ Updated 16 days ago
 
 <a xlink:href="https://github.com/Egorich88/odyssey-kafka/blob/main/LICENSE" target="_blank">
     <rect
-        x="256.5"
+        x="275"
         y="364"
         width="84"
         height="36"
@@ -352,7 +352,7 @@ Updated 16 days ago
         stroke-width="1"/>
 
     <rect
-        x="340.5"
+        x="359"
         y="364"
         width="111"
         height="36"
@@ -363,20 +363,20 @@ Updated 16 days ago
         stroke-width="1"/>
 
     <rect
-        x="334.5"
+        x="353"
         y="365"
         width="12"
         height="34"
         fill="#1F6FEB"/>
     <rect
-        x="334.5"
+        x="353"
         y="365"
         width="6"
         height="34"
         fill="#21262D"/>
 
     <text
-        x="265.5"
+        x="284"
         y="387.25"
         font-size="15"
         font-family="Segoe UI, sans-serif"
@@ -386,7 +386,7 @@ LICENSE
 </text>
 
     <text
-        x="349.5"
+        x="368"
         y="387.25"
         font-size="15"
         font-family="Segoe UI, sans-serif"
@@ -398,7 +398,7 @@ Apache-2.0
 
 <a xlink:href="https://github.com/Egorich88/odyssey-kafka/releases" target="_blank">
     <rect
-        x="469.5"
+        x="488"
         y="364"
         width="84"
         height="36"
@@ -409,7 +409,7 @@ Apache-2.0
         stroke-width="1"/>
 
     <rect
-        x="553.5"
+        x="572"
         y="364"
         width="74"
         height="36"
@@ -420,20 +420,20 @@ Apache-2.0
         stroke-width="1"/>
 
     <rect
-        x="547.5"
+        x="566"
         y="365"
         width="12"
         height="34"
         fill="#238636"/>
     <rect
-        x="547.5"
+        x="566"
         y="365"
         width="6"
         height="34"
         fill="#21262D"/>
 
     <text
-        x="478.5"
+        x="497"
         y="387.25"
         font-size="15"
         font-family="Segoe UI, sans-serif"
@@ -443,7 +443,7 @@ RELEASE
 </text>
 
     <text
-        x="562.5"
+        x="581"
         y="387.25"
         font-size="15"
         font-family="Segoe UI, sans-serif"
@@ -455,7 +455,7 @@ v4.3.1
 
 <a xlink:href="https://github.com/Egorich88/odyssey-kafka/actions/runs/43610569858" target="_blank">
     <rect
-        x="645.5"
+        x="664"
         y="364"
         width="65"
         height="36"
@@ -466,31 +466,31 @@ v4.3.1
         stroke-width="1"/>
 
     <rect
-        x="710.5"
+        x="729"
         y="364"
-        width="121"
+        width="84"
         height="36"
         rx="6"
         ry="6"
-        fill="#6E7681"
+        fill="#238636"
         stroke="#30363D"
         stroke-width="1"/>
 
     <rect
-        x="704.5"
+        x="723"
         y="365"
         width="12"
         height="34"
-        fill="#6E7681"/>
+        fill="#238636"/>
     <rect
-        x="704.5"
+        x="723"
         y="365"
         width="6"
         height="34"
         fill="#21262D"/>
 
     <text
-        x="654.5"
+        x="673"
         y="387.25"
         font-size="15"
         font-family="Segoe UI, sans-serif"
@@ -500,13 +500,13 @@ CI/CD
 </text>
 
     <text
-        x="719.5"
+        x="738"
         y="387.25"
         font-size="15"
         font-family="Segoe UI, sans-serif"
         font-weight="700"
         fill="#FFFFFF">
-IN_PROGRESS
+PASSING
 </text>
 </a>
 </g>
