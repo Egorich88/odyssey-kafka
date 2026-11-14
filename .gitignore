@@ -43,3 +43,7 @@ tls.crt
 # key
 key.json
 
+backend.zip
+frontend.zip
+backend/*.before-tidy
+frontend/src/ee
