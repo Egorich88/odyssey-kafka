@@ -1,3 +1,5 @@
+import { getStableTopicColor } from './topicColor';
+import { nearestTime, cursorTime, formatTimestamp } from './overviewTime';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -33,7 +35,8 @@ import {
   CartesianGrid,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
+  ReferenceLine
 } from 'recharts';
 import axios from 'axios';
 import { useCluster } from '../../../contexts/ClusterContext';
@@ -41,12 +44,6 @@ import { FiCheck, FiChevronDown } from 'react-icons/fi';
 
 interface LagPoint { time: string; timestamp?: number; group: string; value: number; topics?: Record<string, number>; }
 interface LagRow { group: string; topic: string; status: string; lag: number; change: number; lastActivity?: string; }
-
-const TOPIC_COLORS = [
-  '#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ef4444',
-  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#a855f7',
-  '#14b8a6', '#f472b6'
-];
 
 const STATUS_META = {
   Stable: {
@@ -71,8 +68,8 @@ const STATUS_META = {
   }
 };
 
-const getTopicColor = (topic, topics) =>
-  TOPIC_COLORS[Math.max(0, topics.indexOf(topic)) % TOPIC_COLORS.length];
+// Цвет не зависит от состава списка топиков и порядка строк после обновления.
+const getTopicColor = (topic: string, _topics?: string[]) => getStableTopicColor(topic);
 
 const formatLag = (value) =>
   new Intl.NumberFormat('ru-RU').format(Number(value || 0));
@@ -85,6 +82,7 @@ const formatChange = (value) => {
 };
 
 function LagTooltip({ active, payload, label }) {
+  label = new Date(Number(label)).toLocaleTimeString('ru-RU');
   if (!active || !payload?.length) return null;
 
   const filtered = payload.filter((entry) => Number(entry.value) > 0);
@@ -92,7 +90,7 @@ function LagTooltip({ active, payload, label }) {
 
   return (
     <div className="topics-tooltip">
-      <div className="topics-tooltip-title">Время: {label}</div>
+      <div className="topics-tooltip-title">Время: {formatTimestamp(label)}</div>
       {filtered.map((entry) => (
         <div
           key={entry.dataKey}
@@ -106,9 +104,9 @@ function LagTooltip({ active, payload, label }) {
   );
 }
 
-interface ConsumerLagPanelProps { timeRange?: string; refreshKey: number; }
+interface ConsumerLagPanelProps { timeRange?: string; refreshKey: number; hoverTime?: number | null; onHoverTime?: (value: number | null) => void; }
 
-export default function ConsumerLagPanel({ timeRange = '15m', refreshKey }: ConsumerLagPanelProps): JSX.Element {
+export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverTime = null, onHoverTime = () => {} }: ConsumerLagPanelProps): JSX.Element {
   const { currentCluster } = useCluster();
 
   const [visibleLines, setVisibleLines] = useState([]);
@@ -132,7 +130,7 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey }: Cons
       };
 
       const response = await axios.get(
-        `/api/overview/consumer-lag?${timeRange}`,
+        `/api/overview/consumer-lag?range=${timeRange}`,
         { headers }
       );
 
@@ -313,7 +311,7 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey }: Cons
             )}
           </div>
         </div>
-      
+
         <PanelFullscreenButton />
       </div>
 
@@ -328,6 +326,8 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey }: Cons
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
+                onMouseMove={(state) => cursorTime(state, onHoverTime)}
+                onMouseLeave={() => onHoverTime(null)}
                 data={chartData}
                 margin={{ top: 8, right: 10, left: 0, bottom: 26 }}
                 onClick={resetVisibleLines}
@@ -337,8 +337,16 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey }: Cons
                   strokeDasharray="4 4"
                 />
 
+                {/* Линия привязана к ближайшей временной точке, независимо от частоты сбора других графиков. */}
+                {nearestTime(chartData, hoverTime ?? null) !== null && (
+                  <ReferenceLine x={nearestTime(chartData, hoverTime ?? null)!} stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={1.5} ifOverflow="hidden" />
+                )}
                 <XAxis
-                  dataKey="time"
+                  dataKey="timestamp"
+                  type="number"
+                  scale="time"
+                  domain={['dataMin', 'dataMax']}
+                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString('ru-RU')}
                   height={35}
                   tickMargin={8}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}

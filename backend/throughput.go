@@ -317,24 +317,23 @@ func (tc *ThroughputCollector) GetPoints() []DashboardThroughputPoint {
 // Глобальное управление сборщиками
 // =============================================================================
 
+// Сборщики хранятся отдельно для каждого bootstrap: переключение не удаляет историю.
 var (
-	currentCollector *ThroughputCollector
-	collectorMu      sync.RWMutex
+	collectorByBootstrap = make(map[string]*ThroughputCollector)
+	collectorMu          sync.RWMutex
 )
 
 func ensureCollectorForBootstrap(bootstrap string) {
 	collectorMu.Lock()
 	defer collectorMu.Unlock()
-	if currentCollector != nil && currentCollector.bootstrap == bootstrap {
+	if collectorByBootstrap[bootstrap] != nil {
 		return
 	}
-	if currentCollector != nil {
-		currentCollector.Stop()
-	}
-	log.Printf("[ThroughputCollector] создаём новый сборщик для bootstrap: %s", bootstrap)
-	// 15 секунд × 5760 точек = 24 часа истории в памяти.
-	currentCollector = NewThroughputCollector(bootstrap, 5760)
-	currentCollector.Start(15 * time.Second)
+	// Каждый кластер продолжает собирать данные даже после ухода с его страницы.
+	log.Printf("[ThroughputCollector] запускаем независимый сборщик для bootstrap: %s", bootstrap)
+	c := NewThroughputCollector(bootstrap, 5760)
+	collectorByBootstrap[bootstrap] = c
+	c.Start(15 * time.Second)
 }
 
 func getDashboardThroughputHandler(w http.ResponseWriter, r *http.Request) {
@@ -347,7 +346,7 @@ func getDashboardThroughputHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	ensureCollectorForBootstrap(bootstrap)
 	collectorMu.RLock()
-	collector := currentCollector
+	collector := collectorByBootstrap[bootstrap]
 	collectorMu.RUnlock()
 	if collector == nil {
 		sendJSONError(w, "Сборщик метрик не инициализирован", http.StatusInternalServerError)

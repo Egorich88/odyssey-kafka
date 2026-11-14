@@ -60,6 +60,8 @@ export default function Overview(): JSX.Element {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [consumerGroups, setConsumerGroups] = useState<unknown[]>([]);
   const [throughputData, setThroughputData] = useState<any[]>([]);
+  // Общая временная отметка курсора для всех графиков Overview.
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [messagesIn, setMessagesIn] = useState(0);
   const [messagesOut, setMessagesOut] = useState(0);
   // Ключ обновления: меняется после каждой успешной загрузки,
@@ -94,6 +96,7 @@ export default function Overview(): JSX.Element {
    * Сбрасывает данные дашборда при переключении кластера.
    */
   const clearForClusterSwitch = useCallback(() => {
+    setHoverTime(null);
     setOverview(null);
     setConsumerGroups([]);
     setThroughputData([]);
@@ -253,20 +256,20 @@ export default function Overview(): JSX.Element {
       {/* Третий ряд: общая пропускная способность шире панели топиков. */}
       <div className="dashboard-row dashboard-row-top">
         <div className="panel-throughput">
-          <ThroughputPanel data={throughputData} />
+          <ThroughputPanel data={throughputData} hoverTime={hoverTime} onHoverTime={setHoverTime} />
         </div>
         <div className="panel-topics">
-          <TopicsPanel timeRange={panelTimeRange} refreshKey={refreshKey} />
+          <TopicsPanel timeRange={panelTimeRange} refreshKey={refreshKey} hoverTime={hoverTime} onHoverTime={setHoverTime} />
         </div>
       </div>
 
       {/* Нижний ряд: отставание потребителей и события. */}
       <div className="dashboard-row dashboard-row-main">
         <div className="panel-lag">
-          <ConsumerLagPanel timeRange={panelTimeRange} refreshKey={refreshKey} />
+          <ConsumerLagPanel timeRange={panelTimeRange} refreshKey={refreshKey} hoverTime={hoverTime} onHoverTime={setHoverTime} />
         </div>
         <div className="panel-events">
-          <EventsPanel refreshKey={refreshKey} />
+          <EventsPanel refreshKey={refreshKey} timeRange={panelTimeRange} hoverTime={hoverTime} />
         </div>
       </div>
     </div>

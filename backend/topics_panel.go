@@ -257,24 +257,23 @@ func (tc *TopicsPanelCollector) GetPoints() []TopicsPanelPoint {
 	return all
 }
 
+// Сборщики хранятся отдельно для каждого bootstrap: переключение не удаляет историю.
 var (
-	currentTopicsCollector *TopicsPanelCollector
-	topicsCollectorMu      sync.RWMutex
+	topicsCollectorByBootstrap = make(map[string]*TopicsPanelCollector)
+	topicsCollectorMu          sync.RWMutex
 )
 
 func ensureTopicsCollectorForBootstrap(bootstrap string) {
 	topicsCollectorMu.Lock()
 	defer topicsCollectorMu.Unlock()
-	if currentTopicsCollector != nil && currentTopicsCollector.bootstrap == bootstrap {
+	if topicsCollectorByBootstrap[bootstrap] != nil {
 		return
 	}
-	if currentTopicsCollector != nil {
-		currentTopicsCollector.Stop()
-	}
-	log.Printf("[TopicsPanelCollector] создаём сборщик для bootstrap: %s", bootstrap)
-	// 10 секунд × 8640 точек = 24 часа истории в памяти.
-	currentTopicsCollector = NewTopicsPanelCollector(bootstrap, 8640, 10*time.Second)
-	currentTopicsCollector.Start()
+	// Каждый кластер продолжает собирать данные даже после ухода с его страницы.
+	log.Printf("[TopicsPanelCollector] запускаем независимый сборщик для bootstrap: %s", bootstrap)
+	c := NewTopicsPanelCollector(bootstrap, 8640, 10*time.Second)
+	topicsCollectorByBootstrap[bootstrap] = c
+	c.Start()
 }
 
 // GetTopicsPanelHandler – обработчик API
@@ -291,7 +290,7 @@ func GetTopicsPanelHandler(w http.ResponseWriter, r *http.Request) {
 	ensureTopicsCollectorForBootstrap(bootstrap)
 
 	topicsCollectorMu.RLock()
-	collector := currentTopicsCollector
+	collector := topicsCollectorByBootstrap[bootstrap]
 	topicsCollectorMu.RUnlock()
 
 	if collector == nil {

@@ -1,3 +1,4 @@
+import { nearestTime, cursorTime, formatTimestamp } from './overviewTime';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -30,7 +31,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  CartesianGrid
+  CartesianGrid,
+  ReferenceLine
 } from 'recharts';
 
 function ThroughputTooltip({ active, payload, label }) {
@@ -41,7 +43,7 @@ function ThroughputTooltip({ active, payload, label }) {
 
   return (
     <div className="throughput-tooltip">
-      <div className="throughput-tooltip-title">Время: {label}</div>
+      <div className="throughput-tooltip-title">Время: {new Date(Number(label)).toLocaleTimeString('ru-RU')}</div>
       {incomingItem && (
         <div className="throughput-tooltip-row" style={{ color: '#3b82f6' }}>
           Входящие сообщения: <strong>{incomingItem.value} msg/s</strong>
@@ -56,7 +58,7 @@ function ThroughputTooltip({ active, payload, label }) {
   );
 }
 
-export default function ThroughputPanel({ data }) {
+export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
   const [showIncoming, setShowIncoming] = useState(true);
   const [showOutgoing, setShowOutgoing] = useState(true);
 
@@ -82,7 +84,7 @@ export default function ThroughputPanel({ data }) {
 
   // Данные для отображения (если нет данных - подставляем заглушку с 0)
   const chartData = (!data || data.length === 0)
-    ? [{ time: 'Нет данных', incoming: 0, outgoing: 0 }]
+    ? [{ time: 'Нет данных', timestamp: 0, incoming: 0, outgoing: 0 }]
     : data;
 
   const hasData = data && data.length > 0;
@@ -109,13 +111,15 @@ export default function ThroughputPanel({ data }) {
             Исходящие: {latestPoint?.outgoing?.toFixed(1) ?? 0} msg/s
           </span>
         </div>
-      
+
         <PanelFullscreenButton />
       </div>
 
       <div className="panel-body throughput-chart">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
+                onMouseMove={(state) => cursorTime(state, onHoverTime)}
+                onMouseLeave={() => onHoverTime(null)}
             data={chartData}
             margin={{
               top: 10,
@@ -127,8 +131,16 @@ export default function ThroughputPanel({ data }) {
           >
             <CartesianGrid stroke="var(--border-color)" strokeDasharray="4 4" />
 
+                {/* Линия привязана к ближайшей временной точке, независимо от частоты сбора других графиков. */}
+                {nearestTime(chartData, hoverTime ?? null) !== null && (
+                  <ReferenceLine x={nearestTime(chartData, hoverTime ?? null)!} stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={1.5} ifOverflow="hidden" />
+                )}
             <XAxis
-              dataKey="time"
+              dataKey="timestamp"
+                  type="number"
+                  scale="time"
+                  domain={['dataMin', 'dataMax']}
+                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString('ru-RU')}
               height={22}
               tickMargin={3}
               tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}

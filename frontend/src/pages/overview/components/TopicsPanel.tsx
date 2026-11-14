@@ -1,3 +1,5 @@
+import { getStableTopicColor } from './topicColor';
+import { nearestTime, cursorTime, formatTimestamp } from './overviewTime';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -37,7 +39,8 @@ import {
   CartesianGrid,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
+  ReferenceLine
 } from 'recharts';
 import axios from 'axios';
 import '../styles/topics-panel.css';
@@ -52,6 +55,7 @@ interface TopicPoint { time: string; timestamp?: number; topic: string; value: n
 // Кастомный тултип – показывает только положительные значения
 // =========================================================================
 const TopicsTooltip = ({ active, payload, label }) => {
+  label = new Date(Number(label)).toLocaleTimeString('ru-RU');
   if (!active || !payload || !payload.length) return null;
 
   // Отфильтровываем нулевые и отрицательные
@@ -60,7 +64,7 @@ const TopicsTooltip = ({ active, payload, label }) => {
 
   return (
     <div className="topics-tooltip">
-      <div className="topics-tooltip-title">Время: {label}</div>
+      <div className="topics-tooltip-title">Время: {formatTimestamp(label)}</div>
       {filtered.map((entry) => (
         <div
           key={entry.dataKey}
@@ -74,18 +78,12 @@ const TopicsTooltip = ({ active, payload, label }) => {
   );
 };
 
-// Генерация цвета для топика (циклически по 10 предустановленным)
-const getTopicColor = (topic, index) => {
-  const colors = [
-    '#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ef4444',
-    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#a855f7'
-  ];
-  return colors[index % colors.length];
-};
+// Цвет закреплён за именем топика, а не за его позицией в ответе API.
+const getTopicColor = (topic: string, _index?: number) => getStableTopicColor(topic);
 
-interface TopicsPanelProps { timeRange?: string; refreshKey: number; }
+interface TopicsPanelProps { timeRange?: string; refreshKey: number; hoverTime?: number | null; onHoverTime?: (value: number | null) => void; }
 
-export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPanelProps): JSX.Element {
+export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime = null, onHoverTime = () => {} }: TopicsPanelProps): JSX.Element {
   const { currentCluster } = useCluster();
 
   const [visibleTopics, setVisibleTopics] = useState([]);
@@ -102,7 +100,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPan
     setLoading(true);
     try {
       const headers = { 'X-Kafka-Bootstrap': currentCluster.brokers || currentCluster.bootstrapServers };
-      const response = await axios.get(`/api/overview/topics-throughput?${timeRange}`, { headers });
+      const response = await axios.get(`/api/overview/topics-throughput?range=${timeRange}`, { headers });
       const points = response.data.points || [];
 
       // Защита от отрицательных значений (обрезаем до нуля)
@@ -233,7 +231,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPan
                           Пропускная способность по топикам
                       </span>
                   </div>
-              
+
         <PanelFullscreenButton />
       </div>
         <div className="panel-body topics-placeholder">Загрузка данных...</div>
@@ -289,6 +287,8 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPan
           <div className="topics-chart">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
+                onMouseMove={(state) => cursorTime(state, onHoverTime)}
+                onMouseLeave={() => onHoverTime(null)}
                 data={aggregatedData}
                 margin={{
                   top: 10,
@@ -300,8 +300,16 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey }: TopicsPan
                 cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
               >
                 <CartesianGrid stroke="var(--border-color)" strokeDasharray="4 4" />
+                {/* Линия привязана к ближайшей временной точке, независимо от частоты сбора других графиков. */}
+                {nearestTime(aggregatedData, hoverTime ?? null) !== null && (
+                  <ReferenceLine x={nearestTime(aggregatedData, hoverTime ?? null)!} stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={1.5} ifOverflow="hidden" />
+                )}
                 <XAxis
-                  dataKey="time"
+                  dataKey="timestamp"
+                  type="number"
+                  scale="time"
+                  domain={['dataMin', 'dataMax']}
+                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString('ru-RU')}
                   height={22}
                   tickMargin={3}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}

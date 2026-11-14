@@ -1,3 +1,4 @@
+import { formatTimestamp } from './overviewTime';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -30,7 +31,7 @@ import PanelFullscreenButton from './PanelFullscreenButton';
 import { useCluster } from '../../../contexts/ClusterContext';
 import { FiCheck, FiChevronDown } from 'react-icons/fi';
 
-export default function EventsPanel({ refreshKey }) {
+export default function EventsPanel({ refreshKey, timeRange = "range=24h", hoverTime = null }) {
   const { currentCluster } = useCluster();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +48,7 @@ export default function EventsPanel({ refreshKey }) {
       const bootstrap =
         currentCluster.brokers || currentCluster.bootstrapServers;
 
-      const response = await axios.get('/api/overview/events', {
+      const response = await axios.get(`/api/overview/events?${timeRange}`, {
         headers: { 'X-Kafka-Bootstrap': bootstrap }
       });
 
@@ -61,7 +62,7 @@ export default function EventsPanel({ refreshKey }) {
 
   useEffect(() => {
     loadEvents();
-  }, [currentCluster, refreshKey]);
+  }, [currentCluster, refreshKey, timeRange]);
 
   useEffect(() => {
     if (!filterOpen) return;
@@ -144,8 +145,8 @@ export default function EventsPanel({ refreshKey }) {
         </div>
 
         {filteredEvents.map((event, index) => (
-          <div className="events-row" key={`${event.time}-${index}`}>
-            <div className="events-cell event-time">{event.time}</div>
+          <div className="events-row" style={hoverTime != null && event.timestamp && Math.abs(Number(event.timestamp) - hoverTime) < 5000 ? { background: "rgba(96,165,250,0.12)" } : undefined} key={`${event.time}-${index}`}>
+            <div className="events-cell event-time">{event.timestamp ? formatTimestamp(event.timestamp) : event.time}</div>
 
             <div className="events-cell event-level-cell">
               <span className={`event-level-badge ${getLevelClass(event.level)}`}>{event.level || 'INFO'}</span>

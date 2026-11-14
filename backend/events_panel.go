@@ -40,13 +40,14 @@ const (
 )
 
 type DashboardEvent struct {
-	Time    string     `json:"time"`
-	Level   EventLevel `json:"level"`
-	Group   string     `json:"group,omitempty"`
-	Topic   string     `json:"topic,omitempty"`
-	Status  string     `json:"status,omitempty"`
-	Message string     `json:"message"`
-	Source  string     `json:"source"`
+	Time      string     `json:"time"`
+	Timestamp int64      `json:"timestamp"`
+	Level     EventLevel `json:"level"`
+	Group     string     `json:"group,omitempty"`
+	Topic     string     `json:"topic,omitempty"`
+	Status    string     `json:"status,omitempty"`
+	Message   string     `json:"message"`
+	Source    string     `json:"source"`
 }
 
 type EventsResponse struct {
@@ -214,10 +215,11 @@ func (ec *EventCollector) getControllerAddress() string {
 
 func (ec *EventCollector) addEvent(timeStr string, level EventLevel, msg, source string) {
 	e := DashboardEvent{
-		Time:    timeStr,
-		Level:   level,
-		Message: msg,
-		Source:  source,
+		Time:      timeStr,
+		Timestamp: time.Now().UnixMilli(),
+		Level:     level,
+		Message:   msg,
+		Source:    source,
 	}
 	ec.buffer.Add(e)
 	log.Printf("[Event] %s %s %s (source: %s)", timeStr, level, msg, source)
@@ -234,13 +236,14 @@ func (ec *EventCollector) addConsumerGroupEvent(
 	source string,
 ) {
 	e := DashboardEvent{
-		Time:    timeStr,
-		Level:   level,
-		Group:   group,
-		Topic:   topic,
-		Status:  status,
-		Message: msg,
-		Source:  source,
+		Time:      timeStr,
+		Timestamp: time.Now().UnixMilli(),
+		Level:     level,
+		Group:     group,
+		Topic:     topic,
+		Status:    status,
+		Message:   msg,
+		Source:    source,
 	}
 	ec.buffer.Add(e)
 	log.Printf("[Event] %s %s group=%s topic=%s status=%s %s",
@@ -685,23 +688,23 @@ func (ec *EventCollector) GetEvents() []DashboardEvent {
 // Глобальное управление
 // =============================================================================
 
+// Сборщики хранятся отдельно для каждого bootstrap: переключение не удаляет историю.
 var (
-	currentEventCollector *EventCollector
-	eventCollectorMu      sync.RWMutex
+	eventCollectorByBootstrap = make(map[string]*EventCollector)
+	eventCollectorMu          sync.RWMutex
 )
 
 func ensureEventCollectorForBootstrap(bootstrap string) {
 	eventCollectorMu.Lock()
 	defer eventCollectorMu.Unlock()
-	if currentEventCollector != nil && currentEventCollector.bootstrap == bootstrap {
+	if eventCollectorByBootstrap[bootstrap] != nil {
 		return
 	}
-	if currentEventCollector != nil {
-		currentEventCollector.Stop()
-	}
-	log.Printf("[EventCollector] создаём сборщик для bootstrap: %s", bootstrap)
-	currentEventCollector = NewEventCollector(bootstrap, 50, 10*time.Second)
-	currentEventCollector.Start()
+	// Каждый кластер продолжает собирать данные даже после ухода с его страницы.
+	log.Printf("[EventCollector] запускаем независимый сборщик для bootstrap: %s", bootstrap)
+	c := NewEventCollector(bootstrap, 50, 10*time.Second)
+	eventCollectorByBootstrap[bootstrap] = c
+	c.Start()
 }
 
 func getDashboardEventsHandler(w http.ResponseWriter, r *http.Request) {
@@ -717,7 +720,7 @@ func getDashboardEventsHandler(w http.ResponseWriter, r *http.Request) {
 	ensureEventCollectorForBootstrap(bootstrap)
 
 	eventCollectorMu.RLock()
-	collector := currentEventCollector
+	collector := eventCollectorByBootstrap[bootstrap]
 	eventCollectorMu.RUnlock()
 
 	if collector == nil {
@@ -725,7 +728,19 @@ func getDashboardEventsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events := collector.GetEvents()
+	// Отбираем события по тому же временному интервалу, что и графики.
+	from, to := metricRange(r)
+	allEvents := collector.GetEvents()
+	events := make([]DashboardEvent, 0, len(allEvents))
+	for _, event := range allEvents {
+		if event.Timestamp == 0 {
+			continue
+		} // Старые события без даты не привязываем к произвольному дню.
+		stamp := time.UnixMilli(event.Timestamp)
+		if !stamp.Before(from) && !stamp.After(to) {
+			events = append(events, event)
+		}
+	}
 	response := EventsResponse{Events: events}
 	_ = json.NewEncoder(w).Encode(response)
 }

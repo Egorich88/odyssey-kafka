@@ -443,31 +443,25 @@ func collectConsumerLagRows(bootstrap string) ([]ConsumerLagRow, error) {
 }
 
 // Глобальный сборщик истории lag.
-// Один активный сборщик соответствует текущему выбранному Kafka bootstrap.
+// Независимый сборщик для каждого Kafka bootstrap.
+// Сборщики хранятся отдельно для каждого bootstrap: переключение не удаляет историю.
 var (
-	currentLagCollector *LagCollector
-	lagCollectorMu      sync.RWMutex
+	lagCollectorByBootstrap = make(map[string]*LagCollector)
+	lagCollectorMu          sync.RWMutex
 )
 
-// ensureLagCollectorForBootstrap создаёт или переключает сборщик для указанного кластера.
-// При смене кластера старый сборщик останавливается, чтобы не продолжать опрашивать
-// предыдущую Kafka-инсталляцию.
+// ensureLagCollectorForBootstrap запускает сборщик один раз для каждого кластера.
 func ensureLagCollectorForBootstrap(bootstrap string) {
 	lagCollectorMu.Lock()
 	defer lagCollectorMu.Unlock()
-
-	if currentLagCollector != nil && currentLagCollector.bootstrap == bootstrap {
+	if lagCollectorByBootstrap[bootstrap] != nil {
 		return
 	}
-
-	if currentLagCollector != nil {
-		currentLagCollector.Stop()
-	}
-
-	log.Printf("[LagCollector] создаём сборщик для bootstrap: %s", bootstrap)
-	// 10 секунд × 8640 точек = 24 часа истории в памяти.
-	currentLagCollector = NewLagCollector(bootstrap, 8640, 10*time.Second)
-	currentLagCollector.Start()
+	// Каждый кластер продолжает собирать данные даже после ухода с его страницы.
+	log.Printf("[LagCollector] запускаем независимый сборщик для bootstrap: %s", bootstrap)
+	c := NewLagCollector(bootstrap, 8640, 10*time.Second)
+	lagCollectorByBootstrap[bootstrap] = c
+	c.Start()
 }
 
 // =============================================================================
@@ -497,7 +491,7 @@ func GetConsumerLagHandler(w http.ResponseWriter, r *http.Request) {
 	ensureLagCollectorForBootstrap(bootstrap)
 
 	lagCollectorMu.RLock()
-	collector := currentLagCollector
+	collector := lagCollectorByBootstrap[bootstrap]
 	lagCollectorMu.RUnlock()
 
 	if collector == nil {
