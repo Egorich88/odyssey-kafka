@@ -269,7 +269,11 @@ export default function Overview(): JSX.Element {
           <ConsumerLagPanel timeRange={panelTimeRange} refreshKey={refreshKey} hoverTime={hoverTime} onHoverTime={setHoverTime} />
         </div>
         <div className="panel-events">
-          <EventsPanel refreshKey={refreshKey} timeRange={panelTimeRange} hoverTime={hoverTime} />
+          <EventsPanel
+            refreshKey={refreshKey}
+            timeRange={timeRange.type === 'relative' ? `range=${panelTimeRange}` : panelTimeRange}
+            hoverTime={hoverTime}
+          />
         </div>
       </div>
     </div>

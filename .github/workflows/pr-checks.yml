@@ -1,0 +1,180 @@
+name: PR Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Получить код
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Подготовить Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Установить зависимости из lock-файла
+        run: npm ci --include=dev --include=optional
+
+      - name: Запустить тесты frontend
+        run: npm test
+
+      - name: Собрать frontend
+        run: npm run build
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      go_version: ${{ steps.setup.outputs.go-version }}
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Получить код
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Определить ветку Go из go.mod
+        id: go_branch
+        shell: bash
+        run: |
+          version="$(awk '$1 == "go" { print $2; exit }' go.mod)"
+          if [[ ! "$version" =~ ^([0-9]+\.[0-9]+)(\.[0-9]+)?$ ]]; then
+            echo "::error::В backend/go.mod ожидается стабильная версия Go."
+            exit 1
+          fi
+          printf 'range=%s.x\n' "${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+
+      - name: Подготовить последний патч ветки Go
+        id: setup
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: ${{ steps.go_branch.outputs.range }}
+          check-latest: true
+          cache: false
+
+      - name: Запустить тесты backend
+        run: go test ./...
+
+      - name: Выполнить статический анализ Go
+        run: go vet ./...
+
+      - name: Собрать backend
+        run: go build ./...
+
+      - name: Проверить сохранность файлов модуля
+        if: ${{ !cancelled() }}
+        run: git diff HEAD --exit-code -- go.mod go.sum
+
+  backend-stable:
+    name: Backend — Go stable (эксперимент)
+    needs: backend
+    if: ${{ !cancelled() && needs.backend.outputs.go_version != '' }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Получить код
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Подготовить последнюю стабильную версию Go
+        id: setup
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: false
+
+      - name: Сообщить об ошибке подготовки Go stable
+        if: ${{ failure() && steps.setup.outcome == 'failure' }}
+        shell: bash
+        env:
+          BASE_GO: ${{ needs.backend.outputs.go_version }}
+        run: |
+          {
+            printf '### Go stable — FAILURE\n\nОсновная версия: `%s`. Версию stable определить не удалось.\n\n' "$BASE_GO"
+            echo 'Проверьте журнал setup-go и доступность дистрибутива Go, затем повторите запуск.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Проверить совместимость и сформировать отчёт
+        shell: bash
+        env:
+          BASE_GO: ${{ needs.backend.outputs.go_version }}
+          STABLE_GO: ${{ steps.setup.outputs.go-version }}
+        run: |
+          if [[ "$BASE_GO" == "$STABLE_GO" ]]; then
+            printf '### Go stable — пропущено\n\nВерсия `%s` совпадает с основной. См. задачу Backend.\n' \
+              "$STABLE_GO" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          report="$(mktemp)"
+          log="$(mktemp)"
+          failed=0
+          for command in test vet build; do
+            printf '\n=== go %s ./... ===\n' "$command"
+            if go "$command" ./... > "$log" 2>&1; then
+              printf -- '- `go %s ./...` — успешно.\n' "$command" >> "$report"
+            else
+              code=$?
+              printf -- '- `go %s ./...` — код `%s`. Последние строки диагностики:\n\n' \
+                "$command" "$code" >> "$report"
+              tail -n 30 "$log" | cut -c 1-500 | sed 's/^/      /' >> "$report"
+              printf '\n' >> "$report"
+              failed=1
+            fi
+            cat "$log"
+          done
+
+          if ! git diff HEAD --exit-code -- go.mod go.sum; then
+            echo '- Обнаружено изменение go.mod или go.sum во временном checkout.' >> "$report"
+            failed=1
+          fi
+
+          result=SUCCESS
+          if (( failed )); then
+            result=FAILURE
+          fi
+          {
+            printf '### Go stable — %s\n\nОсновная версия: `%s`. Stable: `%s`.\n\n' \
+              "$result" "$BASE_GO" "$STABLE_GO"
+            cat "$report"
+            if (( failed )); then
+              printf '\nСравните диагностику с задачей Backend и примечаниями к выпуску Go. Исправление и возможное обновление go.mod или зависимостей вынесите на отдельное согласование. Полный вывод команд доступен в журнале.\n'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$failed"
