@@ -19,15 +19,14 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/IBM/sarama"
 )
@@ -38,18 +37,18 @@ import (
 
 // BrokerInfo - полная информация о брокере Kafka
 type BrokerInfo struct {
-	ID              int32   `json:"id"`              // ID брокера
-	Address         string  `json:"address"`         // Адрес (host:port)
-	Controller      bool    `json:"controller"`      // Является ли контроллером
-	Rack            string  `json:"rack"`            // Ракка (зона доступности)
-	Version         string  `json:"version"`         // Версия Kafka
-	CPU             float64 `json:"cpu"`             // Использование CPU в процентах
-	Memory          float64 `json:"memory"`          // Использование памяти в MB
-	LeaderCount     int32   `json:"leaderCount"`     // Количество лидерских партиций на брокере
-	ReplicaCount    int32   `json:"replicaCount"`    // Количество реплик на брокере
-	UnderReplicated int32   `json:"underReplicated"` // Количество недореплицированных партиций
-	DiskUsage       float64 `json:"diskUsage"`       // Использование диска в GB
-	DiskTotal       float64 `json:"diskTotal"`       // Общий размер диска в GB
+	ID              int32    `json:"id"`              // ID брокера
+	Address         string   `json:"address"`         // Адрес (host:port)
+	Controller      bool     `json:"controller"`      // Является ли контроллером
+	Rack            string   `json:"rack"`            // Ракка (зона доступности)
+	Version         string   `json:"version"`         // Версия Kafka
+	CPU             *float64 `json:"cpu"`             // Использование CPU, если есть данные хоста
+	Memory          *float64 `json:"memory"`          // Использование памяти в MiB, если есть данные хоста
+	LeaderCount     int32    `json:"leaderCount"`     // Количество лидерских партиций на брокере
+	ReplicaCount    int32    `json:"replicaCount"`    // Количество реплик на брокере
+	UnderReplicated int32    `json:"underReplicated"` // Количество недореплицированных партиций
+	DiskUsage       float64  `json:"diskUsage"`       // Использование диска в GB
+	DiskTotal       float64  `json:"diskTotal"`       // Общий размер диска в GB
 }
 
 // BrokersResponse - структура ответа API с брокерами
@@ -77,7 +76,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	// Получаем реальную версию Kafka с логированием
 	kafkaVersion := getRealKafkaVersionWithLog(bootstrap)
 
-	config := kafkaConfigForBootstrap(bootstrap)
+	config, revision := kafkaConfigAndRevision(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
 	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
@@ -94,8 +93,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем метрики CPU, Memory и имя контейнера
-	metrics, containerName := getMetricsFromDockerWithName()
+	disks := overviewBrokerDisks.get(brokerDiskProfile{bootstrap: bootstrap, revision: revision}, time.Now())
 
 	// Формируем результат
 	result := make([]BrokerInfo, 0, len(client.Brokers()))
@@ -105,8 +103,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 		// Считаем количество лидеров и реплик для этого брокера
 		leaderCount, replicaCount := countPartitionsForBroker(client, brokerID)
 
-		// Получаем использование диска
-		diskUsage, diskTotal := getDiskUsage(containerName)
+		disk := disks[brokerEndpoint{broker.ID(), broker.Addr()}]
 
 		result = append(result, BrokerInfo{
 			ID:              brokerID,
@@ -114,13 +111,11 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 			Controller:      brokerID == controller.ID(),
 			Rack:            broker.Rack(),
 			Version:         kafkaVersion,
-			CPU:             metrics.CPU,
-			Memory:          metrics.Memory,
 			LeaderCount:     leaderCount,
 			ReplicaCount:    replicaCount,
 			UnderReplicated: 0,
-			DiskUsage:       diskUsage,
-			DiskTotal:       diskTotal,
+			DiskUsage:       disk.usedGiB,
+			DiskTotal:       disk.totalGiB,
 		})
 	}
 
@@ -168,143 +163,6 @@ func countPartitionsForBroker(client sarama.Client, brokerID int32) (int32, int3
 	}
 
 	return leaders, replicas
-}
-
-// =============================================================================
-// BrokerMetrics - структура для метрик CPU и Memory
-// =============================================================================
-
-type BrokerMetrics struct {
-	CPU    float64 `json:"cpu"`    // Использование CPU в процентах
-	Memory float64 `json:"memory"` // Использование памяти в MB
-}
-
-// =============================================================================
-// getMetricsFromDockerWithName - получает метрики и имя контейнера
-// =============================================================================
-
-// getMetricsFromDockerWithName - возвращает метрики CPU, Memory и имя контейнера Kafka
-func getMetricsFromDockerWithName() (BrokerMetrics, string) {
-	// Ищем контейнер Kafka
-	cmd := exec.Command("sh", "-c", "docker ps --format '{{.Names}}' | grep -i kafka | head -1")
-	output, err := cmd.Output()
-	if err != nil {
-		return BrokerMetrics{CPU: 0, Memory: 0}, ""
-	}
-	containerName := strings.TrimSpace(string(output))
-	if containerName == "" {
-		return BrokerMetrics{CPU: 0, Memory: 0}, ""
-	}
-
-	// Получаем статистику через docker stats
-	cmd = exec.Command("sh", "-c", "docker stats --no-stream --format '{{.CPUPerc}}|{{.MemUsage}}' "+containerName)
-	output, err = cmd.Output()
-	if err != nil {
-		return BrokerMetrics{CPU: 0, Memory: 0}, containerName
-	}
-
-	line := strings.TrimSpace(string(output))
-	parts := strings.Split(line, "|")
-	if len(parts) < 2 {
-		return BrokerMetrics{CPU: 0, Memory: 0}, containerName
-	}
-
-	// Парсим CPU
-	cpuStr := strings.TrimSuffix(strings.TrimSpace(parts[0]), "%")
-	cpu, _ := parseFloat(cpuStr)
-
-	// Парсим Memory
-	memStr := strings.TrimSpace(parts[1])
-	re := regexp.MustCompile(`([\d.]+)\s*([A-Za-z]+)`)
-	matches := re.FindStringSubmatch(memStr)
-	memory := 0.0
-	if len(matches) > 0 {
-		val, _ := parseFloat(matches[1])
-		unit := matches[2]
-		switch unit {
-		case "GiB":
-			memory = val * 1024
-		case "MiB":
-			memory = val
-		case "KiB":
-			memory = val / 1024
-		default:
-			memory = val
-		}
-	}
-
-	memory = math.Round(memory)
-
-	return BrokerMetrics{
-		CPU:    cpu,
-		Memory: memory,
-	}, containerName
-}
-
-// =============================================================================
-// getDiskUsage - получает использование диска для контейнера Kafka
-// =============================================================================
-
-// getDiskUsage - возвращает использование диска в GB и общий размер для контейнера Kafka
-func getDiskUsage(containerName string) (float64, float64) {
-	if containerName == "" {
-		return 0, 0
-	}
-
-	// Получаем информацию о диске через docker exec df -h
-	cmd := exec.Command("sh", "-c", "docker exec "+containerName+" df -h /var/lib/kafka/data 2>/dev/null | tail -1")
-	output, err := cmd.Output()
-	if err != nil {
-		return 0, 0
-	}
-
-	// Парсим строку типа: "/dev/sda1  100G  23G  77G  23% /var/lib/kafka/data"
-	fields := strings.Fields(string(output))
-	if len(fields) < 6 {
-		return 0, 0
-	}
-
-	// fields[1] - всего (Total) - "100G"
-	// fields[2] - использовано (Used) - "23G"
-	totalStr := fields[1]
-	usedStr := fields[2]
-
-	used := parseSizeToGB(usedStr)
-	total := parseSizeToGB(totalStr)
-
-	return used, total
-}
-
-// parseSizeToGB - парсит строку типа "23G", "512M", "1.5T" в GB
-func parseSizeToGB(sizeStr string) float64 {
-	re := regexp.MustCompile(`([\d.]+)([A-Za-z])`)
-	matches := re.FindStringSubmatch(sizeStr)
-	if len(matches) > 0 {
-		val, _ := parseFloat(matches[1])
-		unit := matches[2]
-		switch unit {
-		case "G":
-			return val
-		case "M":
-			return val / 1024
-		case "T":
-			return val * 1024
-		default:
-			return val
-		}
-	}
-	return 0
-}
-
-// =============================================================================
-// parseFloat - парсит строку в float64
-// =============================================================================
-
-// parseFloat - преобразует строку в число с плавающей точкой
-func parseFloat(s string) (float64, error) {
-	var result float64
-	_, err := fmt.Sscanf(s, "%f", &result)
-	return result, err
 }
 
 // =============================================================================

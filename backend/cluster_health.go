@@ -30,19 +30,18 @@
 //   healthy  — проблем не обнаружено;
 //   warning  — кластер доступен, но есть under-replicated/Empty/Rebalancing;
 //   critical — есть недоступные брокеры/партиции или Dead groups;
-//   unknown  — фронтенд использует это состояние во время получения данных.
+//   unknown  — данных недостаточно для подтверждения состояния.
 //
 // Сетевой показатель:
 //   Kafka Admin API не предоставляет универсальную метрику качества сети.
-//   Поэтому networkProblems отражает количество брокеров, с которыми KSC
-//   не смог подтвердить связность. Это именно проверка связности, а не
-//   полноценный network monitoring.
+//   Поэтому networkProblems отражает число подтверждённых отказов подключения.
 // =============================================================================
 
 package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -78,18 +77,19 @@ type ISRHealth struct {
 
 // HealthBrokerInfo — компактная информация одного брокера.
 type HealthBrokerInfo struct {
-	ID           int32   `json:"id"`
-	Address      string  `json:"address"`
-	Online       bool    `json:"online"`
-	Controller   bool    `json:"controller"`
-	ISRCount     int32   `json:"isrCount"`
-	ReplicaCount int32   `json:"replicaCount"`
-	LeaderCount  int32   `json:"leaderCount"`
-	CPU          float64 `json:"cpu"`
-	Memory       float64 `json:"memory"`
-	DiskUsage    float64 `json:"diskUsage"`
-	DiskTotal    float64 `json:"diskTotal"`
-	Version      string  `json:"version"`
+	ID           int32        `json:"id"`
+	Address      string       `json:"address"`
+	Online       bool         `json:"online"`
+	BrokerStatus brokerStatus `json:"brokerStatus"`
+	Controller   bool         `json:"controller"`
+	ISRCount     int32        `json:"isrCount"`
+	ReplicaCount int32        `json:"replicaCount"`
+	LeaderCount  int32        `json:"leaderCount"`
+	CPU          *float64     `json:"cpu"`
+	Memory       *float64     `json:"memory"`
+	DiskUsage    float64      `json:"diskUsage"`
+	DiskTotal    float64      `json:"diskTotal"`
+	Version      string       `json:"version"`
 }
 
 // getDashboardHealthHandler возвращает фактическое состояние кластера.
@@ -103,7 +103,7 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	config := kafkaConfigForBootstrap(bootstrap)
+	config, metadataRevision := kafkaConfigAndRevision(bootstrap)
 	config.Version = sarama.V2_8_0_0
 	config.Net.DialTimeout = 3 * time.Second
 	config.Net.ReadTimeout = 2 * time.Second
@@ -112,8 +112,7 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ClusterHealthResponse{
-			Status:          "critical",
-			NetworkProblems: 1,
+			Status: "unknown",
 		})
 		return
 	}
@@ -122,41 +121,19 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	brokers := client.Brokers()
 	controller, controllerErr := client.Controller()
 
-	// Метрики Docker используются только как дополнительная эксплуатационная
-	// информация. Если Kafka работает не в Docker, значения остаются нулевыми.
-	dockerMetrics, containerName := getMetricsFromDockerWithName()
 	kafkaVersion := getRealKafkaVersionWithLog(bootstrap)
 
 	healthBrokers := make([]HealthBrokerInfo, 0, len(brokers))
 	brokerByID := make(map[int32]int, len(brokers))
 
-	networkProblems := 0
-	onlineBrokers := 0
-
 	for _, broker := range brokers {
-		online := false
-		if connected, connectedErr := broker.Connected(); connectedErr == nil {
-			online = connected
-		}
-
-		if online {
-			onlineBrokers++
-		} else {
-			networkProblems++
-		}
 
 		info := HealthBrokerInfo{
-			ID:         broker.ID(),
-			Address:    broker.Addr(),
-			Online:     online,
-			Controller: controllerErr == nil && controller != nil && broker.ID() == controller.ID(),
-			CPU:        dockerMetrics.CPU,
-			Memory:     dockerMetrics.Memory,
-			Version:    kafkaVersion,
-		}
-
-		if containerName != "" {
-			info.DiskUsage, info.DiskTotal = getDiskUsage(containerName)
+			ID:           broker.ID(),
+			Address:      broker.Addr(),
+			BrokerStatus: brokerUnknown,
+			Controller:   controllerErr == nil && controller != nil && broker.ID() == controller.ID(),
+			Version:      kafkaVersion,
 		}
 
 		healthBrokers = append(healthBrokers, info)
@@ -166,11 +143,9 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	topics, err := client.Topics()
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ClusterHealthResponse{
-			Status:          "critical",
-			BrokerCount:     len(brokers),
-			OnlineBrokers:   onlineBrokers,
-			NetworkProblems: networkProblems + 1,
-			Brokers:         healthBrokers,
+			Status:      "unknown",
+			BrokerCount: len(brokers),
+			Brokers:     healthBrokers,
 		})
 		return
 	}
@@ -183,10 +158,12 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	healthyPartitions := 0
 	underReplicated := 0
 	offlinePartitions := 0
+	partitionStateUnknown := false
 
 	for _, topic := range topics {
 		partitions, err := client.Partitions(topic)
 		if err != nil {
+			partitionStateUnknown = true
 			continue
 		}
 
@@ -194,11 +171,13 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 			totalPartitions++
 			replicas, replicasErr := client.Replicas(topic, partition)
 			if replicasErr != nil {
+				partitionStateUnknown = true
 				continue
 			}
 
 			isr, isrErr := client.InSyncReplicas(topic, partition)
 			if isrErr != nil {
+				partitionStateUnknown = true
 				continue
 			}
 
@@ -220,7 +199,11 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 					healthBrokers[brokerIndex].LeaderCount++
 				}
 			} else {
-				offlinePartitions++
+				if errors.Is(leaderErr, sarama.ErrLeaderNotAvailable) {
+					offlinePartitions++
+				} else {
+					partitionStateUnknown = true
+				}
 				continue
 			}
 
@@ -239,17 +222,20 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Consumer Group состояние.
-	admin, err := createAdminClient(bootstrap)
-	if err != nil {
-		sendJSONError(w, "Не удалось создать Admin Client: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer admin.Close()
-
-	groups, err := admin.ListConsumerGroups()
-	if err != nil {
-		sendJSONError(w, "Не удалось получить Consumer Groups: "+err.Error(), http.StatusInternalServerError)
-		return
+	admin, adminClient, revision, groupErr := newBrokerStatusAdmin(bootstrap, true)
+	var groups map[string]string
+	var statuses map[brokerEndpoint]brokerStatus
+	diskOwnsClient := false
+	if groupErr == nil {
+		defer func() {
+			if !diskOwnsClient {
+				_ = admin.Close()
+			}
+		}()
+		groups, statuses, groupErr = listObservedGroups(adminClient)
+		if groupErr != nil {
+			groups = nil
+		}
 	}
 
 	rebalancingGroups := 0
@@ -272,13 +258,46 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	_, currentRevision := kafkaAuthProfileSnapshot(bootstrap)
+	if metadataRevision != revision || revision != currentRevision || r.Context().Err() != nil {
+		statuses = nil
+	} else {
+		profile := brokerDiskProfile{bootstrap: bootstrap, revision: revision}
+		disks := overviewBrokerDisks.get(profile, time.Now())
+		if adminClient != nil {
+			done := overviewBrokerDisks.refresh(profile, adminClient, statuses, admin.Close)
+			diskOwnsClient = done != nil
+			if diskOwnsClient && disks == nil {
+				timer := time.NewTimer(brokerDiskInitialWait)
+				select {
+				case <-done:
+					disks = overviewBrokerDisks.get(profile, time.Now())
+				case <-timer.C:
+				case <-r.Context().Done():
+				}
+				timer.Stop()
+			}
+		}
+		// Профиль мог измениться, пока собирался первый снимок.
+		if _, latestRevision := kafkaAuthProfileSnapshot(bootstrap); latestRevision != revision {
+			disks, statuses = nil, nil
+		}
+		for i := range healthBrokers {
+			broker := &healthBrokers[i]
+			disk := disks[brokerEndpoint{broker.ID, broker.Address}]
+			broker.DiskUsage, broker.DiskTotal = disk.usedGiB, disk.totalGiB
+		}
+	}
+	onlineBrokers, networkProblems := applyBrokerStatuses(healthBrokers, statuses)
 	status := "healthy"
 
 	switch {
-	case controllerErr != nil || offlinePartitions > 0 || networkProblems > 0 || deadGroups > 0:
+	case offlinePartitions > 0 || networkProblems > 0 || deadGroups > 0:
 		status = "critical"
 	case underReplicated > 0 || rebalancingGroups > 0 || emptyGroups > 0:
 		status = "warning"
+	case controllerErr != nil || partitionStateUnknown || groupErr != nil || onlineBrokers < len(healthBrokers) || len(healthBrokers) == 0:
+		status = "unknown"
 	}
 
 	_ = json.NewEncoder(w).Encode(ClusterHealthResponse{
