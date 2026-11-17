@@ -47,6 +47,7 @@ interface OverviewData {
   partitions?: number;
   partitionCount?: number;
   consumerGroups?: number;
+  consumerGroupsPartial?: boolean;
   underReplicated?: number;
   [key: string]: unknown;
 }
@@ -58,7 +59,7 @@ export default function Overview(): JSX.Element {
 
   // Данные для панелей дашборда.
   const [overview, setOverview] = useState<OverviewData | null>(null);
-  const [consumerGroups, setConsumerGroups] = useState<unknown[]>([]);
+  const [consumerGroups, setConsumerGroups] = useState<{ groups?: unknown[]; partial?: boolean } | null>(null);
   const [throughputData, setThroughputData] = useState<any[]>([]);
   // Общая временная отметка курсора для всех графиков Overview.
   const [hoverTime, setHoverTime] = useState<number | null>(null);
@@ -98,7 +99,7 @@ export default function Overview(): JSX.Element {
   const clearForClusterSwitch = useCallback(() => {
     setHoverTime(null);
     setOverview(null);
-    setConsumerGroups([]);
+    setConsumerGroups(null);
     setThroughputData([]);
     setMessagesIn(0);
     setMessagesOut(0);
@@ -130,23 +131,24 @@ export default function Overview(): JSX.Element {
       : `range=${apiRange}&from=${encodeURIComponent(timeRange.from)}&to=${encodeURIComponent(timeRange.to)}`;
 
     try {
-      const [overviewResponse, groupsResponse, throughputResponse] = await Promise.all([
+      const [overviewResponse, groupsResponse, throughputResponse] = await Promise.allSettled([
         axios.get<OverviewData>('/api/overview', { headers }),
-        axios.get<{ groups?: unknown[] }>('/api/overview/consumer-groups', { headers }),
+        axios.get<{ groups?: unknown[]; partial?: boolean }>('/api/overview/consumer-groups', { headers }),
         axios.get<{ points?: any[] }>(`/api/overview/throughput?${throughputQuery}`, { headers }),
       ]);
 
       // Если за это время стартовал более новый запрос — игнорируем ответ.
       if (requestId !== requestIdRef.current) return;
 
-      setOverview(overviewResponse.data);
-      setConsumerGroups(groupsResponse.data.groups || []);
-
-      const points = throughputResponse.data.points || [];
-      setThroughputData(points);
-      const latest = points[points.length - 1];
-      setMessagesIn(Number(latest?.incoming || 0));
-      setMessagesOut(Number(latest?.outgoing || 0));
+      if (overviewResponse.status === 'fulfilled') setOverview(overviewResponse.value.data);
+      setConsumerGroups(groupsResponse.status === 'fulfilled' ? groupsResponse.value.data : null);
+      if (throughputResponse.status === 'fulfilled') {
+        const points = throughputResponse.value.data.points || [];
+        setThroughputData(points);
+        const latest = points[points.length - 1];
+        setMessagesIn(Number(latest?.incoming || 0));
+        setMessagesOut(Number(latest?.outgoing || 0));
+      }
       setRefreshKey((value) => value + 1);
     } catch (error) {
       // Ошибка обновления данных не равна потере Kafka-соединения.
@@ -240,7 +242,8 @@ export default function Overview(): JSX.Element {
         <ClusterHealthPanel
           refreshKey={refreshKey}
           overview={overview}
-          consumerGroups={consumerGroups}
+          consumerGroups={consumerGroups?.groups}
+          consumerGroupsPartial={consumerGroups?.partial}
           messagesIn={messagesIn}
           messagesOut={messagesOut}
           onData={handleClusterHealthData}

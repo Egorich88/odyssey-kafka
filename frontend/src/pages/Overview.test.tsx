@@ -110,3 +110,22 @@ it('перезапрашивает события при изменении refr
     [`${eventsPath}?range=15m`, { headers }],
   ]);
 });
+
+it('обновляет панели, даже если запрос списка групп завершился ошибкой', async () => {
+  const fallback = request.getMockImplementation()!;
+  request.mockImplementation((url, config) => url === '/api/overview/consumer-groups'
+    ? Promise.reject(new Error('Группы недоступны'))
+    : fallback(url, config));
+  const event = vi.fn()
+    .mockReturnValueOnce(eventsResponse('Событие до обновления'))
+    .mockReturnValue(eventsResponse('Событие после обновления'));
+  const existing = request.getMockImplementation()!;
+  request.mockImplementation((url, config) => url.startsWith(eventsPath)
+    ? Promise.resolve(event())
+    : existing(url, config));
+  dashboard.timeRange = { type: 'relative', id: '15m', label: '15 минут' };
+
+  render(<Overview />);
+
+  expect(await screen.findByText('Событие после обновления')).toBeTruthy();
+});

@@ -38,7 +38,8 @@ import { useCluster } from '../../../contexts/ClusterContext';
 interface Props {
   refreshKey: number;
   overview: any;
-  consumerGroups: any[];
+  consumerGroups?: unknown[];
+  consumerGroupsPartial?: boolean;
   messagesIn: number;
   messagesOut: number;
   onData?: (data: any) => void;
@@ -91,7 +92,7 @@ function getKafkaVersionSummary(brokers: any[] = []): { label: string; details: 
   return { label: 'Версия неизвестна', details, state: 'unknown' };
 }
 
-export default function ClusterHealthPanel({ refreshKey, overview, consumerGroups, messagesIn, messagesOut, onData }: Props): JSX.Element {
+export default function ClusterHealthPanel({ refreshKey, overview, consumerGroups, consumerGroupsPartial, messagesIn, messagesOut, onData }: Props): JSX.Element {
   const { currentCluster } = useCluster();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -120,7 +121,13 @@ export default function ClusterHealthPanel({ refreshKey, overview, consumerGroup
   const StatusIcon = meta.Icon;
   const partitionCount = data?.partitionsTotal ?? overview?.partitions ?? overview?.partitionCount ?? 0;
   const topicCount = overview?.topics ?? overview?.topicCount ?? 0;
-  const groupCount = consumerGroups?.length ?? overview?.consumerGroups ?? 0;
+  const listedCount = consumerGroups?.length;
+  const overviewCount = overview?.consumerGroups;
+  const exactGroupCount = (!consumerGroupsPartial ? listedCount : undefined)
+    ?? (!overview?.consumerGroupsPartial ? overviewCount : undefined);
+  const knownGroupCount = Math.max(listedCount ?? 0, overviewCount ?? 0);
+  const groupCount = exactGroupCount != null ? formatNumber(exactGroupCount)
+    : knownGroupCount > 0 ? `≥ ${formatNumber(knownGroupCount)}` : '—';
   const underReplicated = data?.underReplicated ?? overview?.underReplicated ?? 0;
   const kafkaVersion = getKafkaVersionSummary(data?.brokers || []);
 
@@ -160,7 +167,7 @@ export default function ClusterHealthPanel({ refreshKey, overview, consumerGroup
           <Kpi icon={<FiServer />} label="Брокеры" value={loading ? '—' : formatNumber(data?.brokerCount)} />
           <Kpi icon={<FiGrid />} label="Топики" value={loading ? '—' : formatNumber(topicCount)} />
           <Kpi icon={<FiLayers />} label="Партиции" value={loading ? '—' : formatNumber(partitionCount)} />
-          <Kpi icon={<FiUsers />} label="Группы потребителей" value={loading ? '—' : formatNumber(groupCount)} />
+          <Kpi icon={<FiUsers />} label="Группы потребителей" value={loading ? '—' : groupCount} />
           <Kpi icon={<FiArrowDown />} label="Входящие сообщения" value={loading ? '—' : `${Number(messagesIn || 0).toFixed(1)} msg/s`} />
           <Kpi icon={<FiArrowUp />} label="Исходящие сообщения" value={loading ? '—' : `${Number(messagesOut || 0).toFixed(1)} msg/s`} />
           <Kpi icon={<FiAlertTriangle />} label="Недореплицированные" value={loading ? '—' : formatNumber(underReplicated)} danger={Number(underReplicated) > 0} />

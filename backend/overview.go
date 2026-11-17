@@ -31,12 +31,13 @@ import (
 
 // DashboardOverviewResponse содержит сводную информацию о состоянии кластера.
 type DashboardOverviewResponse struct {
-	Brokers         int   `json:"brokers"`         // количество брокеров
-	Topics          int   `json:"topics"`          // количество топиков
-	Partitions      int   `json:"partitions"`      // общее количество партиций
-	ConsumerGroups  int   `json:"consumerGroups"`  // количество групп потребителей
-	ControllerID    int32 `json:"controllerId"`    // ID текущего брокера-контроллера
-	UnderReplicated int   `json:"underReplicated"` // количество недореплицированных партиций
+	Brokers               int   `json:"brokers"`        // количество брокеров
+	Topics                int   `json:"topics"`         // количество топиков
+	Partitions            int   `json:"partitions"`     // общее количество партиций
+	ConsumerGroups        int   `json:"consumerGroups"` // количество полученных групп потребителей
+	ConsumerGroupsPartial bool  `json:"consumerGroupsPartial,omitempty"`
+	ControllerID          int32 `json:"controllerId"`    // ID текущего брокера-контроллера
+	UnderReplicated       int   `json:"underReplicated"` // количество недореплицированных партиций
 }
 
 // DashboardBroker описывает один брокер Kafka.
@@ -59,7 +60,8 @@ type DashboardConsumerGroup struct {
 
 // DashboardConsumerGroupsResponse возвращает список групп потребителей.
 type DashboardConsumerGroupsResponse struct {
-	Groups []DashboardConsumerGroup `json:"groups"`
+	Groups  []DashboardConsumerGroup `json:"groups"`
+	Partial bool                     `json:"partial,omitempty"`
 }
 
 // DashboardPartitionsResponse содержит общее количество партиций.
@@ -179,26 +181,22 @@ func getDashboardOverviewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Consumer-группы
-	admin, err := createAdminClient(bootstrap)
-	if err != nil {
-		sendJSONError(w, "Не удалось создать Admin Client", http.StatusInternalServerError)
-		return
-	}
-	defer admin.Close()
-
-	groups, err := admin.ListConsumerGroups()
-	if err != nil {
-		sendJSONError(w, "Не удалось получить Consumer Groups", http.StatusInternalServerError)
-		return
+	groupCount := 0
+	admin, groupErr := sarama.NewClusterAdminFromClient(client)
+	if groupErr == nil {
+		var groups map[string]string
+		groups, groupErr = admin.ListConsumerGroups()
+		groupCount = len(groups)
 	}
 
 	response := DashboardOverviewResponse{
-		Brokers:         len(brokers),
-		Topics:          len(topics),
-		Partitions:      totalPartitions,
-		ConsumerGroups:  len(groups),
-		ControllerID:    controller.ID(),
-		UnderReplicated: underReplicated,
+		Brokers:               len(brokers),
+		Topics:                len(topics),
+		Partitions:            totalPartitions,
+		ConsumerGroups:        groupCount,
+		ConsumerGroupsPartial: groupErr != nil,
+		ControllerID:          controller.ID(),
+		UnderReplicated:       underReplicated,
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
@@ -253,33 +251,52 @@ func getDashboardConsumerGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer admin.Close()
 
-	groupsMap, err := admin.ListConsumerGroups()
+	result, err := listDashboardConsumerGroups(admin)
 	if err != nil {
-		sendJSONError(w, "Ошибка получения consumer groups: "+err.Error(), http.StatusInternalServerError)
+		sendJSONError(w, "Не удалось получить список групп потребителей Kafka", http.StatusInternalServerError)
 		return
 	}
+	_ = json.NewEncoder(w).Encode(result)
+}
 
-	// Собираем названия групп для детального описания
+type dashboardGroupLister interface {
+	ListConsumerGroups() (map[string]string, error)
+	DescribeConsumerGroups([]string) ([]*sarama.GroupDescription, error)
+}
+
+func listDashboardConsumerGroups(admin dashboardGroupLister) (DashboardConsumerGroupsResponse, error) {
+	groupsMap, err := admin.ListConsumerGroups()
+	if err != nil && len(groupsMap) == 0 {
+		return DashboardConsumerGroupsResponse{}, err
+	}
 	groupNames := make([]string, 0, len(groupsMap))
 	for name := range groupsMap {
 		groupNames = append(groupNames, name)
 	}
-
-	descriptions, err := admin.DescribeConsumerGroups(groupNames)
-	if err != nil {
-		sendJSONError(w, "Ошибка описания consumer groups: "+err.Error(), http.StatusInternalServerError)
-		return
+	result := DashboardConsumerGroupsResponse{
+		Groups:  make([]DashboardConsumerGroup, 0, len(groupNames)),
+		Partial: err != nil,
 	}
-
-	result := make([]DashboardConsumerGroup, 0, len(descriptions))
-	for _, group := range descriptions {
-		result = append(result, DashboardConsumerGroup{
-			Name:  group.GroupId,
-			State: group.State,
-		})
+	states := make(map[string]string, len(groupNames))
+	// При частичном списке возвращаем известные группы без новых запросов к координаторам.
+	if !result.Partial && len(groupNames) > 0 {
+		descriptions, describeErr := admin.DescribeConsumerGroups(groupNames)
+		result.Partial = describeErr != nil
+		for _, group := range descriptions {
+			if group != nil && group.Err == sarama.ErrNoError && group.State != "" {
+				states[group.GroupId] = group.State
+			}
+		}
 	}
-
-	_ = json.NewEncoder(w).Encode(DashboardConsumerGroupsResponse{Groups: result})
+	for _, name := range groupNames {
+		state := states[name]
+		if state == "" {
+			state = "Unknown"
+			result.Partial = true
+		}
+		result.Groups = append(result.Groups, DashboardConsumerGroup{Name: name, State: state})
+	}
+	return result, nil
 }
 
 // getDashboardPartitionsHandler возвращает общее количество партиций во всех топиках.
