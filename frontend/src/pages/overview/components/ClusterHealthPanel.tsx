@@ -33,6 +33,7 @@ import { FiServer, FiGrid, FiLayers, FiUsers, FiArrowDown, FiArrowUp, FiAlertTri
 import { SiApachekafka } from 'react-icons/si';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { isSameHealthProfile } from '../clusterHealthProfile';
 import { useCluster } from '../../../contexts/ClusterContext';
 
 interface Props {
@@ -94,27 +95,34 @@ function getKafkaVersionSummary(brokers: any[] = []): { label: string; details: 
 
 export default function ClusterHealthPanel({ refreshKey, overview, consumerGroups, consumerGroupsPartial, messagesIn, messagesOut, onData }: Props): JSX.Element {
   const { currentCluster } = useCluster();
-  const [data, setData] = useState<any>(null);
+  const [snapshot, setData] = useState<{ profile: typeof currentCluster; value: any } | null>(null);
+  const data = snapshot && isSameHealthProfile(snapshot.profile, currentCluster) ? snapshot.value : null;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!currentCluster) return;
+    const request = new AbortController();
     const load = async () => {
-      if (!currentCluster) return;
       setLoading(true);
       try {
         const bootstrap = currentCluster.brokers || currentCluster.bootstrapServers;
-        const response = await axios.get('/api/overview/health', { headers: { 'X-Kafka-Bootstrap': bootstrap } });
-        setData(response.data);
+        const response = await axios.get('/api/overview/health', {
+          headers: { 'X-Kafka-Bootstrap': bootstrap },
+          signal: request.signal,
+        });
+        if (request.signal.aborted) return;
+        setData({ profile: currentCluster, value: response.data });
         onData?.(response.data);
-      } catch (error) {
-        console.error('Ошибка получения состояния кластера:', error);
+      } catch {
+        if (request.signal.aborted) return;
         setData(null);
         onData?.(null);
       } finally {
-        setLoading(false);
+        if (!request.signal.aborted) setLoading(false);
       }
     };
     void load();
+    return () => request.abort();
   }, [currentCluster, refreshKey, onData]);
 
   const meta = STATUS_META[data?.status || 'unknown'];

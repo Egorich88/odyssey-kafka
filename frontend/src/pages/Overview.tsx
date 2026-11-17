@@ -33,6 +33,7 @@ import ThroughputPanel from './overview/components/ThroughputPanel';
 import TopicsPanel from './overview/components/TopicsPanel';
 import ConsumerLagPanel from './overview/components/ConsumerLagPanel';
 import EventsPanel from './overview/components/EventsPanel';
+import { isSameHealthProfile, retainBrokerList } from './overview/clusterHealthProfile';
 import ClusterHealthPanel from './overview/components/ClusterHealthPanel';
 import BrokersPanel from './overview/components/BrokersPanel';
 import CertificatesPanel from './overview/components/CertificatesPanel';
@@ -68,15 +69,24 @@ export default function Overview(): JSX.Element {
   // Ключ обновления: меняется после каждой успешной загрузки,
   // заставляя дочерние панели перезапросить свои данные.
   const [refreshKey, setRefreshKey] = useState(0);
-  const [clusterHealth, setClusterHealth] = useState<any>(null);
-  const [clusterHealthLoaded, setClusterHealthLoaded] = useState(false);
+  const [clusterHealthById, setClusterHealthById] = useState(
+    () => new Map<string, { profile: typeof currentCluster; data: any }>()
+  );
+  const clusterHealth = currentCluster ? clusterHealthById.get(currentCluster.id) : undefined;
+  const clusterHealthLoaded = Boolean(clusterHealth && isSameHealthProfile(clusterHealth.profile, currentCluster));
 
   // Стабильный callback не даёт эффекту ClusterHealthPanel запускать
   // повторный запрос после каждого обновления родительского компонента.
   const handleClusterHealthData = useCallback((value: any) => {
-    setClusterHealth(value);
-    setClusterHealthLoaded(true);
-  }, []);
+    if (!currentCluster) return;
+    setClusterHealthById((previous) => {
+      const next = new Map(previous);
+      const saved = previous.get(currentCluster.id);
+      const lastHealth = saved && isSameHealthProfile(saved.profile, currentCluster) ? saved.data : null;
+      next.set(currentCluster.id, { profile: currentCluster, data: retainBrokerList(value, lastHealth) });
+      return next;
+    });
+  }, [currentCluster]);
 
   // Идентификатор последнего запроса — защита от гонок.
   const requestIdRef = useRef(0);
@@ -104,8 +114,7 @@ export default function Overview(): JSX.Element {
     setMessagesIn(0);
     setMessagesOut(0);
     setRefreshKey(0);
-    setClusterHealth(null);
-    setClusterHealthLoaded(false);
+
   }, []);
 
   /**
@@ -252,7 +261,7 @@ export default function Overview(): JSX.Element {
 
       {/* Второй ряд: брокеры слева, сертификаты справа. */}
       <div className="dashboard-row dashboard-row-status">
-        <BrokersPanel data={clusterHealth} loading={!clusterHealthLoaded} />
+        <BrokersPanel data={clusterHealthLoaded ? clusterHealth?.data : null} loading={!clusterHealthLoaded} />
         <CertificatesPanel refreshKey={refreshKey} />
       </div>
 
