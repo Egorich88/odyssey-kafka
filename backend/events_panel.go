@@ -201,7 +201,7 @@ func (ec *EventCollector) getBrokerAddress(id int32) string {
 func (ec *EventCollector) getControllerAddress() string {
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return "controller"
 	}
@@ -519,7 +519,7 @@ func (ec *EventCollector) collect() {
 func (ec *EventCollector) getTopicPartitions(topic string) int32 {
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return 0
 	}
@@ -542,7 +542,7 @@ func (ec *EventCollector) fetchConsumerLags() (map[string]int64, error) {
 
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +580,7 @@ func (ec *EventCollector) fetchConsumerLags() (map[string]int64, error) {
 func (ec *EventCollector) fetchTopicOffsets() (map[string]int64, error) {
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}

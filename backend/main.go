@@ -51,10 +51,23 @@ func getBootstrapFromRequest(r *http.Request) string {
 	return "localhost:9092"
 }
 
+// parseBootstrapServers разделяет адреса bootstrap-брокеров для Sarama.
+// Поддерживает список через запятую, удаляет пробелы и пустые элементы.
+func parseBootstrapServers(bootstrap string) []string {
+	addresses := make([]string, 0)
+	for _, value := range strings.Split(bootstrap, ",") {
+		address := strings.TrimSpace(value)
+		if address != "" {
+			addresses = append(addresses, address)
+		}
+	}
+	return addresses
+}
+
 // createAdminClient создаёт административный клиент Sarama для управления кластером.
 func createAdminClient(bootstrap string) (sarama.ClusterAdmin, error) {
 	config := kafkaConfigForBootstrap(bootstrap)
-	return sarama.NewClusterAdmin([]string{bootstrap}, config)
+	return sarama.NewClusterAdmin(parseBootstrapServers(bootstrap), config)
 }
 
 // sendJSONError отправляет JSON-ответ с сообщением об ошибке и HTTP-статусом.

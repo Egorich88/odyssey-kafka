@@ -82,7 +82,7 @@ func getClusterHealthHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Сначала строго проверяем формат каждого адреса. Это позволяет сразу
 	// отклонить пустые элементы, отсутствующий порт и буквы вместо номера порта.
-	brokers := strings.Split(bootstrap, ",")
+	brokers := parseBootstrapServers(bootstrap)
 	for _, broker := range brokers {
 		broker = strings.TrimSpace(broker)
 		host, port, splitErr := net.SplitHostPort(broker)

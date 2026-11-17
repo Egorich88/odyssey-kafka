@@ -109,7 +109,7 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	config.Net.ReadTimeout = 2 * time.Second
 	config.Net.WriteTimeout = 2 * time.Second
 
-	client, err := sarama.NewClient([]string{bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ClusterHealthResponse{
 			Status:          "critical",

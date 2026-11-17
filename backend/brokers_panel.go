@@ -80,7 +80,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient([]string{bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
 		return

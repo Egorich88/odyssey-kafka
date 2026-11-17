@@ -248,7 +248,7 @@ func (lc *LagCollector) fetchConsumerLagsWithTopics() (
 	config := kafkaConfigForBootstrap(lc.bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient([]string{lc.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(lc.bootstrap), config)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -337,7 +337,7 @@ func collectConsumerLagRows(bootstrap string) ([]ConsumerLagRow, error) {
 	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient([]string{bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
 	if err != nil {
 		return nil, err
 	}

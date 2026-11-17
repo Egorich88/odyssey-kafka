@@ -38,8 +38,14 @@ type kafkaAuthConfig struct {
 
 var kafkaAuthRegistry = struct {
 	sync.RWMutex
-	byBootstrap map[string]kafkaAuthConfig
-}{byBootstrap: make(map[string]kafkaAuthConfig)}
+	byBootstrap map[string]kafkaAuthProfile
+	revision    uint64
+}{byBootstrap: make(map[string]kafkaAuthProfile)}
+
+type kafkaAuthProfile struct {
+	config   kafkaAuthConfig
+	revision uint64
+}
 
 // registerKafkaConfigHandler validates and registers the connection profile.
 // Credentials are held in backend memory only; after backend restart the UI
@@ -63,13 +69,16 @@ func registerKafkaConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, err := buildKafkaConfig(cfg); err != nil {
 		kafkaAuthRegistry.Lock()
-		delete(kafkaAuthRegistry.byBootstrap, cfg.Bootstrap)
+		deleteKafkaAuthProfile(cfg.Bootstrap)
 		kafkaAuthRegistry.Unlock()
 		sendJSONError(w, "Ошибка конфигурации Kafka: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	kafkaAuthRegistry.Lock()
-	kafkaAuthRegistry.byBootstrap[cfg.Bootstrap] = cfg
+	if kafkaAuthRegistry.byBootstrap[cfg.Bootstrap].config != cfg {
+		kafkaAuthRegistry.revision++
+		kafkaAuthRegistry.byBootstrap[cfg.Bootstrap] = kafkaAuthProfile{cfg, kafkaAuthRegistry.revision}
+	}
 	kafkaAuthRegistry.Unlock()
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -88,18 +97,35 @@ func unregisterKafkaConfigHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	kafkaAuthRegistry.Lock()
-	delete(kafkaAuthRegistry.byBootstrap, bootstrap)
+	deleteKafkaAuthProfile(bootstrap)
 	kafkaAuthRegistry.Unlock()
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func kafkaConfigForBootstrap(bootstrap string) *sarama.Config {
-	kafkaAuthRegistry.RLock()
-	cfg, ok := kafkaAuthRegistry.byBootstrap[strings.TrimSpace(bootstrap)]
-	kafkaAuthRegistry.RUnlock()
-	if !ok {
-		cfg = kafkaAuthConfig{Bootstrap: bootstrap, AuthType: "PLAINTEXT"}
+// Вызывается под блокировкой реестра.
+func deleteKafkaAuthProfile(bootstrap string) {
+	if _, exists := kafkaAuthRegistry.byBootstrap[bootstrap]; exists {
+		delete(kafkaAuthRegistry.byBootstrap, bootstrap)
+		kafkaAuthRegistry.revision++
 	}
+}
+
+func kafkaAuthProfileSnapshot(bootstrap string) (kafkaAuthConfig, uint64) {
+	kafkaAuthRegistry.RLock()
+	defer kafkaAuthRegistry.RUnlock()
+	if profile, ok := kafkaAuthRegistry.byBootstrap[strings.TrimSpace(bootstrap)]; ok {
+		return profile.config, profile.revision
+	}
+	return kafkaAuthConfig{Bootstrap: bootstrap, AuthType: "PLAINTEXT"}, kafkaAuthRegistry.revision
+}
+
+func kafkaConfigForBootstrap(bootstrap string) *sarama.Config {
+	config, _ := kafkaConfigAndRevision(bootstrap)
+	return config
+}
+
+func kafkaConfigAndRevision(bootstrap string) (*sarama.Config, uint64) {
+	cfg, revision := kafkaAuthProfileSnapshot(bootstrap)
 	config, err := buildKafkaConfig(cfg)
 	if err != nil {
 		// Profiles are validated before entering the registry. Fail closed if
@@ -111,7 +137,7 @@ func kafkaConfigForBootstrap(bootstrap string) *sarama.Config {
 		config.Net.SASL.Enable = true
 		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
 	}
-	return config
+	return config, revision
 }
 
 func buildKafkaConfig(cfg kafkaAuthConfig) (*sarama.Config, error) {
