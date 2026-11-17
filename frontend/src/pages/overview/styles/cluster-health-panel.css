@@ -163,10 +163,13 @@
 }
 
 .broker-online,
-.broker-offline { display: flex; align-items: center; gap: 6px; }
+.broker-offline,
+.broker-unknown { display: flex; align-items: center; gap: 6px; }
 .broker-online i,
-.broker-offline i { width: 7px; height: 7px; border-radius: 50%; background: var(--success-color); flex: 0 0 auto; }
+.broker-offline i,
+.broker-unknown i { width: 7px; height: 7px; border-radius: 50%; background: var(--success-color); flex: 0 0 auto; }
 .broker-offline i { background: var(--danger-color); }
+.broker-unknown i { background: var(--text-secondary); }
 .broker-controller { color: var(--accent-hover); font-style: normal; }
 .cluster-broker-empty { padding: 14px; text-align: center; color: var(--text-secondary); font-size: 13px; }
 
