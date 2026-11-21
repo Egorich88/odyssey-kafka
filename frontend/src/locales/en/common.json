@@ -1,4 +1,8 @@
 {
+  "adminPermissions": {
+    "readOnly": "Kafka administrative operations are unavailable: server-side owner authorization is required.",
+    "editHint": "Double-click a parameter value to edit it"
+  },
   "overview": "Overview",
   "brokers": "Brokers",
   "brokerStatus": {"online":"Online","offline":"Offline","unknown":"Unknown"},

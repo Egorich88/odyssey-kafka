@@ -92,43 +92,9 @@ func main() {
 	})
 
 	// ----- Группа маршрутов для управления топиками (обработчики в topics.go) -----
-	http.HandleFunc("/api/topics", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			getTopicsHandler(w, r)
-		case http.MethodPost:
-			createTopicHandler(w, r)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	})
-
-	http.HandleFunc("/api/topics/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/topics/" {
-			getTopicsHandler(w, r)
-			return
-		}
-		switch r.Method {
-		case http.MethodDelete:
-			deleteTopicHandler(w, r)
-		case http.MethodPatch:
-			if strings.Contains(r.URL.Path, "/config") {
-				updateTopicConfigHandler(w, r)
-			} else {
-				w.WriteHeader(http.StatusNotFound)
-			}
-		case http.MethodGet:
-			if strings.Contains(r.URL.Path, "/messages") {
-				getMessagesHandler(w, r) // обработчик из search.go
-			} else if strings.Contains(r.URL.Path, "/partitions") {
-				getPartitionsHandler(w, r) // обработчик из search.go
-			} else {
-				getTopicDetailHandler(w, r)
-			}
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	})
+	http.HandleFunc("/api/topics", topicsRouter)
+	http.HandleFunc("/api/topics/", topicRouter)
+	http.HandleFunc("/api/capabilities", kafkaCapabilitiesHandler)
 	// =============================================================================
 	// Маршруты Consumer Groups
 	// =============================================================================

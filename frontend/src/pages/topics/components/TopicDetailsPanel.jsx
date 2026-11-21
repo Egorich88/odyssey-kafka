@@ -20,6 +20,7 @@
 
 import TopicConfigTable from './TopicConfigTable';
 import TopicConfigEdit from './TopicConfigEdit';
+import { useTranslation } from 'react-i18next';
 
 export default function TopicDetailsPanel({
   detailTopic,
@@ -33,7 +34,9 @@ export default function TopicDetailsPanel({
   setEditValue,
   handleSaveEdit,
   handleCancelEdit,
+  canEditConfig = false,
 }) {
+  const { t } = useTranslation();
   return (
     <div className="topic-details-panel" ref={panelRef}>
       {/* Заголовок панели */}
@@ -63,11 +66,12 @@ export default function TopicDetailsPanel({
 
         {/* Подсказка о редактировании */}
         <div className="topic-hint">
-          Двойной клик по значению параметра — редактирование
+          {canEditConfig ? t('adminPermissions.editHint') : t('adminPermissions.readOnly')}
         </div>
 
         {/* Таблица конфигурации */}
         <TopicConfigTable
+          canEdit={canEditConfig}
           configs={detailTopic.configs}
           selectedConfigParam={selectedConfigParam}
           setSelectedConfigParam={setSelectedConfigParam}
@@ -76,13 +80,13 @@ export default function TopicDetailsPanel({
         />
 
         {/* Редактирование параметра */}
-        <TopicConfigEdit
+        {canEditConfig && <TopicConfigEdit
           editingParam={editingParam}
           editValue={editValue}
           setEditValue={setEditValue}
           handleSaveEdit={handleSaveEdit}
           handleCancelEdit={handleCancelEdit}
-        />
+        />}
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useCluster } from '../../../contexts/ClusterContext';
 import { CONFIG_DESCRIPTIONS } from '../constants/configDescriptions';
+import { useTranslation } from 'react-i18next';
+import { useTopicPermissions } from './useTopicPermissions';
 
 /**
  * Форматирует значение retention.ms в человекочитаемый вид
@@ -43,6 +45,9 @@ export const formatRetention = (value) => {
 
 export function useTopics() {
   const { currentCluster } = useCluster();
+  const { t } = useTranslation();
+  const { permissions, revoke } = useTopicPermissions(currentCluster);
+  const rejectAdministration = useCallback(() => toast.error(t('adminPermissions.readOnly')), [t]);
 
   // ===========================================================================
   // Состояния
@@ -276,6 +281,7 @@ export function useTopics() {
    * Обработчик двойного клика по параметру конфигурации
    */
   const handleConfigDoubleClick = (key, currentValue) => {
+    if (!permissions.alterTopicConfig) return;
     setEditingParam(key);
     setEditValue(String(currentValue));
     setOriginalValue(String(currentValue));
@@ -285,6 +291,7 @@ export function useTopics() {
    * Сохраняет изменённое значение параметра конфигурации
    */
   const handleSaveEdit = useCallback(async () => {
+    if (!permissions.alterTopicConfig) { rejectAdministration(); return; }
     if (!selectedTopic || !editingParam) return;
 
     if (editValue === originalValue) {
@@ -320,13 +327,14 @@ export function useTopics() {
       setEditingParam(null);
       setSelectedConfigParam(null);
     } catch (error) {
+      if (error.response?.status === 403) { revoke(); rejectAdministration(); return; }
       console.error(error);
       toast.error(
         'Ошибка сохранения: ' +
           (error.response?.data?.error || error.message)
       );
     }
-  }, [selectedTopic, editingParam, editValue, originalValue, currentCluster]);
+  }, [selectedTopic, editingParam, editValue, originalValue, currentCluster, permissions.alterTopicConfig, rejectAdministration, revoke]);
 
   /**
    * Отменяет редактирование параметра
@@ -346,6 +354,7 @@ export function useTopics() {
    */
   const handleCreateTopic = useCallback(async (e) => {
     e.preventDefault();
+    if (!permissions.createTopic) { rejectAdministration(); return; }
 
     if (!currentCluster) return;
 
@@ -390,6 +399,7 @@ export function useTopics() {
 
       fetchTopics();
     } catch (error) {
+      if (error.response?.status === 403) { revoke(); rejectAdministration(); return; }
       console.error(error);
       const backendError = error.response?.data?.error || '';
 
@@ -404,12 +414,13 @@ export function useTopics() {
         toast.error(backendError || 'Ошибка создания топика');
       }
     }
-  }, [currentCluster, newTopic, showAdvanced, fetchTopics]);
+  }, [currentCluster, newTopic, showAdvanced, fetchTopics, permissions.createTopic, rejectAdministration, revoke]);
 
   /**
    * Удаляет выбранный топик
    */
   const handleDeleteTopic = useCallback(async () => {
+    if (!permissions.deleteTopic) { rejectAdministration(); return; }
     if (!selectedTopic) {
       toast.error('Выберите топик');
       return;
@@ -434,10 +445,11 @@ export function useTopics() {
       closePanel();
       fetchTopics();
     } catch (error) {
+      if (error.response?.status === 403) { revoke(); rejectAdministration(); return; }
       console.error(error);
       toast.error('Ошибка удаления топика');
     }
-  }, [selectedTopic, currentCluster, fetchTopics]);
+  }, [selectedTopic, currentCluster, fetchTopics, permissions.deleteTopic, rejectAdministration, revoke]);
 
   // ===========================================================================
   // Экспорт данных
@@ -552,6 +564,7 @@ export function useTopics() {
   // ===========================================================================
 
   return {
+    permissions,
     // Состояния
     topics,
     loading,

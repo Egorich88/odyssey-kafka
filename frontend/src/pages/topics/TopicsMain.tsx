@@ -29,8 +29,10 @@ import TopicDetailsPanel from './components/TopicDetailsPanel';
 import CreateTopicModal from './components/CreateTopicModal';
 import { useDashboardControls } from '../../contexts/DashboardControlsContext';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function TopicsMain() {
+  const { t } = useTranslation();
   const { registerRefreshHandler } = useDashboardControls();
 
   const {
@@ -70,6 +72,7 @@ export default function TopicsMain() {
     exportTopicsList,
     exportTopicsConfig,
     fetchTopics,
+    permissions,
   } = useTopics();
 
   // Регистрируем обработчик обновления в глобальном контексте
@@ -84,6 +87,7 @@ export default function TopicsMain() {
 
       {/* Панель инструментов */}
       <TopicToolbar
+        permissions={permissions}
         filter={filter}
         setFilter={setFilter}
         showExportMenu={showExportMenu}
@@ -97,6 +101,8 @@ export default function TopicsMain() {
         selectedTopic={selectedTopic}
         handleDeleteTopic={handleDeleteTopic}
       />
+      {!permissions.createTopic && !permissions.deleteTopic && !permissions.alterTopicConfig &&
+        <p role="status">{t('adminPermissions.readOnly')}</p>}
 
       {/* Основное содержимое страницы */}
       <div className={`topics-content ${detailTopic ? 'with-details' : ''}`}>
@@ -114,6 +120,7 @@ export default function TopicsMain() {
         {/* Панель деталей топика */}
         {detailTopic && (
           <TopicDetailsPanel
+            canEditConfig={permissions.alterTopicConfig}
             detailTopic={detailTopic}
             panelRef={panelRef}
             closePanel={closePanel}
@@ -131,7 +138,7 @@ export default function TopicsMain() {
 
       {/* Модальное окно создания топика */}
       <CreateTopicModal
-        showCreateModal={showCreateModal}
+        showCreateModal={showCreateModal && permissions.createTopic}
         setShowCreateModal={setShowCreateModal}
         newTopic={newTopic}
         setNewTopic={setNewTopic}

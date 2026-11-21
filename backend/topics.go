@@ -30,8 +30,9 @@
 //   GET    /api/topics/{topic}   - Детальная информация о топике
 //   PATCH  /api/topics/{topic}/config - Обновление конфигурации топика
 //
-// Аутентификация:
-//   Все запросы требуют заголовок X-Kafka-Bootstrap с адресом брокера.
+// Безопасность:
+//   X-Kafka-Bootstrap выбирает подключение, но не подтверждает полномочия.
+//   Изменения проходят единую серверную политику authorizeKafkaAdministration.
 // =============================================================================
 
 package main
@@ -44,6 +45,47 @@ import (
 
 	"github.com/IBM/sarama"
 )
+
+// Подставной клиент в тестах исключает реальные подключения к Kafka.
+var newTopicsAdminClient = createAdminClient
+
+func topicsRouter(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getTopicsHandler(w, r)
+	case http.MethodPost, http.MethodOptions:
+		createTopicHandler(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func topicRouter(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/api/topics/" {
+		topicsRouter(w, r)
+		return
+	}
+	switch r.Method {
+	case http.MethodDelete:
+		deleteTopicHandler(w, r)
+	case http.MethodPatch:
+		if strings.HasSuffix(r.URL.Path, "/config") {
+			updateTopicConfigHandler(w, r)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	case http.MethodGet:
+		if strings.Contains(r.URL.Path, "/messages") {
+			getMessagesHandler(w, r)
+		} else if strings.Contains(r.URL.Path, "/partitions") {
+			getPartitionsHandler(w, r)
+		} else {
+			getTopicDetailHandler(w, r)
+		}
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
 
 // =============================================================================
 // Модели данных (DTO) для API топиков
@@ -112,7 +154,7 @@ func getTopicsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	bootstrap := getBootstrapFromRequest(r)
-	admin, err := createAdminClient(bootstrap)
+	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[getTopicsHandler] AdminClient error: %v", err)
 		sendJSONError(w, "Failed to connect to Kafka: "+err.Error(), http.StatusInternalServerError)
@@ -151,6 +193,15 @@ func createTopicHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		sendJSONError(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		return
+	}
+	if !authorizeKafkaAdministration(w, r, adminCreateTopic) {
+		return
+	}
+
 	var req CreateTopicRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("[createTopicHandler] JSON decode error: %v", err)
@@ -172,7 +223,7 @@ func createTopicHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bootstrap := getBootstrapFromRequest(r)
-	admin, err := createAdminClient(bootstrap)
+	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[createTopicHandler] AdminClient error: %v", err)
 		sendJSONError(w, "Failed to connect to Kafka: "+err.Error(), http.StatusInternalServerError)
@@ -206,6 +257,14 @@ func createTopicHandler(w http.ResponseWriter, r *http.Request) {
 func deleteTopicHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodDelete {
+		w.Header().Set("Allow", http.MethodDelete)
+		sendJSONError(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		return
+	}
+	if !authorizeKafkaAdministration(w, r, adminDeleteTopic) {
+		return
+	}
 
 	topic := strings.TrimPrefix(r.URL.Path, "/api/topics/")
 	topic = strings.TrimSuffix(topic, "/")
@@ -217,7 +276,7 @@ func deleteTopicHandler(w http.ResponseWriter, r *http.Request) {
 	bootstrap := getBootstrapFromRequest(r)
 	log.Printf("[deleteTopicHandler] Deleting topic: %s, bootstrap: %s", topic, bootstrap)
 
-	admin, err := createAdminClient(bootstrap)
+	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[deleteTopicHandler] AdminClient error: %v", err)
 		sendJSONError(w, "Failed to connect to Kafka: "+err.Error(), http.StatusInternalServerError)
@@ -247,7 +306,7 @@ func getTopicDetailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bootstrap := getBootstrapFromRequest(r)
-	admin, err := createAdminClient(bootstrap)
+	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[getTopicDetailHandler] AdminClient error: %v", err)
 		sendJSONError(w, "Failed to connect to Kafka: "+err.Error(), http.StatusInternalServerError)
@@ -329,6 +388,15 @@ func updateTopicConfigHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method != http.MethodPatch {
+		w.Header().Set("Allow", http.MethodPatch)
+		sendJSONError(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		return
+	}
+	if !authorizeKafkaAdministration(w, r, adminAlterTopicConfig) {
+		return
+	}
+
 	var req UpdateTopicConfigRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("[updateTopicConfigHandler] JSON decode error: %v", err)
@@ -337,7 +405,7 @@ func updateTopicConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bootstrap := getBootstrapFromRequest(r)
-	admin, err := createAdminClient(bootstrap)
+	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[updateTopicConfigHandler] AdminClient error: %v", err)
 		sendJSONError(w, "Failed to connect to Kafka: "+err.Error(), http.StatusInternalServerError)
