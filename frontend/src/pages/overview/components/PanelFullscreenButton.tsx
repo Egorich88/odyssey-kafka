@@ -13,54 +13,68 @@
  * а остальной интерфейс закрывается затемнённым и размытым слоем.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 
-export default function PanelFullscreenButton(): JSX.Element {
+export default function PanelFullscreenButton({ expandLabel, collapseLabel, onFullscreenChange }: {
+  expandLabel?: string;
+  collapseLabel?: string;
+  onFullscreenChange?: (isOpen: boolean) => void;
+} = {}): JSX.Element {
   const [fullscreen, setFullscreen] = useState(false);
+  const activePanel = useRef<HTMLElement | null>(null);
+  const notify = useRef(onFullscreenChange);
+  notify.current = onFullscreenChange;
+
+  const closeFullscreen = useCallback(() => {
+    const panel = activePanel.current;
+    if (!panel) return;
+    activePanel.current = null;
+    panel.classList.remove('is-panel-fullscreen');
+    document.body.classList.remove('panel-modal-open');
+    setFullscreen(false);
+    notify.current?.(false);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      closeFullscreen();
+      if (event.key === 'Escape') closeFullscreen();
     };
-
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    document.addEventListener('odyssey-close-fullscreen', closeFullscreen);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('odyssey-close-fullscreen', closeFullscreen);
+      if (activePanel.current) closeFullscreen();
+    };
+  }, [closeFullscreen]);
 
-  const closeFullscreen = () => {
-    document.querySelectorAll<HTMLElement>('.is-panel-fullscreen').forEach((panel) => {
-      panel.classList.remove('is-panel-fullscreen');
-    });
-    document.body.classList.remove('panel-modal-open');
-    setFullscreen(false);
-  };
-
-  const toggle = () => {
-    const button = document.activeElement as HTMLElement | null;
-    const panel = button?.closest<HTMLElement>('.dashboard-panel, .events-panel');
+  const toggle = (event: MouseEvent<HTMLButtonElement>) => {
+    const panel = event.currentTarget.closest<HTMLElement>('.dashboard-panel, .events-panel');
     if (!panel) return;
-
-    const next = !panel.classList.contains('is-panel-fullscreen');
-    closeFullscreen();
-
-    if (next) {
-      panel.classList.add('is-panel-fullscreen');
-      document.body.classList.add('panel-modal-open');
-      setFullscreen(true);
+    if (activePanel.current === panel) {
+      closeFullscreen();
+      return;
     }
+    document.dispatchEvent(new Event('odyssey-close-fullscreen'));
+    activePanel.current = panel;
+    panel.classList.add('is-panel-fullscreen');
+    document.body.classList.add('panel-modal-open');
+    setFullscreen(true);
+    notify.current?.(true);
   };
 
+  const label = fullscreen ? collapseLabel : expandLabel;
   return (
     <button
       type="button"
       className="panel-fullscreen-button"
-      title={fullscreen ? 'Свернуть панель' : 'Увеличить панель'}
-      aria-label={fullscreen ? 'Свернуть панель' : 'Увеличить панель'}
+      title={label ?? (fullscreen ? 'Свернуть панель' : 'Увеличить панель')}
+      aria-label={label ?? (fullscreen ? 'Свернуть панель' : 'Увеличить панель')}
       onClick={toggle}
     >
       {fullscreen ? <FiMinimize2 /> : <FiMaximize2 />}
+      {label && <span>{label}</span>}
     </button>
   );
 }

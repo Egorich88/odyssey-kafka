@@ -119,18 +119,18 @@ func (b *eventRingBuffer) GetAll() []DashboardEvent {
 // =============================================================================
 
 type EventCollector struct {
-	bootstrap        string
-	buffer           *eventRingBuffer
-	stopChan         chan struct{}
-	interval         time.Duration
-	mu               sync.Mutex
-	prevLags         map[string]int64
-	prevGroupTopics  map[string]string
-	prevTopicOffsets map[string]int64
-	prevTopics       map[string]int16
-	prevBrokers      map[int32]bool
-	prevTopicConfigs map[string]map[string]string
-	brokerAddresses  map[int32]string
+	bootstrap             string
+	buffer                *eventRingBuffer
+	stopChan              chan struct{}
+	interval              time.Duration
+	mu                    sync.Mutex
+	prevLags              map[string]int64
+	prevGroupTopics       map[string]string
+	prevTopicOffsets      map[string]int64
+	prevTopics            map[string]int16
+	prevBrokers           map[brokerEndpoint]brokerStatus
+	brokerProfileRevision uint64
+	prevTopicConfigs      map[string]map[string]string
 
 	zeroSpeedNotified map[string]bool
 	hadTraffic        map[string]bool
@@ -148,9 +148,8 @@ func NewEventCollector(bootstrap string, bufferSize int, interval time.Duration)
 		prevGroupTopics:   make(map[string]string),
 		prevTopicOffsets:  make(map[string]int64),
 		prevTopics:        make(map[string]int16),
-		prevBrokers:       make(map[int32]bool),
+		prevBrokers:       make(map[brokerEndpoint]brokerStatus),
 		prevTopicConfigs:  make(map[string]map[string]string),
-		brokerAddresses:   make(map[int32]string),
 		zeroSpeedNotified: make(map[string]bool),
 		hadTraffic:        make(map[string]bool),
 		initialized:       false,
@@ -177,31 +176,10 @@ func (ec *EventCollector) Stop() {
 	close(ec.stopChan)
 }
 
-func (ec *EventCollector) getBrokerAddress(id int32) string {
-	if addr, ok := ec.brokerAddresses[id]; ok {
-		return addr
-	}
-	config := kafkaConfigForBootstrap(ec.bootstrap)
-	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
-	if err != nil {
-		return fmt.Sprintf("broker-%d", id)
-	}
-	defer client.Close()
-	for _, broker := range client.Brokers() {
-		if broker.ID() == id {
-			addr := broker.Addr()
-			ec.brokerAddresses[id] = addr
-			return addr
-		}
-	}
-	return fmt.Sprintf("broker-%d", id)
-}
-
 func (ec *EventCollector) getControllerAddress() string {
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return "controller"
 	}
@@ -210,7 +188,7 @@ func (ec *EventCollector) getControllerAddress() string {
 	if err != nil {
 		return "controller"
 	}
-	return ec.getBrokerAddress(controller.ID())
+	return controller.Addr()
 }
 
 func (ec *EventCollector) addEvent(timeStr string, level EventLevel, msg, source string) {
@@ -280,14 +258,7 @@ func (ec *EventCollector) initState() {
 		log.Printf("[EventCollector] инициализировано %d топиков для конфигов", len(configs))
 	}
 
-	if brokers, err := ec.fetchBrokerStatus(); err == nil {
-		for id, status := range brokers {
-			ec.prevBrokers[id] = status
-		}
-		log.Printf("[EventCollector] инициализировано %d брокеров", len(brokers))
-	}
-
-	if lags, err := ec.fetchConsumerLags(); err == nil {
+	if lags, err := ec.fetchConsumerLags(""); err == nil {
 		for group, lag := range lags {
 			ec.prevLags[group] = lag
 		}
@@ -413,7 +384,7 @@ func (ec *EventCollector) collect() {
 	}
 
 	// ---- 4. Lag ----
-	currentLags, err := ec.fetchConsumerLags()
+	currentLags, err := ec.fetchConsumerLags(timeStr)
 	if err != nil {
 		log.Printf("[EventCollector] ошибка получения lag: %v", err)
 	} else {
@@ -495,31 +466,12 @@ func (ec *EventCollector) collect() {
 		log.Printf("[EventCollector] ошибка получения состояний Consumer Groups: %v", rowsErr)
 	}
 
-	// ---- 6. Доступность брокеров ----
-	currentBrokers, err := ec.fetchBrokerStatus()
-	if err != nil {
-		log.Printf("[EventCollector] ошибка получения статуса брокеров: %v", err)
-	} else {
-		for id, available := range currentBrokers {
-			prevAvailable, exists := ec.prevBrokers[id]
-			if !exists {
-				ec.prevBrokers[id] = available
-				continue
-			}
-			if !available && prevAvailable {
-				ec.addEvent(timeStr, ERROR, fmt.Sprintf("Брокер %s недоступен", ec.getBrokerAddress(id)), ec.getBrokerAddress(id))
-			} else if available && !prevAvailable {
-				ec.addEvent(timeStr, INFO, fmt.Sprintf("Брокер %s восстановлен", ec.getBrokerAddress(id)), ec.getBrokerAddress(id))
-			}
-			ec.prevBrokers[id] = available
-		}
-	}
 }
 
 func (ec *EventCollector) getTopicPartitions(topic string) int32 {
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return 0
 	}
@@ -533,8 +485,31 @@ func (ec *EventCollector) getTopicPartitions(topic string) int32 {
 
 // --- Вспомогательные методы ---
 
-func (ec *EventCollector) fetchConsumerLags() (map[string]int64, error) {
-	admin, err := createAdminClient(ec.bootstrap)
+// Неизвестный результат не заменяет последнее подтверждённое состояние.
+func (ec *EventCollector) observeBrokerStatuses(timeStr string, revision uint64, statuses map[brokerEndpoint]brokerStatus) {
+	if ec.brokerProfileRevision != revision {
+		clear(ec.prevBrokers)
+		ec.brokerProfileRevision = revision
+	}
+	for endpoint, status := range statuses {
+		if status != brokerOnline && status != brokerOffline {
+			continue
+		}
+		previous, seen := ec.prevBrokers[endpoint]
+		ec.prevBrokers[endpoint] = status
+		if !seen || previous == status || timeStr == "" {
+			continue
+		}
+		if status == brokerOffline {
+			ec.addEvent(timeStr, ERROR, fmt.Sprintf("Брокер %s недоступен", endpoint.address), endpoint.address)
+		} else {
+			ec.addEvent(timeStr, INFO, fmt.Sprintf("Брокер %s восстановлен", endpoint.address), endpoint.address)
+		}
+	}
+}
+
+func (ec *EventCollector) fetchConsumerLags(timeStr string) (map[string]int64, error) {
+	admin, adminClient, revision, err := newBrokerStatusAdmin(ec.bootstrap, false)
 	if err != nil {
 		return nil, err
 	}
@@ -542,13 +517,17 @@ func (ec *EventCollector) fetchConsumerLags() (map[string]int64, error) {
 
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
 	defer client.Close()
 
-	groupsMap, err := admin.ListConsumerGroups()
+	groupsMap, statuses, err := listObservedGroups(adminClient)
+	_, currentRevision := kafkaAuthProfileSnapshot(ec.bootstrap)
+	if revision == currentRevision {
+		ec.observeBrokerStatuses(timeStr, revision, statuses)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +559,7 @@ func (ec *EventCollector) fetchConsumerLags() (map[string]int64, error) {
 func (ec *EventCollector) fetchTopicOffsets() (map[string]int64, error) {
 	config := kafkaConfigForBootstrap(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
@@ -623,30 +602,6 @@ func (ec *EventCollector) fetchTopicMetadata() (map[string]int16, error) {
 	result := make(map[string]int16)
 	for name, metadata := range topicsMap {
 		result[name] = metadata.ReplicationFactor
-	}
-	return result, nil
-}
-
-func (ec *EventCollector) fetchBrokerStatus() (map[int32]bool, error) {
-	config := kafkaConfigForBootstrap(ec.bootstrap)
-	config.Version = sarama.V2_8_0_0
-	config.Net.DialTimeout = 2 * time.Second
-	client, err := sarama.NewClient([]string{ec.bootstrap}, config)
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
-
-	brokers := client.Brokers()
-	result := make(map[int32]bool)
-	for _, b := range brokers {
-		ec.brokerAddresses[b.ID()] = b.Addr()
-		connected, err := b.Connected()
-		if err != nil {
-			result[b.ID()] = false
-		} else {
-			result[b.ID()] = connected
-		}
 	}
 	return result, nil
 }

@@ -33,12 +33,14 @@ import { FiServer, FiGrid, FiLayers, FiUsers, FiArrowDown, FiArrowUp, FiAlertTri
 import { SiApachekafka } from 'react-icons/si';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { isSameHealthProfile } from '../clusterHealthProfile';
 import { useCluster } from '../../../contexts/ClusterContext';
 
 interface Props {
   refreshKey: number;
   overview: any;
-  consumerGroups: any[];
+  consumerGroups?: unknown[];
+  consumerGroupsPartial?: boolean;
   messagesIn: number;
   messagesOut: number;
   onData?: (data: any) => void;
@@ -91,36 +93,49 @@ function getKafkaVersionSummary(brokers: any[] = []): { label: string; details: 
   return { label: 'Версия неизвестна', details, state: 'unknown' };
 }
 
-export default function ClusterHealthPanel({ refreshKey, overview, consumerGroups, messagesIn, messagesOut, onData }: Props): JSX.Element {
+export default function ClusterHealthPanel({ refreshKey, overview, consumerGroups, consumerGroupsPartial, messagesIn, messagesOut, onData }: Props): JSX.Element {
   const { currentCluster } = useCluster();
-  const [data, setData] = useState<any>(null);
+  const [snapshot, setData] = useState<{ profile: typeof currentCluster; value: any } | null>(null);
+  const data = snapshot && isSameHealthProfile(snapshot.profile, currentCluster) ? snapshot.value : null;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!currentCluster) return;
+    const request = new AbortController();
     const load = async () => {
-      if (!currentCluster) return;
       setLoading(true);
       try {
         const bootstrap = currentCluster.brokers || currentCluster.bootstrapServers;
-        const response = await axios.get('/api/overview/health', { headers: { 'X-Kafka-Bootstrap': bootstrap } });
-        setData(response.data);
+        const response = await axios.get('/api/overview/health', {
+          headers: { 'X-Kafka-Bootstrap': bootstrap },
+          signal: request.signal,
+        });
+        if (request.signal.aborted) return;
+        setData({ profile: currentCluster, value: response.data });
         onData?.(response.data);
-      } catch (error) {
-        console.error('Ошибка получения состояния кластера:', error);
+      } catch {
+        if (request.signal.aborted) return;
         setData(null);
         onData?.(null);
       } finally {
-        setLoading(false);
+        if (!request.signal.aborted) setLoading(false);
       }
     };
     void load();
+    return () => request.abort();
   }, [currentCluster, refreshKey, onData]);
 
   const meta = STATUS_META[data?.status || 'unknown'];
   const StatusIcon = meta.Icon;
   const partitionCount = data?.partitionsTotal ?? overview?.partitions ?? overview?.partitionCount ?? 0;
   const topicCount = overview?.topics ?? overview?.topicCount ?? 0;
-  const groupCount = consumerGroups?.length ?? overview?.consumerGroups ?? 0;
+  const listedCount = consumerGroups?.length;
+  const overviewCount = overview?.consumerGroups;
+  const exactGroupCount = (!consumerGroupsPartial ? listedCount : undefined)
+    ?? (!overview?.consumerGroupsPartial ? overviewCount : undefined);
+  const knownGroupCount = Math.max(listedCount ?? 0, overviewCount ?? 0);
+  const groupCount = exactGroupCount != null ? formatNumber(exactGroupCount)
+    : knownGroupCount > 0 ? `≥ ${formatNumber(knownGroupCount)}` : '—';
   const underReplicated = data?.underReplicated ?? overview?.underReplicated ?? 0;
   const kafkaVersion = getKafkaVersionSummary(data?.brokers || []);
 
@@ -160,7 +175,7 @@ export default function ClusterHealthPanel({ refreshKey, overview, consumerGroup
           <Kpi icon={<FiServer />} label="Брокеры" value={loading ? '—' : formatNumber(data?.brokerCount)} />
           <Kpi icon={<FiGrid />} label="Топики" value={loading ? '—' : formatNumber(topicCount)} />
           <Kpi icon={<FiLayers />} label="Партиции" value={loading ? '—' : formatNumber(partitionCount)} />
-          <Kpi icon={<FiUsers />} label="Группы потребителей" value={loading ? '—' : formatNumber(groupCount)} />
+          <Kpi icon={<FiUsers />} label="Группы потребителей" value={loading ? '—' : groupCount} />
           <Kpi icon={<FiArrowDown />} label="Входящие сообщения" value={loading ? '—' : `${Number(messagesIn || 0).toFixed(1)} msg/s`} />
           <Kpi icon={<FiArrowUp />} label="Исходящие сообщения" value={loading ? '—' : `${Number(messagesOut || 0).toFixed(1)} msg/s`} />
           <Kpi icon={<FiAlertTriangle />} label="Недореплицированные" value={loading ? '—' : formatNumber(underReplicated)} danger={Number(underReplicated) > 0} />

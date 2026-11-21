@@ -247,7 +247,7 @@ func (tc *ThroughputCollector) fetchDetailedMetrics() (map[TopicPartitionKey]int
 	config := kafkaConfigForBootstrap(tc.bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient([]string{tc.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(tc.bootstrap), config)
 	if err != nil {
 		return nil, nil, err
 	}

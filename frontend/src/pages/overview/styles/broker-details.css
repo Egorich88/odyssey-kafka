@@ -1,0 +1,63 @@
+.brokers-overview-panel.is-panel-fullscreen[aria-modal="true"] { overflow: hidden; position: fixed; }
+.broker-details {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 4px 4px 12px;
+}
+.broker-details-heading { display: flex; align-items: center; gap: 12px; padding-inline-end: 10rem; }
+.broker-details-heading svg { color: var(--accent-color); flex: none; font-size: 1.8rem; }
+.broker-details-heading h2 { margin: 0; color: var(--text-primary); }
+.broker-details-heading p { margin: 4px 0 0; color: var(--text-secondary); }
+.broker-details-controls { position: absolute; inset-block-start: 12px; inset-inline-end: 12px; z-index: 2; }
+.broker-details-controls .panel-fullscreen-button { display: flex; gap: 6px; width: auto; padding-inline: 8px; background: var(--panel-bg); }
+.broker-details-controls .panel-fullscreen-button:hover { background: var(--sidebar-hover); }
+.broker-details-summary, .broker-details-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.broker-details-summary { padding: 8px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--panel-radius); }
+.broker-details-summary > div { flex: 1 1 auto; padding: 5px 9px; }
+.broker-details-summary dt, .broker-detail-card dt { font-size: .78rem; color: var(--text-secondary); }
+.broker-details-summary dd, .broker-detail-card dd { margin: 0; }
+.broker-details-summary dd { font-weight: 600; }
+.broker-details-online { color: var(--success-color); }
+.broker-details-toolbar :is(input, select, button) {
+  min-height: 36px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border-radius: var(--panel-radius);
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+.broker-details-toolbar input { flex: 1 1 11rem; min-width: 0; }
+.broker-details-toolbar button { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.broker-details-toolbar button[aria-pressed="true"] { border-color: var(--accent-color); color: var(--accent-color); }
+.broker-details :focus-visible, .broker-details-controls :focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+.broker-details-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.broker-detail-card { padding: 12px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--panel-radius); }
+.broker-detail-card header, .broker-detail-card dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.broker-detail-card h3, .broker-detail-card dl { margin: 0; }
+.broker-detail-address { overflow-wrap: anywhere; margin-block: 4px 10px; color: var(--text-secondary); font-size: .82rem; }
+.broker-detail-address small { display: block; width: fit-content; }
+.broker-detail-metrics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.broker-detail-gauges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.broker-detail-resource { position: relative; max-width: 76px; width: 100%; justify-self: center; }
+.broker-detail-gauge svg { display: block; width: 100%; }
+.broker-detail-gauge circle { fill: none; stroke-width: 5; }
+.broker-detail-resource > div + div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font-size: clamp(.55rem, 1.6cqi, .85rem); }
+.broker-detail-resource small { color: var(--text-secondary); }
+.broker-detail-volumes { padding-top: 9px; }
+.broker-details-list { overflow: auto; }
+.broker-details-list small { display: block; }
+@container brokers-panel (max-width: 440px) {
+  .broker-details-heading { padding-inline-end: 0; padding-block-start: 37px; }
+}
+@container brokers-panel (min-width: 540px) {
+  .broker-details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container brokers-panel (min-width: 820px) {
+  .broker-details-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container brokers-panel (min-width: 1120px) {
+  .broker-details-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

@@ -67,6 +67,7 @@ const CURRENT_CLUSTER_KEY = 'ksc_current_cluster_id';
 export function ClusterProvider({ children }: { children: ReactNode }) {
   const [clusters, setClusters] = useState<KafkaCluster[]>([]);
   const [currentClusterId, setCurrentClusterId] = useState<string | null>(null);
+  const [profileRevision, setProfileRevision] = useState(0);
   const currentCluster = clusters.find((cluster) => cluster.id === currentClusterId) ?? null;
 
   // Последний статус и число последовательных ошибок хранятся отдельно от
@@ -79,11 +80,12 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
     if (status === 'connected') failuresRef.current.set(clusterId, 0);
 
     setClusters((previous) => previous.map((cluster) => (
-      cluster.id === clusterId ? { ...cluster, connectionStatus: status } : cluster
+      cluster.id === clusterId && cluster.connectionStatus !== status
+        ? { ...cluster, connectionStatus: status } : cluster
     )));
   }, []);
 
-  const checkClusterStatus = useCallback(async (cluster: KafkaCluster, initialCheck = false) => {
+  const checkClusterStatus = useCallback(async (cluster: KafkaCluster, signal: AbortSignal, initialCheck = false) => {
     const bootstrap = cluster.brokers || cluster.bootstrapServers;
     if (!bootstrap || !hasValidBootstrap(bootstrap)) {
       // Неверный формат сразу означает недоступность: никаких «загрузка/проверка».
@@ -115,14 +117,17 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
         kerberosServiceName: String(cluster.kerberosServiceName || 'kafka'),
         kerberosConfigPath: String(cluster.kerberosConfigPath || '/etc/krb5.conf'),
         kerberosKeytabPath: String(cluster.kerberosKeytabPath || ''),
-      }, { timeout: 7000 });
+      }, { timeout: 7000, signal });
+      if (signal.aborted) return;
 
       const response = await axios.get<{ status?: string }>('/api/clusters/health', {
         headers: { 'X-Kafka-Bootstrap': bootstrap },
         // Backend выполняет быстрый health-check. 12 секунд оставляем как
         // защиту браузера от зависшего прокси/сети, но не проверяем каждые 5 с.
         timeout: 12000,
+        signal,
       });
+      if (signal.aborted) return;
 
       const connected = response.data?.status === 'connected';
       if (connected) {
@@ -134,7 +139,8 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
       const failures = (failuresRef.current.get(cluster.id) ?? 0) + 1;
       failuresRef.current.set(cluster.id, failures);
       if (initialCheck || failures >= 2) updateClusterStatus(cluster.id, 'disconnected');
-    } catch (error) {
+    } catch {
+      if (signal.aborted) return;
       const failures = (failuresRef.current.get(cluster.id) ?? 0) + 1;
       failuresRef.current.set(cluster.id, failures);
 
@@ -142,7 +148,7 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
       // выбрасывать пользователя с рабочей страницы. Для первого подключения
       // ошибка является достаточным основанием показать экран недоступности.
       if (initialCheck || failures >= 2) updateClusterStatus(cluster.id, 'error');
-      console.warn('Проверка Kafka-кластера не завершилась успешно:', error);
+      console.warn('Проверка Kafka-кластера не завершилась успешно.');
     }
   }, [updateClusterStatus]);
 
@@ -170,21 +176,23 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Проверяем только смену выбранного кластера. Изменение connectionStatus
-  // больше не является зависимостью и поэтому не создаёт бесконечный цикл.
+  // При сохранении активного профиля заменяем настройки и текущую проверку.
+  // Служебное изменение connectionStatus само по себе проверку не запускает.
   useEffect(() => {
     if (!currentCluster) return;
 
-    void checkClusterStatus(currentCluster, true);
+    const request = new AbortController();
+    void checkClusterStatus(currentCluster, request.signal, true);
 
-    // Периодическая проверка нужна для уже открытой страницы, но она мягкая:
-    // две последовательные ошибки необходимы, чтобы сменить статус на error.
     const timer = window.setInterval(() => {
-      void checkClusterStatus(currentCluster, false);
+      void checkClusterStatus(currentCluster, request.signal);
     }, 30000);
 
-    return () => window.clearInterval(timer);
-  }, [currentClusterId, checkClusterStatus]);
+    return () => {
+      window.clearInterval(timer);
+      request.abort();
+    };
+  }, [currentClusterId, profileRevision, checkClusterStatus]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(clusters));
@@ -210,7 +218,8 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
     setClusters((previous) => previous.map((cluster) => (
       cluster.id === updatedCluster.id ? nextCluster : cluster
     )));
-  }, []);
+    if (updatedCluster.id === currentClusterId) setProfileRevision((value) => value + 1);
+  }, [currentClusterId]);
 
   const removeCluster = useCallback((clusterId: string) => {
     const removed = clusters.find((cluster) => cluster.id === clusterId);

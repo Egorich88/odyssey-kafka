@@ -244,29 +244,6 @@ export default function ClusterSettingsPanel({
           </div>
         )}
 
-        {/* KERBEROS / GSSAPI */}
-        <div
-          className={`auth-card ${config.authType === 'SASL_GSSAPI' ? 'active' : ''}`}
-          onClick={() => setConfig({ ...config, authType: 'SASL_GSSAPI' })}
-        >
-          <div className="auth-radio"><div className="auth-radio-dot" /></div>
-          <div>
-            <h4>Kerberos (GSSAPI)</h4>
-            <p>Для корпоративной инфраструктуры с Kerberos/KDC.</p>
-          </div>
-        </div>
-
-        {config.authType === 'SASL_GSSAPI' && (
-          <div className="auth-fields">
-            <input name="kerberosUsername" placeholder="Kerberos principal / username" value={config.kerberosUsername || ''} onChange={handleChange} />
-            <input type="password" name="kerberosPassword" placeholder="Kerberos password" value={config.kerberosPassword || ''} onChange={handleChange} />
-            <input name="kerberosRealm" placeholder="REALM.EXAMPLE.COM" value={config.kerberosRealm || ''} onChange={handleChange} />
-            <input name="kerberosServiceName" placeholder="kafka" value={config.kerberosServiceName || 'kafka'} onChange={handleChange} />
-            <input name="kerberosConfigPath" placeholder="/etc/krb5.conf (путь внутри backend-контейнера)" value={config.kerberosConfigPath || '/etc/krb5.conf'} onChange={handleChange} />
-            <input name="kerberosKeytabPath" placeholder="Путь к keytab внутри backend-контейнера (необязательно)" value={config.kerberosKeytabPath || ''} onChange={handleChange} />
-            <p>Путь должен существовать внутри backend-контейнера. Для production настройте SASL_SSL на брокере.</p>
-          </div>
-        )}
 
         {/* MTLS */}
 

@@ -115,7 +115,7 @@ func getMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	config.Version = sarama.V2_8_0_0
 	config.Consumer.Return.Errors = true
 
-	client, err := sarama.NewClient([]string{bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
 	if err != nil {
 		log.Printf("Client error: %v", err)
 		sendJSONError(w, "Failed to create client: "+err.Error(), http.StatusInternalServerError)
@@ -267,7 +267,7 @@ func getPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 	config := kafkaConfigForBootstrap(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient([]string{bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, err.Error(), http.StatusInternalServerError)
 		return

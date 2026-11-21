@@ -211,7 +211,7 @@ func (tc *TopicsPanelCollector) fetchTopicOffsets() (map[string]int64, error) {
 	config := kafkaConfigForBootstrap(tc.bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient([]string{tc.bootstrap}, config)
+	client, err := sarama.NewClient(parseBootstrapServers(tc.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
