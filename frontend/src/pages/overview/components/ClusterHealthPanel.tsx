@@ -16,21 +16,11 @@
 
 /**
  * @file ClusterHealthPanel.tsx
- * @project Odyssey new 4.2.36
- * @description Сводная панель состояния Kafka-кластера.
- * @changes Компактная сводка, тематические подсказки и единая строка показателей.
+ * @description Единая строка семи показателей текущего Kafka-кластера.
  */
 
-/**
- * @file ClusterHealthPanel.tsx
- * Сводная панель состояния Kafka-кластера.
- *
- * Содержит семь KPI. Статус и версия Kafka отображаются в глобальном Header.
- * Все показатели относятся только к текущему выбранному кластеру.
- */
-
-import { FiServer, FiGrid, FiLayers, FiUsers, FiArrowDown, FiArrowUp, FiAlertTriangle } from 'react-icons/fi';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useClusterHealth } from '../../../contexts/ClusterHealthContext';
 
 interface Props {
@@ -38,55 +28,53 @@ interface Props {
   overview: any;
   consumerGroups?: unknown[];
   consumerGroupsPartial?: boolean;
-  messagesIn: number;
-  messagesOut: number;
+  messagesIn: number | null;
+  messagesOut: number | null;
   onData?: (data: any) => void;
 }
 
-
-const formatNumber = (value: unknown) => new Intl.NumberFormat('ru-RU').format(Number(value || 0));
+const valid = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
 export default function ClusterHealthPanel({ overview, consumerGroups, consumerGroupsPartial, messagesIn, messagesOut, onData }: Props): JSX.Element {
   const { data, loading } = useClusterHealth();
-  useEffect(() => {
-    if (!loading) onData?.(data);
-  }, [data, loading, onData]);
-  const partitionCount = data?.partitionsTotal ?? overview?.partitions ?? overview?.partitionCount ?? 0;
-  const topicCount = overview?.topics ?? overview?.topicCount ?? 0;
+  const { t, i18n } = useTranslation();
+  useEffect(() => { if (!loading) onData?.(data); }, [data, loading, onData]);
+  const unavailable = t('brokerOverview.unavailable');
+  const counts = new Intl.NumberFormat(i18n.language);
+  const rates = new Intl.NumberFormat(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const number = (value: unknown) => valid(value) ? counts.format(value) : unavailable;
+  const rate = (value: unknown) => valid(value) ? `${rates.format(value)} msg/s` : unavailable;
+  const partitionCount = data?.partitionsTotal ?? overview?.partitions ?? overview?.partitionCount;
+  const topicCount = overview?.topics ?? overview?.topicCount;
   const listedCount = consumerGroups?.length;
-  const overviewCount = overview?.consumerGroups;
+  const overviewCount = valid(overview?.consumerGroups) ? overview.consumerGroups : undefined;
   const exactGroupCount = (!consumerGroupsPartial ? listedCount : undefined)
     ?? (!overview?.consumerGroupsPartial ? overviewCount : undefined);
   const knownGroupCount = Math.max(listedCount ?? 0, overviewCount ?? 0);
-  const groupCount = exactGroupCount != null ? formatNumber(exactGroupCount)
-    : knownGroupCount > 0 ? `≥ ${formatNumber(knownGroupCount)}` : '—';
-  const underReplicated = data?.underReplicated ?? overview?.underReplicated ?? 0;
+  const groupCount = exactGroupCount != null ? number(exactGroupCount)
+    : knownGroupCount > 0 ? `≥ ${number(knownGroupCount)}` : unavailable;
+  const underReplicated = data?.underReplicated ?? overview?.underReplicated;
+  const metrics = [
+    ['brokers', number(data?.brokerCount)],
+    ['topics', number(topicCount)],
+    ['partitions', number(partitionCount)],
+    ['groups', groupCount],
+    ['incoming', rate(messagesIn)],
+    ['outgoing', rate(messagesOut)],
+    ['urp', number(underReplicated)],
+  ];
 
-  return (
-    <div className="dashboard-panel cluster-health-panel">
-      <div className="cluster-health-body cluster-health-summary">
-        <div className="cluster-kpi-grid">
-          <Kpi icon={<FiServer />} label="Брокеры" value={loading ? '—' : formatNumber(data?.brokerCount)} />
-          <Kpi icon={<FiGrid />} label="Топики" value={loading ? '—' : formatNumber(topicCount)} />
-          <Kpi icon={<FiLayers />} label="Партиции" value={loading ? '—' : formatNumber(partitionCount)} />
-          <Kpi icon={<FiUsers />} label="Группы потребителей" value={loading ? '—' : groupCount} />
-          <Kpi icon={<FiArrowDown />} label="Входящие сообщения" value={loading ? '—' : `${Number(messagesIn || 0).toFixed(1)} msg/s`} />
-          <Kpi icon={<FiArrowUp />} label="Исходящие сообщения" value={loading ? '—' : `${Number(messagesOut || 0).toFixed(1)} msg/s`} />
-          <Kpi icon={<FiAlertTriangle />} label="Недореплицированные" value={loading ? '—' : formatNumber(underReplicated)} danger={Number(underReplicated) > 0} />
-        </div>
+  return <section className="dashboard-panel cluster-health-panel" aria-label={t('clusterKpi.title')}>
+    <div className="cluster-health-summary" tabIndex={0} aria-label={t('clusterKpi.title')}>
+      <div className="cluster-kpi-grid" role="list">
+        {metrics.map(([key, value], index) => <div className={`cluster-kpi${key === 'urp' && valid(underReplicated) && underReplicated > 0 ? ' is-danger' : ''}`} role="listitem" key={key}>
+          {index > 0 && <span className="cluster-kpi-divider" aria-hidden="true" />}
+          <div className="cluster-kpi-copy">
+            <span title={t(`clusterKpi.${key}`)}>{t(`clusterKpi.${key}`)}</span>
+            <strong>{loading ? '—' : value}</strong>
+          </div>
+        </div>)}
       </div>
     </div>
-  );
-}
-
-function Kpi({ icon, label, value, danger = false }: { icon: JSX.Element; label: string; value: string; danger?: boolean }): JSX.Element {
-  return (
-    <div className={`cluster-kpi ${danger ? 'is-danger' : ''}`}>
-      <span className="cluster-kpi-icon">{icon}</span>
-      <div className="cluster-kpi-copy">
-        <span title={label}>{label}</span>
-        <strong>{value}</strong>
-      </div>
-    </div>
-  );
+  </section>;
 }

@@ -64,8 +64,8 @@ export default function Overview(): JSX.Element {
   const [throughputData, setThroughputData] = useState<any[]>([]);
   // Общая временная отметка курсора для всех графиков Overview.
   const [hoverTime, setHoverTime] = useState<number | null>(null);
-  const [messagesIn, setMessagesIn] = useState(0);
-  const [messagesOut, setMessagesOut] = useState(0);
+  const [messagesIn, setMessagesIn] = useState<number | null>(null);
+  const [messagesOut, setMessagesOut] = useState<number | null>(null);
   // Ключ обновления: меняется после каждой успешной загрузки,
   // заставляя дочерние панели перезапросить свои данные.
   const [refreshKey, setRefreshKey] = useState(0);
@@ -111,8 +111,8 @@ export default function Overview(): JSX.Element {
     setOverview(null);
     setConsumerGroups(null);
     setThroughputData([]);
-    setMessagesIn(0);
-    setMessagesOut(0);
+    setMessagesIn(null);
+    setMessagesOut(null);
     setRefreshKey(0);
 
   }, []);
@@ -155,8 +155,8 @@ export default function Overview(): JSX.Element {
         const points = throughputResponse.value.data.points || [];
         setThroughputData(points);
         const latest = points[points.length - 1];
-        setMessagesIn(Number(latest?.incoming || 0));
-        setMessagesOut(Number(latest?.outgoing || 0));
+        setMessagesIn(typeof latest?.incoming === 'number' && Number.isFinite(latest.incoming) && latest.incoming >= 0 ? latest.incoming : null);
+        setMessagesOut(typeof latest?.outgoing === 'number' && Number.isFinite(latest.outgoing) && latest.outgoing >= 0 ? latest.outgoing : null);
       }
       setRefreshKey((value) => value + 1);
     } catch (error) {

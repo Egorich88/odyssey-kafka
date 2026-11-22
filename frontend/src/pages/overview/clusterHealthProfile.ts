@@ -19,12 +19,14 @@ interface BrokerIdentity {
 }
 
 interface BrokerHealthSnapshot {
+  clusterId?: string;
   status?: string;
   brokers?: BrokerIdentity[] | null;
 }
 
 // При неполном ответе сохраняем только известные из Kafka ID и адреса.
 export function retainBrokerList(snapshot: BrokerHealthSnapshot | null, previous: BrokerHealthSnapshot | null) {
+  if (snapshot?.clusterId && previous?.clusterId && snapshot.clusterId !== previous.clusterId) return snapshot;
   if ((snapshot && snapshot.status !== 'unknown') || !previous?.brokers?.length) return snapshot;
 
   const current = snapshot?.brokers ?? [];

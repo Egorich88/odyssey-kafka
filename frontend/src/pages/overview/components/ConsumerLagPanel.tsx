@@ -40,7 +40,7 @@ import {
 } from 'recharts';
 import axios from 'axios';
 import { useCluster } from '../../../contexts/ClusterContext';
-import { FiCheck, FiChevronDown } from 'react-icons/fi';
+import { FiCheck, FiChevronDown, FiUsers } from 'react-icons/fi';
 
 interface LagPoint { time: string; timestamp?: number; group: string; value: number; topics?: Record<string, number>; }
 interface LagRow { group: string; topic: string; status: string; lag: number; change: number; lastActivity?: string; }
@@ -270,6 +270,7 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
       <div className="panel-header consumer-lag-header">
         <div className="consumer-lag-heading">
           <div className="panel-title-with-info">
+            <FiUsers aria-hidden="true" />
             <PanelInfo
               title="Группы потребителей"
               description="Показывает историю consumer lag по связке Consumer Group + Topic. Статус группы помогает сразу определить причину проблемы: Stable — группа работает; Rebalancing — идёт перераспределение; Empty — нет активных консьюмеров; Dead — группа удаляется."

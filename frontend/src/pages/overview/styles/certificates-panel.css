@@ -12,12 +12,13 @@
 
 /** @file certificates-panel.css Таблица сертификатов Kafka. */
 
-.certificate-panel { min-width: 0; min-height: 0; }
+.certificate-panel { min-width: 0; min-height: 0; container: certificates-panel / inline-size; }
+.certificate-panel:not(.is-panel-fullscreen) { height: auto; }
+.certificate-panel:not(.is-panel-fullscreen) .certificate-table-wrap { max-height: 32rem; }
 .certificate-panel-header { gap: 12px; }
 .certificate-panel-header > .panel-title-with-info { flex: 0 0 auto; min-width: 0; }
 .certificate-header-controls { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-left: auto; }
 .certificate-panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 11px 9px; overflow: hidden; }
-.certificate-title-icon { display: grid; place-items: center; color: #55e6dc; font-size: 18px; }
 .certificate-toolbar { display: flex; align-items: center; justify-content: flex-start; gap: 16px; flex-wrap: nowrap; min-width: 0; }
 .certificate-summary-main { display: inline-flex; align-items: center; gap: 5px; margin: 0; white-space: nowrap; }
 .certificate-summary-main strong { color: var(--text-primary); font-size: 20px; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -52,12 +53,12 @@
 .certificate-metadata small { overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); font-size: 10px; white-space: nowrap; }
 .certificate-empty { padding: 12px; text-align: center; color: var(--text-secondary); font-size: 11px; }
 
-@media (max-width: 1100px) {
+@container certificates-panel (max-width: 760px) {
   .certificate-panel-header { align-items: flex-start; flex-wrap: wrap; }
   .certificate-header-controls { width: 100%; justify-content: flex-start; flex-wrap: wrap; margin-left: 0; }
 }
 
-@media (max-width: 700px) {
+@container certificates-panel (max-width: 530px) {
   .certificate-header-controls { gap: 8px; }
   .certificate-summary-nearest { flex: 1 1 100%; }
 }

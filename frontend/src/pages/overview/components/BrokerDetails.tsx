@@ -5,6 +5,7 @@ import { BrokerIcon } from '../../../components/common/BrokerIcon';
 import { LuCrown } from 'react-icons/lu';
 import type { Broker, BrokersPanelProps } from './BrokersPanel';
 import BrokerResourceRing from './BrokerResourceRing';
+import { controllerRole } from '../controllerRole';
 import '../styles/broker-details.css';
 
 export class BrokerDetailsBoundary extends Component<{ children: ReactNode; message: string }, { failed: boolean }> {
@@ -133,7 +134,7 @@ export default function BrokerDetails({ data, loading }: BrokersPanelProps) {
             <thead><tr>{[label('broker'), detail('address'), detail('status'), ...resourceKeys.map(label),
               ...partitionKeys.map(label), detail('rack'), detail('uptime')].map(title => <th key={title} scope="col">{title}</th>)}</tr></thead>
             <tbody>{visible.map(broker => <tr key={broker.id}>
-              <th scope="row">{name(broker)}{broker.controller && <small>{label('controller')}</small>}</th>
+              <th scope="row">{name(broker)}{controllerRole(broker.id, data) && <small>{label(controllerRole(broker.id, data) === 'active' ? 'controller' : 'standbyController')}</small>}</th>
               <td>{broker.address || unavailable}</td><td>{brokerStatus(broker)}</td>
               {resourceKeys.map(key => <td key={key}>{percent(resource(broker, key))}
                 {key !== 'cpu' && <small>{volumes(broker, key)}</small>}</td>)}
@@ -147,7 +148,7 @@ export default function BrokerDetails({ data, loading }: BrokersPanelProps) {
           {visible.map(broker => <article key={broker.id} className="broker-detail-card" aria-label={name(broker)}>
             <header><div className="broker-detail-identity">
               <h3>{name(broker)}{broker.name && <small> · ID {broker.id}</small>}</h3>
-              {broker.controller && <span className="broker-detail-controller"><LuCrown aria-hidden="true" />{label('controller')}</span>}
+              {controllerRole(broker.id, data) && <span className="broker-detail-controller"><LuCrown aria-hidden="true" />{label(controllerRole(broker.id, data) === 'active' ? 'controller' : 'standbyController')}</span>}
             </div>{brokerStatus(broker)}</header>
             <div className="broker-detail-address">{broker.address || unavailable}
               {broker.rack && <span> · {detail('rack')} {broker.rack}</span>}

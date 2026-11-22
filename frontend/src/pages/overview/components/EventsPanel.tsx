@@ -29,7 +29,7 @@ import '../styles/events-panel.css';
 import PanelInfo from '../../../components/common/PanelInfo';
 import PanelFullscreenButton from './PanelFullscreenButton';
 import { useCluster } from '../../../contexts/ClusterContext';
-import { FiCheck, FiChevronDown } from 'react-icons/fi';
+import { FiCheck, FiChevronDown, FiFileText } from 'react-icons/fi';
 
 export default function EventsPanel({ refreshKey, timeRange = "range=24h", hoverTime = null }) {
   const { currentCluster } = useCluster();
@@ -94,6 +94,7 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
     <div className="events-panel">
       <div className="events-panel-header">
         <div className="events-title">
+          <FiFileText aria-hidden="true" />
           <PanelInfo
             title="События"
             description="Показывает последние изменения и проблемы кластера. Для событий Consumer Groups дополнительно отображаются группа, топик и актуальное состояние: Stable, Rebalancing, Empty или Dead."

@@ -29,10 +29,15 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -74,6 +79,9 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 	addresses := profileConfig.Bootstrap
 	var result []CertificateInfo
 	seen := make(map[string]bool)
+	// В ответ попадают только публичные метаданные CA/client-сертификатов.
+	// Приватный ключ профиля здесь не разбирается и не возвращается.
+	result = append(result, certificatesFromProfile(profileConfig)...)
 
 	if isLocalBootstrap(addresses) {
 		for _, path := range findLocalKeystores() {
@@ -84,7 +92,13 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if container := findKafkaContainerForBootstrap(addresses); container != "" {
+	containers := make(map[string]bool)
+	for _, endpoint := range parseBootstrapServers(addresses) {
+		container := findKafkaContainerForBootstrap(endpoint)
+		if container == "" || containers[container] {
+			continue
+		}
+		containers[container] = true
 		for _, path := range findDockerKeystores(container) {
 			if info, ok := readKeystoreCertificate(path, container); ok {
 				info.Path = container + ":" + path
@@ -98,8 +112,7 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем сертификаты, которые реально предъявляют брокеры при TLS.
-	// Проверка допускает самоподписанные сертификаты только для чтения их
-	// метаданных; это соединение не используется для выполнения Kafka-команд.
+	// Доверие и имя узла проверяются по настройкам выбранного TLS-профиля.
 	for _, endpoint := range strings.Split(addresses, ",") {
 		endpoint = strings.TrimSpace(endpoint)
 		if endpoint == "" {
@@ -150,8 +163,7 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 
 func readRemoteTLSCertificate(endpoint, bootstrap string) (CertificateInfo, bool) {
 	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
-	// Reuse the selected profile's CA and client certificate so the certificate
-	// panel can inspect a broker that requires mTLS without bypassing verification.
+	// Используем CA и клиентский сертификат выбранного профиля без обхода mTLS.
 	if kafkaConfig := kafkaConfigForProfile(bootstrap); kafkaConfig.Net.TLS.Enable && kafkaConfig.Net.TLS.Config != nil {
 		tlsConfig = kafkaConfig.Net.TLS.Config.Clone()
 		tlsConfig.MinVersion = tls.VersionTLS12
@@ -183,10 +195,7 @@ func readRemoteTLSCertificate(endpoint, bootstrap string) (CertificateInfo, bool
 }
 
 func certificateInfoFromX509(endpoint string, certificate *x509.Certificate) CertificateInfo {
-	days := int(time.Until(certificate.NotAfter).Hours() / 24)
-	if days < 0 {
-		days = -1
-	}
+	days := certificateDaysRemaining(certificate.NotAfter)
 	commonName := certificate.Subject.CommonName
 	if commonName == "" {
 		commonName = endpoint
@@ -207,6 +216,42 @@ func certificateInfoFromX509(endpoint string, certificate *x509.Certificate) Cer
 		CommonName: commonName,
 		SAN:        strings.Join(sans, ", "),
 	}
+}
+
+func certificateDaysRemaining(expires time.Time) int {
+	if expires.IsZero() {
+		return -1
+	}
+	if !expires.After(time.Now()) {
+		return 0
+	}
+	return int(time.Until(expires).Hours() / 24)
+}
+
+func certificatesFromProfile(config kafkaAuthConfig) []CertificateInfo {
+	var result []CertificateInfo
+	for _, source := range []struct{ name, value string }{{"CA", config.CA}, {"Client", config.Cert}} {
+		remaining := []byte(source.value)
+		for index := 1; len(remaining) > 0 && index <= 64; index++ {
+			block, rest := pem.Decode(remaining)
+			if block == nil {
+				break
+			}
+			remaining = rest
+			if block.Type != "CERTIFICATE" {
+				continue
+			}
+			certificate, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				continue
+			}
+			info := certificateInfoFromX509("profile", certificate)
+			info.Path = fmt.Sprintf("Profile: %s #%d", source.name, index)
+			info.Type = "X.509 / " + source.name
+			result = append(result, info)
+		}
+	}
+	return result
 }
 
 func findLocalKeystores() []string {
@@ -264,26 +309,72 @@ func isLocalBootstrap(bootstrap string) bool {
 }
 
 func findKafkaContainerForBootstrap(bootstrap string) string {
+	// Удалённый Kafka с совпадающим портом не связан с локальным контейнером.
+	if !isLocalBootstrap(bootstrap) {
+		return ""
+	}
 	_, port, err := net.SplitHostPort(bootstrap)
 	if err != nil {
 		return ""
 	}
 
-	output, err := exec.Command("sh", "-c", "docker ps --format '{{.Names}}|{{.Ports}}' | grep -i kafka").Output()
+	output, err := runCertificateCommand("", "docker", "ps", "--filter", "publish="+port, "--format", "{{.Names}}|{{.Ports}}")
 	if err != nil {
 		return ""
 	}
+	return kafkaContainerFromList(bootstrap, output)
+}
+
+func kafkaContainerFromList(bootstrap string, output []byte) string {
+	if !isLocalBootstrap(bootstrap) {
+		return ""
+	}
+	_, port, err := net.SplitHostPort(bootstrap)
+	if err != nil {
+		return ""
+	}
+	selected := ""
 
 	for _, line := range strings.Split(string(output), "\n") {
 		parts := strings.SplitN(line, "|", 2)
 		if len(parts) != 2 {
 			continue
 		}
-		if strings.Contains(parts[1], ":"+port+"->") {
-			return strings.TrimSpace(parts[0])
+		name := strings.TrimSpace(parts[0])
+		if strings.Contains(strings.ToLower(name), "kafka") && dockerPublicationMatches(bootstrap, port, parts[1]) {
+			if selected != "" && selected != name {
+				return ""
+			}
+			selected = name
 		}
 	}
-	return ""
+	return selected
+}
+
+func dockerPublicationMatches(bootstrap, port, publications string) bool {
+	host, _, _ := net.SplitHostPort(bootstrap)
+	for _, publication := range strings.Split(publications, ",") {
+		bound, _, ok := strings.Cut(strings.TrimSpace(publication), "->")
+		if !ok {
+			continue
+		}
+		ipText, boundPort, err := net.SplitHostPort(bound)
+		ip := net.ParseIP(ipText)
+		if err != nil || boundPort != port || ip == nil {
+			continue
+		}
+		if !ip.IsUnspecified() && !ip.Equal(net.ParseIP("127.0.0.1")) && !ip.Equal(net.ParseIP("::1")) {
+			continue
+		}
+		if host == "127.0.0.1" && ip.To4() == nil {
+			continue
+		}
+		if host == "::1" && ip.To4() != nil {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func findDockerKeystores(container string) []string {
@@ -292,7 +383,7 @@ func findDockerKeystores(container string) []string {
 	}
 
 	command := `find /etc/kafka /opt/kafka/config /var/lib/kafka /opt/bitnami/kafka/config -type f \( -name "*.jks" -o -name "*.p12" -o -name "*.pfx" -o -name "*.pem" -o -name "*.crt" -o -name "*.cer" -o -name "*.der" -o -name "*.key" -o -name "*.p8" \) 2>/dev/null | head -200`
-	output, err := exec.Command("docker", "exec", container, "sh", "-c", command).Output()
+	output, err := runCertificateCommand(container, "sh", "-c", command)
 	if err != nil {
 		return nil
 	}
@@ -307,10 +398,39 @@ func findDockerKeystores(container string) []string {
 }
 
 func runCertificateCommand(container string, args ...string) ([]byte, error) {
+	return runCertificateCommandInput(container, nil, args...)
+}
+
+func runCertificateCommandInput(container string, input io.Reader, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	defer cancel()
+	var cmd *exec.Cmd
 	if container != "" {
-		return exec.Command("docker", append([]string{"exec", container}, args...)...).CombinedOutput()
+		dockerArgs := []string{"exec"}
+		if input != nil {
+			dockerArgs = append(dockerArgs, "-i")
+		}
+		dockerArgs = append(dockerArgs, container)
+		cmd = exec.CommandContext(ctx, "docker", append(dockerArgs, args...)...)
+	} else {
+		cmd = exec.CommandContext(ctx, args[0], args[1:]...)
 	}
-	return exec.Command(args[0], args[1:]...).CombinedOutput()
+	var output certificateOutput
+	cmd.Stdout = &output
+	cmd.Stderr = io.Discard
+	cmd.Stdin = input
+	cmd.WaitDelay = 250 * time.Millisecond
+	err := cmd.Run()
+	return output.buffer.Bytes(), err
+}
+
+type certificateOutput struct{ buffer bytes.Buffer }
+
+func (b *certificateOutput) Write(data []byte) (int, error) {
+	if b.buffer.Len()+len(data) > 1<<20 {
+		return 0, errors.New("ответ инструмента сертификатов слишком велик")
+	}
+	return b.buffer.Write(data)
 }
 
 func readKeystoreCertificate(path, container string) (CertificateInfo, bool) {
@@ -330,21 +450,9 @@ func readKeystoreCertificate(path, container string) (CertificateInfo, bool) {
 		return parseOpenSSLCertificate(path, output), true
 	}
 
-	// KEY/P8 — приватный ключ. Он не имеет срока действия, но полезен в
-	// таблице как часть TLS-конфигурации. Проверяем, что файл действительно
-	// читается openssl, и показываем нейтральный статус срока.
+	// KEY/P8 показываем только как найденное имя связанного файла.
+	// Приватное содержимое для панели мониторинга читать не требуется.
 	if ext == ".key" || ext == ".p8" {
-		output, err := runCertificateCommand(container, "openssl", "pkey", "-in", path, "-noout")
-		if err != nil {
-			// PKCS#8 может быть DER; пробуем второй вариант.
-			if ext == ".p8" {
-				output, err = runCertificateCommand(container, "openssl", "pkey", "-inform", "DER", "-in", path, "-noout")
-			}
-		}
-		if err != nil {
-			return CertificateInfo{}, false
-		}
-		_ = output
 		typeName := "Private Key / KEY"
 		if ext == ".p8" {
 			typeName = "PKCS#8 / P8"
@@ -367,7 +475,8 @@ func readKeystoreCertificate(path, container string) (CertificateInfo, bool) {
 		password = "changeit"
 	}
 
-	output, err := runCertificateCommand(container, "keytool", "-list", "-v", "-keystore", path, "-storepass", password)
+	// keytool читает пароль из stdin без TTY. Он не попадает в argv/docker exec.
+	output, err := runCertificateCommandInput(container, strings.NewReader(password+"\n"), "keytool", "-list", "-v", "-keystore", path)
 	if err != nil {
 		return CertificateInfo{}, false
 	}
@@ -405,7 +514,7 @@ func readKeystoreCertificate(path, container string) (CertificateInfo, bool) {
 		Path:       path,
 		Type:       typeName,
 		ExpiresAt:  expires.Format(time.RFC3339),
-		DaysLeft:   int(time.Until(expires).Hours() / 24),
+		DaysLeft:   certificateDaysRemaining(expires),
 		Subject:    owner,
 		Issuer:     issuer,
 		CommonName: commonName,
@@ -419,13 +528,17 @@ func parseOpenSSLCertificate(path string, output []byte) CertificateInfo {
 	subject := firstLineValue(text, "subject=")
 	issuer := firstLineValue(text, "issuer=")
 	san := parseSAN(text)
+	expiresAt := ""
+	if !expires.IsZero() {
+		expiresAt = expires.Format(time.RFC3339)
+	}
 
 	return CertificateInfo{
 		Name:       filepath.Base(path),
 		Path:       path,
 		Type:       certificateType(filepath.Ext(path)),
-		ExpiresAt:  expires.Format(time.RFC3339),
-		DaysLeft:   int(time.Until(expires).Hours() / 24),
+		ExpiresAt:  expiresAt,
+		DaysLeft:   certificateDaysRemaining(expires),
 		Subject:    subject,
 		Issuer:     issuer,
 		CommonName: extractCN(subject),
