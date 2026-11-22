@@ -1,0 +1,16 @@
+.git
+.env*
+**/.env*
+**/key.json
+*.exe
+kafka-backend
+*.test
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*.pfx
+**/*.enc
+data
+keys
+backups

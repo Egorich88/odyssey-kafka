@@ -21,81 +21,52 @@
 /**
  * @file cluster-health-panel.css
  * Стили сводной панели состояния кластера и таблицы брокеров.
- * Подписи KPI располагаются в одну строку с числовыми значениями.
+ * Подписи KPI находятся над значениями в единой горизонтальной строке.
  */
 
-.cluster-health-panel { min-height: 0; }
-
-/* Заголовок убран: компактная сводка начинается сразу с индикатора состояния. */
-.cluster-health-panel .cluster-health-summary { padding: 4px clamp(18px, 1.5vw, 26px); }
-
-.cluster-health-body {
-  flex: 1;
+.dashboard-panel.cluster-health-panel { min-height: 0; box-shadow: none; }
+.cluster-health-panel .cluster-health-summary {
+  box-sizing: border-box;
+  height: 100%;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  /* Уменьшены внутренние отступы, чтобы сводка стала компактнее по высоте. */
-  padding: 5px 12px 6px;
+  padding: 10px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-secondary) transparent;
 }
-
-.cluster-kpi-grid {
+.cluster-health-panel .cluster-health-summary:focus-visible { outline: 2px solid var(--accent-color); outline-offset: -3px; }
+.cluster-health-panel .cluster-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(max-content, .8fr)) repeat(4, minmax(max-content, 1.2fr));
+  width: 100%;
+  min-width: max-content;
+  height: 100%;
   gap: 0;
-  flex: 0 0 auto;
 }
-
-.cluster-kpi {
-  min-width: 0;
+.cluster-health-panel .cluster-kpi {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 5px 9px;
-  border-left: 1px solid var(--sidebar-divider-color);
-  background: transparent;
-  border-radius: 0;
-}
-
-.cluster-kpi-icon {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  color: var(--accent-hover);
-  font-size: 21px;
-}
-
-.cluster-kpi-copy {
+  box-sizing: border-box;
   min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 7px;
-  white-space: nowrap;
+  padding: 0 clamp(14px, 1.3vw, 24px);
 }
-
-.cluster-kpi-copy span {
-  color: var(--text-secondary);
-  font-size: clamp(10px, .72vw, 13px);
-  line-height: 1.15;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Все шесть линий имеют одну геометрию и нейтральный цвет без акцента темы. */
+.cluster-health-panel .cluster-kpi-divider {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 40px;
+  background: color-mix(in srgb, var(--text-primary) 65%, var(--panel-bg));
+  filter: grayscale(1);
 }
-
-.cluster-kpi-copy strong {
-  color: var(--text-primary);
-  font-size: clamp(16px, 1.15vw, 20px);
-  line-height: 1.1;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.cluster-kpi.is-danger strong { color: var(--danger-color); }
-
+.cluster-health-panel .cluster-kpi-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; white-space: nowrap; }
+.cluster-health-panel .cluster-kpi-copy > span { color: var(--text-secondary); font-size: 12px; line-height: 1.2; font-weight: 400; }
+.cluster-health-panel .cluster-kpi-copy > strong { color: var(--text-primary); font-size: 24px; line-height: 1.15; font-weight: 650; font-variant-numeric: tabular-nums; }
+.cluster-health-panel .cluster-kpi.is-danger strong { color: var(--danger-color); }
 .cluster-status-inline {
   display: inline-flex;
   align-items: center;
@@ -173,17 +144,6 @@
 .broker-controller { color: var(--accent-hover); font-style: normal; }
 .cluster-broker-empty { padding: 14px; text-align: center; color: var(--text-secondary); font-size: 13px; }
 
-@media (max-width: 1200px) { .cluster-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (max-width: 800px) { .cluster-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-/* Сводка состояния кластера: ширина элементов определяется их содержимым. */
-.cluster-health-summary {
-  flex-direction: row;
-  align-items: center;
-  gap: clamp(14px, 1.15vw, 20px);
-  /* Немного уменьшены вертикальные отступы, горизонтальные сохранены. */
-  padding: 8px clamp(20px, 1.65vw, 30px);
-}
 /* Заголовочная группа не резервирует пустую фиксированную ширину. */
 .cluster-health-heading {
   flex: 0 0 auto;
@@ -261,76 +221,6 @@
 .cluster-health-status .cluster-health-status-copy strong {
   color: inherit !important;
 }
-/* KPI занимают ширину по реальному содержимому, а свободное место
-   равномерно распределяется между ними без искусственно равных ячеек. */
-.cluster-health-summary .cluster-kpi-grid {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0;
-  flex-wrap: wrap;
-}
-.cluster-health-summary .cluster-kpi {
-  flex: 0 0 auto;
-  width: max-content;
-  padding: 5px clamp(10px, .8vw, 16px);
-  gap: 9px;
-}
-.cluster-health-summary .cluster-kpi-icon {
-  font-size: 21px;
-}
-.cluster-health-summary .cluster-kpi-copy {
-  min-width: 0;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 7px;
-}
-/* Названия показателей внутри сводки */
-.cluster-health-summary .cluster-kpi-copy span {
-  color: var(--text-primary);
-  font-size: clamp(10px, .72vw, 13px);
-  font-weight: 700;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: .02em;
-  flex: 0 0 auto;
-  overflow: visible;
-  text-overflow: clip;
-}
-/* Числовые показатели увеличены для лучшей читаемости. */
-.cluster-health-summary .cluster-kpi-copy strong {
-  font-size: clamp(16px, 1.15vw, 20px);
-  font-weight: 750;
-  flex: 0 0 auto;
-}
-@media (max-width: 1450px) {
-  /* На более узком экране сводка переносится целиком, не сжимая подписи KPI. */
-  .cluster-health-summary {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .cluster-health-heading {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  .cluster-health-summary .cluster-kpi-grid {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    row-gap: 4px;
-  }
-}
-@media (max-width: 680px) {
-  .cluster-health-summary .cluster-kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(2, max-content);
-    justify-content: start;
-  }
-}
-
 /* Таблица брокеров: адрес компактный, столбец нагрузки визуально выделен. */
 .brokers-overview-panel .cluster-brokers-table-header,
 .brokers-overview-panel .cluster-brokers-table-row {

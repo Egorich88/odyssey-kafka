@@ -20,12 +20,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 6px 0 8px;
-    overflow-y: auto;
-    scrollbar-width: none;
-}
-
-.sidebar-nav::-webkit-scrollbar {
-    display: none;
+    min-height: 0;
 }
 
 /* ============================================================

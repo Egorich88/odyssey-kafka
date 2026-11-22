@@ -1,0 +1,4 @@
+FROM alpine:3.20
+RUN apk add --no-cache openssl
+COPY --chmod=0555 tls-init.sh /usr/local/bin/odyssey-tls-init
+ENTRYPOINT ["/usr/local/bin/odyssey-tls-init"]

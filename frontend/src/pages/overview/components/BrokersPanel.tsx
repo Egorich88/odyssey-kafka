@@ -23,6 +23,8 @@ import PanelFullscreenButton from './PanelFullscreenButton';
 import BrokerDetails, { BrokerDetailsBoundary } from './BrokerDetails';
 import BrokerResourceRing from './BrokerResourceRing';
 import { BrokerIcon } from '../../../components/common/BrokerIcon';
+import { controllerRole, type ControllerQuorum } from '../controllerRole';
+import { fitBrokerTableViewport } from '../brokerTableViewport';
 import '../styles/brokers-overview.css';
 
 export interface Broker {
@@ -47,6 +49,8 @@ export interface Broker {
 
 export interface BrokersPanelProps {
   data?: {
+    clusterId?: string;
+    controllerQuorum?: ControllerQuorum;
     brokers?: Broker[];
     status?: string;
     version?: string;
@@ -74,6 +78,10 @@ const statusOf = (broker: Broker) =>
 export default function BrokersPanel({ data, loading = false }: BrokersPanelProps): JSX.Element {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const brokerListRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (brokerListRef.current) return fitBrokerTableViewport(brokerListRef.current);
+  }, [data?.brokers, expanded, loading, i18n.language]);
   const controlsRef = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef(false);
   useLayoutEffect(() => {
@@ -175,7 +183,7 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
               ))}
             </dl>
           </div>
-          <div className="broker-overview-table-wrap" tabIndex={0} aria-label={t('brokers')}>
+          <div className="broker-overview-table-wrap" tabIndex={0} aria-label={t('brokers')} ref={brokerListRef}>
             <table className="broker-overview-table">
               <thead><tr>
                 <th scope="col">{label('broker')}</th>
@@ -194,7 +202,7 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
                         <span title={address}>{address}</span>
                       </span>
                       <small className={'broker-' + status}>{statusLabel}</small>
-                      {broker.controller && <small className="broker-controller">{label('controller')}</small>}
+                      {controllerRole(broker.id, data) && <small className="broker-controller">{label(controllerRole(broker.id, data) === 'active' ? 'controller' : 'standbyController')}</small>}
                     </th>
                     {metrics.map(({ key }, index) => {
                       const value = values[index];

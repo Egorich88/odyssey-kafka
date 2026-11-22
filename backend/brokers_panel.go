@@ -37,9 +37,10 @@ import (
 
 // BrokerInfo - полная информация о брокере Kafka
 type BrokerInfo struct {
-	ID              int32    `json:"id"`              // ID брокера
-	Address         string   `json:"address"`         // Адрес (host:port)
-	Controller      bool     `json:"controller"`      // Является ли контроллером
+	ID              int32    `json:"id"`         // ID брокера
+	Address         string   `json:"address"`    // Адрес (host:port)
+	Controller      bool     `json:"controller"` // Является ли контроллером
+	ControllerRole  string   `json:"controllerRole"`
 	Rack            string   `json:"rack"`            // Ракка (зона доступности)
 	Version         string   `json:"version"`         // Версия Kafka
 	CPU             *float64 `json:"cpu"`             // Использование CPU, если есть данные хоста
@@ -53,7 +54,9 @@ type BrokerInfo struct {
 
 // BrokersResponse - структура ответа API с брокерами
 type BrokersResponse struct {
-	Brokers []BrokerInfo `json:"brokers"`
+	Brokers          []BrokerInfo              `json:"brokers"`
+	ClusterID        string                    `json:"clusterId,omitempty"`
+	ControllerQuorum *controllerQuorumSnapshot `json:"controllerQuorum,omitempty"`
 }
 
 // =============================================================================
@@ -86,12 +89,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Close()
 
-	// Определяем контроллер кластера
-	controller, err := client.Controller()
-	if err != nil {
-		sendJSONError(w, "Не удалось определить контроллер кластера", http.StatusInternalServerError)
-		return
-	}
+	clusterID, quorum := loadControllerQuorum(r.Context(), client, bootstrap, config)
 
 	disks := overviewBrokerDisks.get(brokerDiskProfile{bootstrap: bootstrap, revision: revision}, time.Now())
 
@@ -108,7 +106,8 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 		result = append(result, BrokerInfo{
 			ID:              brokerID,
 			Address:         broker.Addr(),
-			Controller:      brokerID == controller.ID(),
+			Controller:      quorum.role(clusterID, brokerID) == "active",
+			ControllerRole:  quorum.role(clusterID, brokerID),
 			Rack:            broker.Rack(),
 			Version:         kafkaVersion,
 			LeaderCount:     leaderCount,
@@ -119,7 +118,14 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	_ = json.NewEncoder(w).Encode(BrokersResponse{Brokers: result})
+	if _, latestRevision := kafkaAuthProfileSnapshot(bootstrap); latestRevision != revision || r.Context().Err() != nil {
+		quorum = nil
+		for i := range result {
+			result[i].Controller = false
+			result[i].ControllerRole = "unknown"
+		}
+	}
+	_ = json.NewEncoder(w).Encode(BrokersResponse{Brokers: result, ClusterID: clusterID, ControllerQuorum: quorum})
 }
 
 // =============================================================================

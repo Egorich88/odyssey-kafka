@@ -36,7 +36,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 FROM alpine:3.20
 
 # Устанавливаем корневые сертификаты (для HTTPS/TLS) и данные временных зон
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata curl
 
 # Создаем выделенную группу и пользователя с UID/GID 1001 без прав администратора
 RUN addgroup -g 1001 -S appgroup && \
@@ -44,6 +44,7 @@ RUN addgroup -g 1001 -S appgroup && \
 
 # Копируем скомпилированный бинарник из первого стейджа в системную директорию выполнения
 COPY --from=builder /app/kafka-backend /usr/local/bin/kafka-backend
+COPY --chmod=0555 owner-storage-init.sh /usr/local/bin/owner-storage-init
 
 # Переключаемся на созданного безопасного пользователя.
 # Теперь процесс внутри контейнера не имеет прав root на хост-машине.

@@ -87,7 +87,8 @@
     "coverage": "{{available}} of {{total}}",
     "cpuPeak": "Max: {{value}} (b{{id}})",
     "broker": "Broker",
-    "controller": "Controller",
+    "controller": "Active Controller",
+    "standbyController": "Standby Controller",
     "leaders": "Leaders",
     "replicas": "Replicas",
     "isr": "ISR",
@@ -146,5 +147,6 @@
     "description": "This section is already prepared in the interface. Integration functionality will be added later."
   },
   "adminPermissions": {"readOnly":"Kafka administrative operations are unavailable: server-side owner authorization is required.","editHint":"Double-click a parameter value to edit it"},
-  "owner": {"password":"Owner password","checking":"Checking session…","signIn":"Sign in","retry":"Retry","signingIn":"Signing in…","localSetup":"Create the installation owner locally using owner-init. Kerberos/GSSAPI is temporarily unavailable.","profileError":"Some profiles could not be saved or migrated. Original browser configurations are retained until migration succeeds. Check the server address policy; GSSAPI is temporarily unavailable.","error":"The action failed. Check the password, backend availability and sign-in attempt limit.","title":"Odyssey owner","signOut":"Sign out"}
+  "owner": {"migrationPartial":"Profiles migrated: {{migrated}}. Records not migrated: {{failed}}. Server profiles are available. The original browser list is retained for recovery and retry.","password":"Owner password","checking":"Checking session…","signIn":"Sign in","retry":"Retry","signingIn":"Signing in…","localSetup":"Create the installation owner locally using owner-init. Kerberos/GSSAPI is temporarily unavailable.","profileError":"Some profiles could not be saved or migrated. Original browser configurations are retained until migration succeeds. Check the server address policy; GSSAPI is temporarily unavailable.","error":"The action failed. Check the password, backend availability and sign-in attempt limit.","title":"Odyssey owner","signOut":"Sign out"},
+  "clusterKpi": {"brokers":"Brokers","partitions":"Partitions","urp":"Under-replicated partitions","outgoing":"Outgoing messages","title":"Cluster metrics","topics":"Topics","groups":"Consumer groups","incoming":"Incoming messages"}
 }

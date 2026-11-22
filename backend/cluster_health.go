@@ -50,23 +50,25 @@ import (
 
 // ClusterHealthResponse — агрегированное состояние Kafka-кластера.
 type ClusterHealthResponse struct {
-	Status            string             `json:"status"`
-	BrokerCount       int                `json:"brokerCount"`
-	OnlineBrokers     int                `json:"onlineBrokers"`
-	NetworkProblems   int                `json:"networkProblems"`
-	ISR               ISRHealth          `json:"isr"`
-	OfflinePartitions int                `json:"offlinePartitions"`
-	UnderReplicated   int                `json:"underReplicated"`
-	PartitionsTotal   int                `json:"partitionsTotal"`
-	ReplicasTotal     int                `json:"replicasTotal"`
-	Leaders           int                `json:"leaders"`
-	Followers         int                `json:"followers"`
-	Healthy           int                `json:"healthy"`
-	Offline           int                `json:"offline"`
-	RebalancingGroups int                `json:"rebalancingGroups"`
-	EmptyGroups       int                `json:"emptyGroups"`
-	DeadGroups        int                `json:"deadGroups"`
-	Brokers           []HealthBrokerInfo `json:"brokers"`
+	ClusterID         string                    `json:"clusterId,omitempty"`
+	ControllerQuorum  *controllerQuorumSnapshot `json:"controllerQuorum,omitempty"`
+	Status            string                    `json:"status"`
+	BrokerCount       int                       `json:"brokerCount"`
+	OnlineBrokers     int                       `json:"onlineBrokers"`
+	NetworkProblems   int                       `json:"networkProblems"`
+	ISR               ISRHealth                 `json:"isr"`
+	OfflinePartitions int                       `json:"offlinePartitions"`
+	UnderReplicated   int                       `json:"underReplicated"`
+	PartitionsTotal   int                       `json:"partitionsTotal"`
+	ReplicasTotal     int                       `json:"replicasTotal"`
+	Leaders           int                       `json:"leaders"`
+	Followers         int                       `json:"followers"`
+	Healthy           int                       `json:"healthy"`
+	Offline           int                       `json:"offline"`
+	RebalancingGroups int                       `json:"rebalancingGroups"`
+	EmptyGroups       int                       `json:"emptyGroups"`
+	DeadGroups        int                       `json:"deadGroups"`
+	Brokers           []HealthBrokerInfo        `json:"brokers"`
 }
 
 // ISRHealth показывает число ISR-реплик и общее число реплик.
@@ -77,19 +79,20 @@ type ISRHealth struct {
 
 // HealthBrokerInfo — компактная информация одного брокера.
 type HealthBrokerInfo struct {
-	ID           int32        `json:"id"`
-	Address      string       `json:"address"`
-	Online       bool         `json:"online"`
-	BrokerStatus brokerStatus `json:"brokerStatus"`
-	Controller   bool         `json:"controller"`
-	ISRCount     int32        `json:"isrCount"`
-	ReplicaCount int32        `json:"replicaCount"`
-	LeaderCount  int32        `json:"leaderCount"`
-	CPU          *float64     `json:"cpu"`
-	Memory       *float64     `json:"memory"`
-	DiskUsage    float64      `json:"diskUsage"`
-	DiskTotal    float64      `json:"diskTotal"`
-	Version      string       `json:"version"`
+	ID             int32        `json:"id"`
+	Address        string       `json:"address"`
+	Online         bool         `json:"online"`
+	BrokerStatus   brokerStatus `json:"brokerStatus"`
+	Controller     bool         `json:"controller"`
+	ControllerRole string       `json:"controllerRole"`
+	ISRCount       int32        `json:"isrCount"`
+	ReplicaCount   int32        `json:"replicaCount"`
+	LeaderCount    int32        `json:"leaderCount"`
+	CPU            *float64     `json:"cpu"`
+	Memory         *float64     `json:"memory"`
+	DiskUsage      float64      `json:"diskUsage"`
+	DiskTotal      float64      `json:"diskTotal"`
+	Version        string       `json:"version"`
 }
 
 // getDashboardHealthHandler возвращает фактическое состояние кластера.
@@ -119,7 +122,7 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	defer client.Close()
 
 	brokers := client.Brokers()
-	controller, controllerErr := client.Controller()
+	clusterID, quorum := loadControllerQuorum(r.Context(), client, bootstrap, config)
 
 	kafkaVersion := getRealKafkaVersionWithLog(bootstrap)
 
@@ -129,11 +132,12 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	for _, broker := range brokers {
 
 		info := HealthBrokerInfo{
-			ID:           broker.ID(),
-			Address:      broker.Addr(),
-			BrokerStatus: brokerUnknown,
-			Controller:   controllerErr == nil && controller != nil && broker.ID() == controller.ID(),
-			Version:      kafkaVersion,
+			ID:             broker.ID(),
+			Address:        broker.Addr(),
+			BrokerStatus:   brokerUnknown,
+			Controller:     quorum.role(clusterID, broker.ID()) == "active",
+			ControllerRole: quorum.role(clusterID, broker.ID()),
+			Version:        kafkaVersion,
 		}
 
 		healthBrokers = append(healthBrokers, info)
@@ -143,9 +147,11 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	topics, err := client.Topics()
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ClusterHealthResponse{
-			Status:      "unknown",
-			BrokerCount: len(brokers),
-			Brokers:     healthBrokers,
+			Status:           "unknown",
+			BrokerCount:      len(brokers),
+			Brokers:          healthBrokers,
+			ClusterID:        clusterID,
+			ControllerQuorum: quorum,
 		})
 		return
 	}
@@ -288,6 +294,13 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 			broker.DiskUsage, broker.DiskTotal = disk.usedGiB, disk.totalGiB
 		}
 	}
+	if _, latestRevision := kafkaAuthProfileSnapshot(bootstrap); latestRevision != metadataRevision || r.Context().Err() != nil {
+		quorum = nil
+		for i := range healthBrokers {
+			healthBrokers[i].Controller = false
+			healthBrokers[i].ControllerRole = "unknown"
+		}
+	}
 	onlineBrokers, networkProblems := applyBrokerStatuses(healthBrokers, statuses)
 	status := "healthy"
 
@@ -296,15 +309,17 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 		status = "critical"
 	case underReplicated > 0 || rebalancingGroups > 0 || emptyGroups > 0:
 		status = "warning"
-	case controllerErr != nil || partitionStateUnknown || groupErr != nil || onlineBrokers < len(healthBrokers) || len(healthBrokers) == 0:
+	case partitionStateUnknown || groupErr != nil || onlineBrokers < len(healthBrokers) || len(healthBrokers) == 0:
 		status = "unknown"
 	}
 
 	_ = json.NewEncoder(w).Encode(ClusterHealthResponse{
-		Status:          status,
-		BrokerCount:     len(brokers),
-		OnlineBrokers:   onlineBrokers,
-		NetworkProblems: networkProblems,
+		ClusterID:        clusterID,
+		ControllerQuorum: quorum,
+		Status:           status,
+		BrokerCount:      len(brokers),
+		OnlineBrokers:    onlineBrokers,
+		NetworkProblems:  networkProblems,
 		ISR: ISRHealth{
 			InSync: inSyncReplicas,
 			Total:  totalReplicas,

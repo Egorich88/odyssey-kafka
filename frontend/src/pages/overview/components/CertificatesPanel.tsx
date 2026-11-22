@@ -35,6 +35,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { FiChevronDown, FiChevronUp, FiCheck } from 'react-icons/fi';
+import { LuShieldCheck } from 'react-icons/lu';
 import PanelInfo from '../../../components/common/PanelInfo';
 import PanelFullscreenButton from './PanelFullscreenButton';
 import { useCluster } from '../../../contexts/ClusterContext';
@@ -165,6 +166,7 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
     <div className="dashboard-panel certificate-panel">
       <div className="panel-header certificate-panel-header">
         <div className="panel-title-with-info">
+          <LuShieldCheck aria-hidden="true" />
           <PanelInfo
             title="Сертификаты"
             description="Список TLS-сертификатов и связанных хранилищ Kafka. Отображаются срок действия, расположение и данные Subject/Issuer, если их удалось прочитать."

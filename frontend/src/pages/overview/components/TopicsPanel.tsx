@@ -47,7 +47,7 @@ import '../styles/topics-panel.css';
 import { useCluster } from '../../../contexts/ClusterContext';
 import PanelInfo from '../../../components/common/PanelInfo';
 import PanelFullscreenButton from './PanelFullscreenButton';
-import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiChevronDown, FiChevronUp, FiBarChart2 } from 'react-icons/fi';
 
 interface TopicPoint { time: string; timestamp?: number; topic: string; value: number; }
 
@@ -222,6 +222,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
           <div className="dashboard-panel">
               <div className="panel-header">
                   <div className="topics-panel-title">
+                      <FiBarChart2 aria-hidden="true" />
                       <PanelInfo
                           title="Пропускная способность по топикам"
                           description="Показывает скорость обработки сообщений для отдельных Kafka-топиков за выбранный период. Позволяет определить наиболее активные топики, сравнить их нагрузку и быстро увидеть изменения интенсивности трафика."
@@ -244,6 +245,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
       <div className="dashboard-panel">
         <div className="panel-header">
           <div className="topics-panel-title">
+            <FiBarChart2 aria-hidden="true" />
             <PanelInfo
               title="Пропускная способность по топикам"
               description="Показывает скорость обработки сообщений для отдельных Kafka-топиков за выбранный период. Позволяет определить наиболее активные топики, сравнить их нагрузку и быстро увидеть изменения интенсивности трафика."
@@ -269,6 +271,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
     <div className="dashboard-panel">
       <div className="panel-header">
         <div className="topics-panel-title">
+          <FiBarChart2 aria-hidden="true" />
           <PanelInfo
             title="Пропускная способность по топикам"
             description="Показывает скорость обработки сообщений для отдельных Kafka-топиков за выбранный период. Позволяет определить наиболее активные топики, сравнить их нагрузку и быстро увидеть изменения интенсивности трафика."

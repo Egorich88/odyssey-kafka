@@ -46,7 +46,7 @@ it('отображает явные статусы и не использует 
   expect(screen.getByText('Онлайн').className).toBe('broker-online');
   expect(screen.getByText('Офлайн').className).toBe('broker-offline');
   expect(screen.getAllByText('Неизвестно')).toHaveLength(3);
-  expect(screen.getByText('Контроллер')).toBeTruthy();
+  expect(screen.queryByText('Контроллер')).toBeNull();
   expect(screen.getByTitle('kafka-long-hostname.example:9094').textContent).toBe('kafka-long-hostname.example:9094');
   expect(screen.getByTitle('Онлайн').classList.contains('broker-online')).toBe(false);
   expect(screen.getByTitle('Онлайн').parentElement?.classList.contains('broker-online')).toBe(true);
@@ -239,7 +239,7 @@ it('сохраняет 21 отдельное кольцо семи карточ�
 });
 
 it('показывает бейджи и индикаторы объёма только по достоверным данным карточки', () => {
-  render(<BrokersPanel data={{ brokers: [
+  render(<BrokersPanel data={{ clusterId: 'A', controllerQuorum: { clusterId: 'A', source: 'describe_quorum', leaderId: 2, epoch: 1, voterIds: [2] }, brokers: [
     { id: 2, address: '192.0.2.2:9095', brokerStatus: 'online', controller: true,
       memory: null, diskUsage: 5, diskTotal: 20, leaderCount: 8, replicaCount: 24, isrCount: 24 },
     { id: 3, brokerStatus: 'unknown', memory: 0, memoryTotal: 100, diskUsage: 30, diskTotal: 20 },
@@ -265,4 +265,33 @@ it('показывает бейджи и индикаторы объёма то�
   fireEvent.click(close);
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Развернуть панель брокеров' }));
+});
+
+it('привязывает активного и резервных контроллеров к node.id при перестановке, переизбрании и ошибке', () => {
+  const brokers = Array.from({ length: 7 }, (_, i) => ({ id: i + 1, address: `broker-${i + 1}:9092`, controller: i === 6 }));
+  const quorum = { clusterId: 'A', source: 'describe_quorum', leaderId: 2, epoch: 4, voterIds: [1, 2, 3] };
+  const { rerender } = render(<BrokersPanel data={{ clusterId: 'A', controllerQuorum: quorum, brokers }} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Развернуть панель брокеров' }));
+  const badge = (id: number) => within(screen.getByText(`broker-${id}:9092`).closest('article')!).queryByText('Контроллер');
+  expect(screen.getAllByRole('article')).toHaveLength(7);
+  expect(badge(2)).not.toBeNull();
+  expect(screen.getAllByText('Резервный контроллер')).toHaveLength(2);
+  rerender(<BrokersPanel data={{ clusterId: 'A', controllerQuorum: quorum, brokers: [...brokers].reverse() }} />);
+  expect(badge(2)).not.toBeNull(); expect(badge(7)).toBeNull();
+  rerender(<BrokersPanel data={{ clusterId: 'A', controllerQuorum: { ...quorum, leaderId: 3, epoch: 5 }, brokers }} />);
+  expect(badge(2)).toBeNull(); expect(badge(3)).not.toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: /Список/ }));
+  expect(screen.getByText('broker-3:9092').closest('tr')?.textContent).toContain('Контроллер');
+  rerender(<BrokersPanel data={{ clusterId: 'A', brokers }} />);
+  expect(screen.queryByText('Контроллер')).toBeNull(); expect(screen.queryByText('Резервный контроллер')).toBeNull();
+  rerender(<BrokersPanel data={{ clusterId: 'B', controllerQuorum: quorum, brokers }} />);
+  expect(screen.queryByText('Контроллер')).toBeNull();
+});
+
+it('не добавляет controller-only узлы в семь карточек брокеров', () => {
+  render(<BrokersPanel data={{ clusterId: 'A', controllerQuorum: { clusterId: 'A', source: 'describe_quorum', leaderId: 101, epoch: 1, voterIds: [101,102,103] }, brokers: Array.from({length:7},(_,i)=>({id:i+1})) }} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Развернуть панель брокеров' }));
+  expect(screen.getAllByRole('article')).toHaveLength(7);
+  expect(screen.queryByText('Контроллер')).toBeNull();
+  expect(screen.queryByText('Резервный контроллер')).toBeNull();
 });

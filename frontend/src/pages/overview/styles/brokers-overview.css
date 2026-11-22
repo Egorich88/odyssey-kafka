@@ -6,6 +6,7 @@
 }
 
 .brokers-overview-panel.is-panel-fullscreen { overflow: auto; }
+.brokers-overview-panel:not(.is-panel-fullscreen) { height: auto; }
 
 .brokers-overview-panel:not(.is-panel-fullscreen) > .panel-header {
   flex-shrink: 0;
@@ -22,8 +23,9 @@
 
 .broker-overview-content {
   display: grid;
-  min-height: 0;
-  overflow: auto;
+  min-height: min-content;
+  overflow: visible;
+  flex: 1 0 auto;
   align-content: start;
   gap: 14px;
   align-items: start;
@@ -101,8 +103,11 @@
 
 .broker-overview-table-wrap {
   min-width: 0;
-  max-height: 17rem;
+  box-sizing: border-box;
+  max-height: 32rem;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-secondary) transparent;
   border-block-start: 1px solid var(--border-color);
   padding-block-start: 8px;
 }

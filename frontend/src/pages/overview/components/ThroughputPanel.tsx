@@ -22,6 +22,7 @@ import { nearestTime, cursorTime, formatTimestamp } from './overviewTime';
  * клик по фону графика – показать обе линии.
  */
 import PanelInfo from '../../../components/common/PanelInfo';
+import { FiActivity } from 'react-icons/fi';
 import PanelFullscreenButton from './PanelFullscreenButton';
 import { useState } from 'react';
 import {
@@ -93,6 +94,7 @@ export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
     <div className="dashboard-panel">
       <div className="panel-header throughput-header">
           <div className="throughput-title">
+              <FiActivity aria-hidden="true" />
               <PanelInfo
                   title="Пропускная способность кластера"
                   description="Показывает скорость обработки сообщений Kafka-кластером во времени. Входящие значения отражают поток сообщений, поступающих в кластер, исходящие — поток сообщений, покидающих его. Используется для оценки текущей нагрузки и динамики трафика."

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { migrateLegacyProfiles, profileConfig, validServerProfile } from '../security/profileMigration';
+import { migrateLegacyProfiles, ProfileMigrationIncomplete, profileConfig, validServerProfile } from '../security/profileMigration';
 
 export type ClusterConnectionStatus = 'checking' | 'connected' | 'disconnected' | 'error' | 'unknown';
 export interface KafkaCluster {
@@ -30,6 +30,7 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
   const [clusters, setClusters] = useState<KafkaCluster[]>([]);
   const [currentClusterId, setCurrentClusterId] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [migrationIssue, setMigrationIssue] = useState<{ migrated: number; failed: number } | null>(null);
   const [retry, setRetry] = useState(0);
   const mounted = useRef(false);
   const failures = useRef(new Map<string, number>());
@@ -40,8 +41,18 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
     const request = new AbortController();
     void (async () => {
       setError(false);
+      setMigrationIssue(null);
+      let selectedMigrated: string | undefined;
       try { await migrateLegacyProfiles(localStorage, request.signal); }
-      catch { if (!request.signal.aborted) setError(true); }
+      catch (error) {
+        if (!request.signal.aborted) {
+          setError(true);
+          if (error instanceof ProfileMigrationIncomplete) {
+            setMigrationIssue({ migrated: error.migrated, failed: error.failed });
+            selectedMigrated = error.selectedServerId;
+          }
+        }
+      }
       if (request.signal.aborted) return;
       try {
         const response = await axios.get('/api/kafka-profiles', { signal: request.signal, timeout: 7000 });
@@ -52,7 +63,7 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
           id, name, brokers, authType, saslMechanism, revision, connectionStatus: 'checking' as ClusterConnectionStatus,
         }));
         setClusters(profiles);
-        const saved = localStorage.getItem(CURRENT_CLUSTER_KEY);
+        const saved = selectedMigrated ?? localStorage.getItem(CURRENT_CLUSTER_KEY);
         setCurrentClusterId(profiles.find(p => p.id === saved)?.id ?? profiles[0]?.id ?? null);
       } catch { if (!request.signal.aborted) setError(true); }
     })();
@@ -132,7 +143,7 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
   const changeCluster = useCallback((p: KafkaCluster) => { updateClusterStatus(p.id, 'checking'); setCurrentClusterId(p.id); }, [updateClusterStatus]);
 
   return <ClusterContext.Provider value={{ clusters, currentCluster, addCluster, updateCluster, removeCluster, changeCluster, updateClusterStatus }}>
-    {error && <div className="owner-profile-error" role="alert">{t('owner.profileError')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('owner.retry')}</button></div>}
+    {error && <div className="owner-profile-error" role="alert">{migrationIssue ? t('owner.migrationPartial', migrationIssue) : t('owner.profileError')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('owner.retry')}</button></div>}
     {children}
   </ClusterContext.Provider>;
 }

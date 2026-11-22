@@ -1,0 +1,6 @@
+# Сценарии Linux должны запускаться и после checkout в Windows.
+*.sh text eol=lf
+backend/Dockerfile text eol=lf
+frontend/Dockerfile text eol=lf
+frontend/nginx.conf text eol=lf
+docker-compose.yml text eol=lf

@@ -254,6 +254,10 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             )}
         </div>
 
+      </div>
+
+      {/* Навигация прокручивается независимо от логотипа и нижнего блока. */}
+      <div className="sidebar-navigation-region">
         {hasCluster && !clusterUnavailable && (
           <nav className="sidebar-nav">
             <Link

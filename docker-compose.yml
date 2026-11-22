@@ -1,67 +1,142 @@
-version: '3.8'
+name: odyssey
+
+x-backend: &backend
+  build:
+    context: ./backend
+  image: odyssey-backend:local
+  user: "1001:1001"
+  read_only: true
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  tmpfs: [/tmp]
+  environment: &owner-environment
+    ODYSSEY_DATA_DIR: /var/lib/odyssey/data
+    ODYSSEY_KEY_FILE: /var/lib/odyssey/keys/owner.key
+    ODYSSEY_PUBLIC_ORIGIN: ${ODYSSEY_PUBLIC_ORIGIN:-https://localhost:8443}
+    ODYSSEY_KAFKA_ALLOWED_NETWORKS: ${ODYSSEY_KAFKA_ALLOWED_NETWORKS:-}
+    ODYSSEY_KAFKA_ALLOWED_PORTS: ${ODYSSEY_KAFKA_ALLOWED_PORTS:-}
+    ODYSSEY_TLS_CERT_FILE: /run/tls/server.crt
+    ODYSSEY_TLS_KEY_FILE: /run/tls/server.key
+
+services:
+  # Одноразовая подготовка только пустых приватных томов. Данные не сбрасываются.
+  owner-storage-init:
+    <<: *backend
+    user: "0:0"
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    network_mode: none
+    command: ["/usr/local/bin/owner-storage-init"]
+    restart: "no"
+    volumes:
+      - owner-data:/var/lib/odyssey/data
+      - owner-key:/var/lib/odyssey/keys
+
+  # CA и серверные ключи создаются внутри отдельных томов, вне образов и Git.
+  tls-init:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.tls-init
+    network_mode: none
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    environment:
+      ODYSSEY_PUBLIC_HOST: ${ODYSSEY_PUBLIC_HOST:-localhost}
+    volumes:
+      - tls-ca:/state/ca
+      - backend-tls:/state/backend
+      - frontend-tls:/state/frontend
+
+  # Запускается вручную: docker compose --profile setup run --rm owner-init
+  owner-init:
+    <<: *backend
+    profiles: [setup]
+    command: ["kafka-backend", "owner-init"]
+    stdin_open: true
+    tty: true
+    restart: "no"
+    network_mode: none
+    depends_on:
+      owner-storage-init:
+        condition: service_completed_successfully
+    volumes:
+      - owner-data:/var/lib/odyssey/data
+      - owner-key:/var/lib/odyssey/keys
+
+  backend-service:
+    <<: *backend
+    restart: unless-stopped
+    depends_on:
+      owner-storage-init:
+        condition: service_completed_successfully
+      tls-init:
+        condition: service_completed_successfully
+    volumes:
+      - owner-data:/var/lib/odyssey/data
+      - owner-key:/var/lib/odyssey/keys:ro
+      - backend-tls:/run/tls:ro
+    expose: ["8080"]
+    networks: [kafka-net]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--cacert", "/run/tls/ca.crt", "https://backend-service:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 10s
+
+  frontend-service:
+    build:
+      context: ./frontend
+    image: odyssey-frontend:local
+    user: "101:101"
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    ports:
+      - "${ODYSSEY_HTTPS_BIND:-127.0.0.1}:${ODYSSEY_HTTPS_PORT:-8443}:8443"
+    depends_on:
+      backend-service:
+        condition: service_healthy
+    volumes:
+      - frontend-tls:/run/tls:ro
+    networks: [kafka-net]
+
+  # Не запускается вместе с Odyssey автоматически и не затрагивает внешний Kafka.
+  kafka:
+    profiles: [local-kafka]
+    image: apache/kafka:4.3.1
+    restart: unless-stopped
+    ports: ["127.0.0.1:9094:9094"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [kafka-net]
 
 networks:
   kafka-net:
     driver: bridge
 
-services:
-  # 1. СЛУЖБА БЭКЕНДА (GO)
-  backend-service:
-    build:
-      context: ./backend # Путь к папке с Go проектом и его Dockerfile
-      dockerfile: Dockerfile
-    container_name: kafka-backend
-    restart: unless-stopped
-    ports:
-      - "8081:8080" # Внешний порт 8081 (чтобы не конфликтовать с фронтендом), внутренний 8080
-    environment:
-      - KAFKA_BROKERS=kafka:9092
-      - APP_PORT=8080
-    depends_on:
-      kafka:
-        condition: service_healthy # Ждем, пока Kafka полностью запустится и пройдет проверку
-    networks:
-      - kafka-net
-
-  # 2. СЛУЖБА ФРОНТЕНДА (NGINX ROOTLESS)
-  frontend-service:
-    build:
-      context: ./frontend # Путь к папке с Фронтендом и его Dockerfile
-      dockerfile: Dockerfile
-    container_name: kafka-frontend
-    restart: unless-stopped
-    ports:
-      - "8080:8080" # Открываем наружу порт 8080 для пользователей
-    depends_on:
-      - backend-service
-    networks:
-      - kafka-net
-
-  # 3. АКТУАЛЬНАЯ KAFKA (РЕЖИМ KRAFT - БЕЗ ZOOKEEPER)
-  kafka:
-    image: apache/kafka:4.3.1 # Используем стабильный официальный образ Apache [1, 2]
-    container_name: kafka-broker
-    restart: unless-stopped
-    ports:
-      - "9094:9094" # Порт для подключения с вашей локальной машины (если нужно)
-    environment:
-      # Настройки кластера и узла
-      - KAFKA_NODE_ID=1
-      - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      # Настройка слушателей (внутренний для Go, внешний для хоста)
-      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
-      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
-      # Автоматическое создание топиков для удобства разработки
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
-      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
-    healthcheck: # Проверка здоровья Kafka, чтобы бэкенд не падал при старте
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - kafka-net
+volumes:
+  owner-data:
+  owner-key:
+  tls-ca:
+  backend-tls:
+  frontend-tls:

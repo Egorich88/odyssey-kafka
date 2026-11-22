@@ -24,14 +24,14 @@ RUN npm run build
 # Используем ОФИЦИАЛЬНЫЙ unprivileged-образ от создателей Nginx на базе стабильного Alpine
 FROM nginxinc/nginx-unprivileged:stable-alpine
 
-# Копируем ваш кастомный конфиг (важно: внутри nginx.conf директива listen должна быть 8080)
+# Конфигурация HTTPS и проверяемого TLS-соединения с backend.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Копируем собранную статику из первого стейджа в стандартную директорию Nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Порт 8080 открыт из коробки в unprivileged-образе, но явно документируем его
-EXPOSE 8080
+# Публичный HTTPS; API повторно шифруется до backend с проверкой сертификата.
+EXPOSE 8443
 
 # Метаданные образа
 LABEL org.opencontainers.image.licenses="Apache-2.0" \

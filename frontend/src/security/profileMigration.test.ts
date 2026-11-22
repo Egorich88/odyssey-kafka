@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import axios from 'axios';
 import { afterEach, expect, it, vi } from 'vitest';
-import { migrateLegacyProfiles, profileConfig } from './profileMigration';
+import { migrateLegacyProfiles, ProfileMigrationIncomplete, profileConfig } from './profileMigration';
 vi.mock('axios', () => ({ default: { post: vi.fn() } }));
 afterEach(() => { localStorage.clear(); vi.resetAllMocks(); });
 const profiles = [{ id: 'legacy-a', brokers: 'a.test:9092', password: 'synthetic-password' }, { id: 'legacy-b', brokers: 'a.test:9092', authType: 'MTLS', key: 'synthetic-key' }];
@@ -43,4 +43,33 @@ it('не удаляет исходную запись, изменённую во
   vi.mocked(axios.post).mockImplementation(async()=>{localStorage.setItem('kafka_clusters',changed);return {data:{id:'server',brokers:'a.test:9092',revision:1}};});
   await expect(migrateLegacyProfiles(localStorage)).rejects.toThrow('Migration interrupted');
   expect(localStorage.getItem('kafka_clusters')).toBe(changed);
+});
+
+it.each([400,403,409,413,422])('продолжает перенос после отказа одной записи (%i), сохраняя исходный список', async status => {
+  const records=[{id:'invalid',brokers:'rrr'},...profiles];
+  const original=JSON.stringify(records);
+  localStorage.setItem('kafka_clusters',original);localStorage.setItem('ksc_current_cluster_id','legacy-b');
+  vi.mocked(axios.post).mockRejectedValueOnce({response:{status}}).mockImplementation(async(_url,body)=>({data:{id:'server-'+body.migrationKey,brokers:'a.test:9092',revision:1}}));
+  let problem:unknown;try{await migrateLegacyProfiles(localStorage)}catch(error){problem=error}
+  expect(problem).toBeInstanceOf(ProfileMigrationIncomplete);
+  expect(problem).toMatchObject({migrated:2,failed:1,selectedServerId:'server-legacy:legacy-b'});
+  expect(axios.post).toHaveBeenCalledTimes(3);
+  expect(localStorage.getItem('kafka_clusters')).toBe(original);
+  expect(localStorage.getItem('ksc_current_cluster_id')).toBe('legacy-b');
+  expect(JSON.stringify(problem)).not.toContain('synthetic');
+});
+
+it('обрабатывает независимые записи после повреждённых элементов и дублирующих ID', async () => {
+  const records=[null,{id:'duplicate'},{id:'duplicate'},profiles[0],5,profiles[1]];
+  const original=JSON.stringify(records);localStorage.setItem('kafka_clusters',original);
+  vi.mocked(axios.post).mockResolvedValue({data:{id:'server',brokers:'a.test:9092',revision:1}});
+  await expect(migrateLegacyProfiles(localStorage)).rejects.toMatchObject({migrated:2,failed:4});
+  expect(axios.post).toHaveBeenCalledTimes(2);expect(localStorage.getItem('kafka_clusters')).toBe(original);
+});
+
+it.each([401,429,500])('останавливает отправку при потере сессии или доступности backend (%i)', async status => {
+  const original=JSON.stringify(profiles);localStorage.setItem('kafka_clusters',original);
+  vi.mocked(axios.post).mockRejectedValueOnce({response:{status},message:'synthetic-secret'});
+  await expect(migrateLegacyProfiles(localStorage)).rejects.toThrow('Migration unavailable');
+  expect(axios.post).toHaveBeenCalledTimes(1);expect(localStorage.getItem('kafka_clusters')).toBe(original);
 });

@@ -23,13 +23,9 @@
  * @file overview.css
  * Основная сетка страницы «Обзор».
  *
- * Сетка намеренно состоит из трёх рядов:
- * 1. Состояние кластера / Сертификаты Kafka;
- * 2. Пропускная способность / Топики;
- * 3. Группы потребителей / Последние события.
+ * Сетка содержит KPI, брокеры/сертификаты, графики и группы/события.
  *
- * Страница не прокручивается целиком. Каждая большая таблица имеет
- * собственную внутреннюю прокрутку.
+ * При нехватке высоты прокручивается Overview; таблицы имеют собственный предел.
  */
 
 @import './welcome.css';
@@ -48,15 +44,14 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  /* Верхняя сводка уменьшена примерно на 30%; освободившееся место
-     перераспределено между нижними рядами, чтобы они начинались выше. */
+  /* Ряд брокеров вмещает семь строк; прокрутка ограничена рабочей областью. */
   grid-template-rows:
-    minmax(58px, 7%)
-    minmax(0, 22.75%)
-    minmax(0, 35.125%)
-    minmax(0, 35.125%);
+    78px
+    max-content
+    minmax(300px, 1fr)
+    minmax(300px, 1fr);
   gap: var(--dashboard-gap);
-  overflow: hidden;
+  overflow: auto;
 }
 
 .dashboard-row {
@@ -75,6 +70,8 @@
 
 .dashboard-row-status {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  grid-auto-rows: 1fr;
 }
 
 .dashboard-row-top {
@@ -119,7 +116,7 @@
 .events-panel-header .events-title {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 9px;
   min-width: 0;
   color: var(--text-primary);
   font-size: 15px;
@@ -141,11 +138,17 @@
 .dashboard-container .topics-panel-title > svg,
 .dashboard-container .throughput-title > svg,
 .events-panel-header .events-title > svg {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   color: var(--accent-color);
+  order: -2;
 }
+/* Значок i не разрывает интервал между декоративной иконкой и названием. */
+.panel-header .panel-title-with-info > span,
+.dashboard-container .topics-panel-title > span,
+.dashboard-container .throughput-title > span,
+.events-panel-header .events-title > span { order: -1; }
 .panel-header .panel-info-trigger svg,
 .events-panel-header .panel-info-trigger svg {
   width: 18px;
@@ -218,7 +221,7 @@ body:has(.is-panel-fullscreen)::before {
   .dashboard-container {
     /* Верхняя сводка уменьшена примерно на 30%; освободившееся место
      перераспределено между нижними рядами, чтобы они начинались выше. */
-  grid-template-rows: minmax(74px, 10%) minmax(0, 31.5%) minmax(0, 29.25%) minmax(0, 29.25%);
+  grid-template-rows: 78px max-content minmax(300px, 1fr) minmax(300px, 1fr);
   }
   .dashboard-row-summary { grid-template-columns: minmax(0, 1fr); }
   .dashboard-row-status,
@@ -230,16 +233,15 @@ body:has(.is-panel-fullscreen)::before {
 
 @media (max-width: 760px) {
   .dashboard-container {
-    height: auto;
+    height: 100%;
     overflow: auto;
     grid-template-rows: none;
   }
-  .dashboard-row-summary,
   .dashboard-row-status,
   .dashboard-row-top,
   .dashboard-row-main {
     grid-template-columns: 1fr;
     min-height: 300px;
   }
+  .dashboard-row-summary { grid-template-columns: 1fr; height: 78px; min-height: 78px; }
 }
-

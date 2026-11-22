@@ -1,0 +1,17 @@
+.git
+.env*
+**/.env*
+**/key.json
+node_modules
+dist
+coverage
+src/ee
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*.pfx
+**/*.enc
+data
+keys
+backups
