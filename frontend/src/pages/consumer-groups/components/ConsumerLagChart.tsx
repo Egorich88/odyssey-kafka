@@ -42,6 +42,7 @@ import {
 
 import KSCSelect from '../../../components/ui/select/KSCSelect';
 import { useCluster } from '../../../contexts/ClusterContext';
+import { ownerFetch } from '../../../security/ownerSession';
 import '../styles/consumer-chart.css';
 import type { ConsumerGroup } from '../types/consumer-groups.types';
 import { formatLag } from '../utils/lag.utils';
@@ -96,12 +97,12 @@ export default function ConsumerLagChart({ group }: Props) {
 
             try {
 
-                const response = await fetch(
+                const response = await ownerFetch(
                     `/api/overview/consumer-lag?range=${range}`,
                     {
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-Kafka-Bootstrap': currentCluster.brokers
+                            'X-Kafka-Profile-ID': currentCluster.id
                         }
                     }
                 );
@@ -144,7 +145,7 @@ export default function ConsumerLagChart({ group }: Props) {
             cancelled = true;
         };
 
-    }, [group?.name, currentCluster?.brokers, range]);
+    }, [group?.name, currentCluster?.id, currentCluster?.revision, range]);
 
 
     const chartData = useMemo(() =>

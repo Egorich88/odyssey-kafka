@@ -1,268 +1,141 @@
-/*
- * Copyright 2026 Egor Khomenko (Egorich88)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- */
-
-/**
- * @file ClusterContext.tsx
- * Контекст выбранного Kafka-кластера.
- *
- * Важный принцип: изменение статуса подключения не должно само по себе
- * запускать новый health-check. Иначе при каждом ответе сервера создаётся
- * новый объект currentCluster и возникает цикл повторных проверок.
- */
-
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
+import { migrateLegacyProfiles, profileConfig, validServerProfile } from '../security/profileMigration';
 
 export type ClusterConnectionStatus = 'checking' | 'connected' | 'disconnected' | 'error' | 'unknown';
-
 export interface KafkaCluster {
   id: string;
   name?: string;
   brokers?: string;
   bootstrapServers?: string;
+  revision?: number;
   connectionStatus?: ClusterConnectionStatus;
   [key: string]: unknown;
 }
-
 interface ClusterContextValue {
   clusters: KafkaCluster[];
   currentCluster: KafkaCluster | null;
-  addCluster: (cluster: Omit<KafkaCluster, 'id'>) => void;
-  updateCluster: (cluster: KafkaCluster) => void;
-  removeCluster: (clusterId: string) => void;
+  addCluster: (cluster: Omit<KafkaCluster, 'id'>) => Promise<boolean>;
+  updateCluster: (cluster: KafkaCluster) => Promise<boolean>;
+  removeCluster: (id: string) => Promise<boolean>;
   changeCluster: (cluster: KafkaCluster) => void;
-  updateClusterStatus: (clusterId: string, status: ClusterConnectionStatus) => void;
+  updateClusterStatus: (id: string, status: ClusterConnectionStatus) => void;
 }
-
 const ClusterContext = createContext<ClusterContextValue | undefined>(undefined);
-const STORAGE_KEY = 'kafka_clusters';
-
-// Проверяем синтаксис host:port до сетевого запроса, чтобы неверный ввод
-// не оставлял интерфейс в промежуточном состоянии проверки. Имена хостов могут содержать буквы.
-function hasValidBootstrap(value: string): boolean {
-  const entries = value.split(',');
-  if (!entries.length) return false;
-  return entries.every((entry) => {
-    const item = entry.trim();
-    const match = item.match(/^(\[[0-9a-fA-F:]+\]|[^\s:,]+):(\d{1,5})$/);
-    if (!match) return false;
-    const port = Number(match[2]);
-    return port >= 1 && port <= 65535;
-  });
-}
 const CURRENT_CLUSTER_KEY = 'ksc_current_cluster_id';
 
 export function ClusterProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [clusters, setClusters] = useState<KafkaCluster[]>([]);
   const [currentClusterId, setCurrentClusterId] = useState<string | null>(null);
-  const [profileRevision, setProfileRevision] = useState(0);
-  const currentCluster = clusters.find((cluster) => cluster.id === currentClusterId) ?? null;
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const mounted = useRef(false);
+  const failures = useRef(new Map<string, number>());
+  const currentCluster = clusters.find(cluster => cluster.id === currentClusterId) ?? null;
 
-  // Последний статус и число последовательных ошибок хранятся отдельно от
-  // React state, чтобы health-check не зависел от смены объекта currentCluster.
-  const statusRef = useRef(new Map<string, ClusterConnectionStatus>());
-  const failuresRef = useRef(new Map<string, number>());
-
-  const updateClusterStatus = useCallback((clusterId: string, status: ClusterConnectionStatus) => {
-    statusRef.current.set(clusterId, status);
-    if (status === 'connected') failuresRef.current.set(clusterId, 0);
-
-    setClusters((previous) => previous.map((cluster) => (
-      cluster.id === clusterId && cluster.connectionStatus !== status
-        ? { ...cluster, connectionStatus: status } : cluster
-    )));
-  }, []);
-
-  const checkClusterStatus = useCallback(async (cluster: KafkaCluster, signal: AbortSignal, initialCheck = false) => {
-    const bootstrap = cluster.brokers || cluster.bootstrapServers;
-    if (!bootstrap || !hasValidBootstrap(bootstrap)) {
-      // Неверный формат сразу означает недоступность: никаких «загрузка/проверка».
-      updateClusterStatus(cluster.id, 'disconnected');
-      return;
-    }
-
-    // На старте и при переключении показываем явную проверку подключения.
-    if (initialCheck) updateClusterStatus(cluster.id, 'checking');
-
-    try {
-      // Перед health-check регистрируем профиль в backend. Секреты не передаются
-      // в каждом API-запросе: backend держит валидированную конфигурацию в памяти.
-      // При перезапуске backend профиль автоматически регистрируется заново.
-      const authType = String(cluster.authType || 'PLAINTEXT');
-      const saslMechanism = String(cluster.saslMechanism || 'PLAIN');
-      await axios.post('/api/clusters/config', {
-        brokers: bootstrap,
-        authType,
-        username: String(cluster.username || ''),
-        password: String(cluster.password || ''),
-        cert: String(cluster.cert || ''),
-        key: String(cluster.key || ''),
-        ca: String(cluster.ca || ''),
-        saslMechanism,
-        kerberosUsername: String(cluster.kerberosUsername || ''),
-        kerberosPassword: String(cluster.kerberosPassword || ''),
-        kerberosRealm: String(cluster.kerberosRealm || ''),
-        kerberosServiceName: String(cluster.kerberosServiceName || 'kafka'),
-        kerberosConfigPath: String(cluster.kerberosConfigPath || '/etc/krb5.conf'),
-        kerberosKeytabPath: String(cluster.kerberosKeytabPath || ''),
-      }, { timeout: 7000, signal });
-      if (signal.aborted) return;
-
-      const response = await axios.get<{ status?: string }>('/api/clusters/health', {
-        headers: { 'X-Kafka-Bootstrap': bootstrap },
-        // Backend выполняет быстрый health-check. 12 секунд оставляем как
-        // защиту браузера от зависшего прокси/сети, но не проверяем каждые 5 с.
-        timeout: 12000,
-        signal,
-      });
-      if (signal.aborted) return;
-
-      const connected = response.data?.status === 'connected';
-      if (connected) {
-        failuresRef.current.set(cluster.id, 0);
-        updateClusterStatus(cluster.id, 'connected');
-        return;
-      }
-
-      const failures = (failuresRef.current.get(cluster.id) ?? 0) + 1;
-      failuresRef.current.set(cluster.id, failures);
-      if (initialCheck || failures >= 2) updateClusterStatus(cluster.id, 'disconnected');
-    } catch {
-      if (signal.aborted) return;
-      const failures = (failuresRef.current.get(cluster.id) ?? 0) + 1;
-      failuresRef.current.set(cluster.id, failures);
-
-      // Однократный сетевой timeout после уже успешного подключения не должен
-      // выбрасывать пользователя с рабочей страницы. Для первого подключения
-      // ошибка является достаточным основанием показать экран недоступности.
-      if (initialCheck || failures >= 2) updateClusterStatus(cluster.id, 'error');
-      console.warn('Проверка Kafka-кластера не завершилась успешно.');
-    }
-  }, [updateClusterStatus]);
-
-  // Загружаем список и восстанавливаем ранее выбранный кластер.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return;
+    mounted.current = true;
+    const request = new AbortController();
+    void (async () => {
+      setError(false);
+      try { await migrateLegacyProfiles(localStorage, request.signal); }
+      catch { if (!request.signal.aborted) setError(true); }
+      if (request.signal.aborted) return;
+      try {
+        const response = await axios.get('/api/kafka-profiles', { signal: request.signal, timeout: 7000 });
+        if (request.signal.aborted) return;
+        if (!Array.isArray(response.data) || !response.data.every(validServerProfile)) throw new Error('Invalid profiles');
+        // Не копируем произвольные поля ответа в состояние и браузерное хранилище.
+        const profiles = response.data.map(({ id, name, brokers, authType, saslMechanism, revision }) => ({
+          id, name, brokers, authType, saslMechanism, revision, connectionStatus: 'checking' as ClusterConnectionStatus,
+        }));
+        setClusters(profiles);
+        const saved = localStorage.getItem(CURRENT_CLUSTER_KEY);
+        setCurrentClusterId(profiles.find(p => p.id === saved)?.id ?? profiles[0]?.id ?? null);
+      } catch { if (!request.signal.aborted) setError(true); }
+    })();
+    return () => { mounted.current = false; request.abort(); };
+  }, [retry]);
 
-      const storedClusters = JSON.parse(stored) as KafkaCluster[];
-      if (!Array.isArray(storedClusters) || storedClusters.length === 0) return;
-
-      // Сохранённый статус connected устаревает после перезапуска приложения.
-      // Каждый кластер должен заново пройти сетевую проверку перед показом страниц.
-      const parsed = storedClusters.map((cluster) => ({
-        ...cluster,
-        connectionStatus: hasValidBootstrap(String(cluster.brokers || cluster.bootstrapServers || '')) ? 'checking' as ClusterConnectionStatus : 'disconnected' as ClusterConnectionStatus,
-      }));
-      setClusters(parsed);
-      const savedId = localStorage.getItem(CURRENT_CLUSTER_KEY);
-      const selected = parsed.find((cluster) => cluster.id === savedId) ?? parsed[0];
-      setCurrentClusterId(selected.id);
-    } catch (error) {
-      console.error('Не удалось восстановить список Kafka-кластеров:', error);
-    }
+  const updateClusterStatus = useCallback((id: string, status: ClusterConnectionStatus) => {
+    setClusters(previous => previous.map(p => p.id === id && p.connectionStatus !== status ? { ...p, connectionStatus: status } : p));
   }, []);
 
-  // При сохранении активного профиля заменяем настройки и текущую проверку.
-  // Служебное изменение connectionStatus само по себе проверку не запускает.
   useEffect(() => {
     if (!currentCluster) return;
-
+    const profile = currentCluster;
     const request = new AbortController();
-    void checkClusterStatus(currentCluster, request.signal, true);
-
-    const timer = window.setInterval(() => {
-      void checkClusterStatus(currentCluster, request.signal);
-    }, 30000);
-
-    return () => {
-      window.clearInterval(timer);
-      request.abort();
+    let inFlight = false;
+    const check = async (initial = false) => {
+      if (inFlight) return;
+      inFlight = true;
+      if (initial) updateClusterStatus(profile.id, 'checking');
+      try {
+        const response = await axios.get('/api/clusters/health', {
+          headers: { 'X-Kafka-Profile-ID': profile.id }, signal: request.signal, timeout: 12000,
+        });
+        if (request.signal.aborted) return;
+        if (response.data?.status === 'connected') { failures.current.set(profile.id, 0); updateClusterStatus(profile.id, 'connected'); }
+        else {
+          const count = (failures.current.get(profile.id) || 0) + 1; failures.current.set(profile.id, count);
+          if (initial || count >= 2) updateClusterStatus(profile.id, 'disconnected');
+        }
+      } catch {
+        if (request.signal.aborted) return;
+        const count = (failures.current.get(profile.id) || 0) + 1; failures.current.set(profile.id, count);
+        if (initial || count >= 2) updateClusterStatus(profile.id, 'error');
+      } finally { inFlight = false; }
     };
-  }, [currentClusterId, profileRevision, checkClusterStatus]);
+    void check(true);
+    const timer = window.setInterval(() => void check(), 30000);
+    return () => { request.abort(); window.clearInterval(timer); };
+  }, [currentClusterId, currentCluster?.revision, updateClusterStatus]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(clusters));
+  useEffect(() => { if (currentClusterId && !localStorage.getItem('kafka_clusters')) localStorage.setItem(CURRENT_CLUSTER_KEY, currentClusterId); }, [currentClusterId]);
+
+  const save = useCallback(async (input: Omit<KafkaCluster, 'id'> | KafkaCluster, update: boolean) => {
+    // Не допускаем изменения уже перенесённой записи до завершения всего переноса.
+    if (localStorage.getItem('kafka_clusters')) { setError(true); return false; }
+    try {
+      const previous = update ? clusters.find(p => p.id === input.id) : undefined;
+      if (update && !previous) return false;
+      const payload = { name: String(input.name || ''), config: profileConfig(input), revision: previous?.revision, preserveSecrets: update };
+      const response = update
+        ? await axios.put(`/api/kafka-profiles/${encodeURIComponent(previous!.id)}`, payload, { timeout: 10000 })
+        : await axios.post('/api/kafka-profiles', payload, { timeout: 10000 });
+      if (!validServerProfile(response.data)) throw new Error('Invalid profile');
+      if (!mounted.current) return false;
+      const { id, name, brokers, authType, saslMechanism, revision } = response.data;
+      const profile: KafkaCluster = { id, name, brokers, authType, saslMechanism, revision, connectionStatus: 'checking' };
+      failures.current.delete(id);
+      setClusters(old => update ? old.map(p => p.id === id ? profile : p) : [...old, profile]);
+      if (!update) setCurrentClusterId(id);
+      setError(false); return true;
+    } catch { if (mounted.current) setError(true); return false; }
   }, [clusters]);
-
-  useEffect(() => {
-    if (currentClusterId) localStorage.setItem(CURRENT_CLUSTER_KEY, currentClusterId);
-    else localStorage.removeItem(CURRENT_CLUSTER_KEY);
-  }, [currentClusterId]);
-
-  const addCluster = useCallback((cluster: Omit<KafkaCluster, 'id'>) => {
-    const newCluster: KafkaCluster = {
-      ...cluster,
-      id: Date.now().toString(),
-      connectionStatus: hasValidBootstrap(String(cluster.brokers || cluster.bootstrapServers || '')) ? 'checking' : 'disconnected',
-    };
-    setClusters((previous) => [...previous, newCluster]);
-    setCurrentClusterId(newCluster.id);
-  }, []);
-
-  const updateCluster = useCallback((updatedCluster: KafkaCluster) => {
-    const nextCluster = { ...updatedCluster, connectionStatus: hasValidBootstrap(String(updatedCluster.brokers || updatedCluster.bootstrapServers || '')) ? 'checking' as ClusterConnectionStatus : 'disconnected' as ClusterConnectionStatus };
-    setClusters((previous) => previous.map((cluster) => (
-      cluster.id === updatedCluster.id ? nextCluster : cluster
-    )));
-    if (updatedCluster.id === currentClusterId) setProfileRevision((value) => value + 1);
-  }, [currentClusterId]);
-
-  const removeCluster = useCallback((clusterId: string) => {
-    const removed = clusters.find((cluster) => cluster.id === clusterId);
-    const next = clusters.filter((cluster) => cluster.id !== clusterId);
-    const removedBootstrap = removed?.brokers || removed?.bootstrapServers;
-    const stillUsed = Boolean(removedBootstrap && next.some(
-      (cluster) => (cluster.brokers || cluster.bootstrapServers) === removedBootstrap
-    ));
-
-    // Clear credentials from backend memory when no saved cluster uses this bootstrap.
-    if (removedBootstrap && !stillUsed) {
-      void axios.delete('/api/clusters/config', {
-        headers: { 'X-Kafka-Bootstrap': removedBootstrap },
-        timeout: 3000,
-      }).catch(() => undefined);
-    }
-
-    setClusters(next);
-    if (clusterId === currentClusterId) setCurrentClusterId(next[0]?.id ?? null);
+  const addCluster = useCallback((p: Omit<KafkaCluster, 'id'>) => save(p, false), [save]);
+  const updateCluster = useCallback((p: KafkaCluster) => save(p, true), [save]);
+  const removeCluster = useCallback(async (id: string) => {
+    if (localStorage.getItem('kafka_clusters')) { setError(true); return false; }
+    const previous = clusters.find(p => p.id === id);
+    if (!previous) return false;
+    try {
+      await axios.delete(`/api/kafka-profiles/${encodeURIComponent(id)}`, { headers: { 'If-Match': String(previous.revision) }, timeout: 7000 });
+      if (!mounted.current) return false;
+      setClusters(old => old.filter(p => p.id !== id)); failures.current.delete(id);
+      if (currentClusterId === id) setCurrentClusterId(clusters.find(p => p.id !== id)?.id ?? null);
+      setError(false); return true;
+    } catch { if (mounted.current) setError(true); return false; }
   }, [clusters, currentClusterId]);
+  const changeCluster = useCallback((p: KafkaCluster) => { updateClusterStatus(p.id, 'checking'); setCurrentClusterId(p.id); }, [updateClusterStatus]);
 
-  const changeCluster = useCallback((cluster: KafkaCluster) => {
-    // Сразу переводим новый кластер в checking: старые данные и старый статус
-    // не должны визуально переходить на другой bootstrap.
-    updateClusterStatus(cluster.id, 'checking');
-    setCurrentClusterId(cluster.id);
-  }, [updateClusterStatus]);
-
-  return (
-    <ClusterContext.Provider value={{
-      clusters,
-      currentCluster,
-      addCluster,
-      updateCluster,
-      removeCluster,
-      changeCluster,
-      updateClusterStatus,
-    }}>
-      {children}
-    </ClusterContext.Provider>
-  );
+  return <ClusterContext.Provider value={{ clusters, currentCluster, addCluster, updateCluster, removeCluster, changeCluster, updateClusterStatus }}>
+    {error && <div className="owner-profile-error" role="alert">{t('owner.profileError')} <button type="button" onClick={() => setRetry(value => value + 1)}>{t('owner.retry')}</button></div>}
+    {children}
+  </ClusterContext.Provider>;
 }
-
 export function useCluster(): ClusterContextValue {
   const context = useContext(ClusterContext);
   if (!context) throw new Error('useCluster должен использоваться внутри ClusterProvider');

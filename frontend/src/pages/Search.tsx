@@ -93,7 +93,7 @@ export default function Search() {
     const loadTopics = async () => {
       try {
         const response = await axios.get('/api/topics', {
-          headers: { 'X-Kafka-Bootstrap': currentCluster.brokers || currentCluster.bootstrapServers }
+          headers: { 'X-Kafka-Profile-ID': currentCluster.id }
         });
         let topicsList = response.data.topics || [];
         if (topicsList.length > 0 && typeof topicsList[0] === 'object') {
@@ -111,7 +111,7 @@ export default function Search() {
   useEffect(() => {
     if (!selectedTopic || !currentCluster) return;
     axios.get(`/api/topics/${selectedTopic}/partitions`, {
-      headers: { 'X-Kafka-Bootstrap': currentCluster.brokers || currentCluster.bootstrapServers }
+      headers: { 'X-Kafka-Profile-ID': currentCluster.id }
     }).then((res) => {
       setPartitions(res.data.partitions || [])
     }).catch(() => setPartitions([]))
@@ -182,7 +182,7 @@ export default function Search() {
       if (searchKeyword) url += `&search=${encodeURIComponent(searchKeyword)}`;
 
       const response = await axios.get(url, {
-        headers: { 'X-Kafka-Bootstrap': currentCluster.brokers || currentCluster.bootstrapServers }
+        headers: { 'X-Kafka-Profile-ID': currentCluster.id }
       });
       setMessages(response.data.messages || [])
       setTotalMessages(response.data.total || 0)

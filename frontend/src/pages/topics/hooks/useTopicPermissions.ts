@@ -21,7 +21,7 @@ export function useTopicPermissions(cluster: KafkaCluster | null) {
     const currentRevision = ++revision.current;
     void axios.get('/api/capabilities', {
       signal: request.signal,
-      headers: { 'X-Kafka-Bootstrap': cluster.brokers || cluster.bootstrapServers },
+      headers: { 'X-Kafka-Profile-ID': cluster.id, 'X-Kafka-Profile-Revision': String(cluster.revision) },
     }).then(response => {
       if (request.signal.aborted || revision.current !== currentRevision) return;
       const flags = response.data?.kafkaAdmin;

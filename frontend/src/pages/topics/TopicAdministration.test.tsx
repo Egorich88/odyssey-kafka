@@ -105,3 +105,82 @@ it('после 403 отзывает устаревшее разрешение и
   await act(async () => { await result.current.handleCreateTopic({ preventDefault: vi.fn() }); });
   expect(axios.post).toHaveBeenCalledTimes(1);
 });
+
+it('не выводит AxiosError с CSRF или телом запроса в консоль', async () => {
+  vi.mocked(axios.get).mockImplementation(async url => ({ data: url === '/api/capabilities'
+    ? { kafkaAdmin: { createTopic: true } } : { topics: [] } }));
+  vi.mocked(axios.post).mockRejectedValue({ response: { status: 400 }, config: {
+    headers: { 'X-CSRF-Token': 'synthetic-private-csrf' }, data: 'synthetic-private-payload',
+  } });
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const { result } = renderHook(() => useTopics());
+  await waitFor(() => expect(result.current.permissions.createTopic).toBe(true));
+  act(() => result.current.setNewTopic({ ...result.current.newTopic, topic: 'test-topic' }));
+  await act(async () => { await result.current.handleCreateTopic({ preventDefault: vi.fn() }); });
+  expect(log).toHaveBeenCalled();
+  expect(JSON.stringify(log.mock.calls)).not.toContain('synthetic-private');
+});
+
+it('изолирует выбор и запоздавшие ответы профилей с одинаковым bootstrap', async () => {
+  const previous=source.cluster;
+  let listA!: (value:any)=>void, listB!: (value:any)=>void, detailsA!: (value:any)=>void;
+  source.cluster={id:'profile-a',brokers:'shared.test:9092'};
+  vi.mocked(axios.get).mockImplementation((url,options) => {
+    if(url==='/api/capabilities') return Promise.resolve({data:{kafkaAdmin:{deleteTopic:true,alterTopicConfig:true}}});
+    const id=(options?.headers as Record<string,string>)?.['X-Kafka-Profile-ID'];
+    if(url==='/api/topics/') return new Promise(resolve=>{if(id==='profile-a') listA=resolve;else listB=resolve;});
+    return new Promise(resolve=>{detailsA=resolve;});
+  });
+  const confirm=vi.spyOn(window,'confirm').mockReturnValue(true);
+  try {
+    const {result,rerender}=renderHook(()=>useTopics());
+    await waitFor(()=>expect(result.current.permissions.deleteTopic).toBe(true));
+    act(()=>result.current.handleRowClick({name:'only-a'}));
+    const oldDelete=result.current.handleDeleteTopic;
+    source.cluster={id:'profile-b',brokers:'shared.test:9092'};
+    rerender();
+    await waitFor(()=>expect(result.current.permissions.deleteTopic).toBe(true));
+    expect(result.current.selectedTopic).toBeNull();
+    await act(async()=>{listB({data:{topics:[{name:'only-b'}]}});});
+    await act(async()=>{listA({data:{topics:[{name:'only-a'}]}});detailsA({data:{name:'only-a',configs:{}}});});
+    expect(result.current.topics.map(p=>p.name)).toEqual(['only-b']);
+    expect(result.current.detailTopic).toBeNull();
+    await act(async()=>{await oldDelete();});
+    expect(confirm).not.toHaveBeenCalled();expect(axios.delete).not.toHaveBeenCalled();
+  } finally {source.cluster=previous;}
+});
+
+it('передаёт ожидаемую ревизию при записи и отзывает права после конфликта профиля', async () => {
+  const previous=source.cluster;
+  source.cluster=Object.assign({...previous},{revision:7});
+  vi.mocked(axios.get).mockImplementation(async url=>({data:url==='/api/capabilities'?{kafkaAdmin:{createTopic:true}}:{topics:[]}}));
+  vi.mocked(axios.post).mockRejectedValue({response:{status:409}});
+  try {
+    const {result}=renderHook(()=>useTopics());
+    await waitFor(()=>expect(result.current.permissions.createTopic).toBe(true));
+    act(()=>result.current.setNewTopic({...result.current.newTopic,topic:'test-topic'}));
+    await act(async()=>{await result.current.handleCreateTopic({preventDefault:vi.fn()});});
+    expect(axios.post).toHaveBeenCalledWith('/api/topics',expect.anything(),expect.objectContaining({headers:expect.objectContaining({
+      'X-Kafka-Profile-ID':source.cluster.id,'X-Kafka-Profile-Revision':'7',
+    })}));
+    expect(result.current.permissions.createTopic).toBe(false);
+  } finally {source.cluster=previous;}
+});
+
+it('не открывает закрытые детали после завершения сохранения конфигурации', async () => {
+  vi.mocked(axios.get).mockImplementation(async url=>({data:url==='/api/capabilities'
+    ? {kafkaAdmin:{alterTopicConfig:true}} : url==='/api/topics/' ? {topics:[]} : {name:'test-topic',configs:{'retention.ms':'1'}}}));
+  let finish!: (value:unknown)=>void;
+  vi.mocked(axios.patch).mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+  const {result}=renderHook(()=>useTopics());
+  await waitFor(()=>expect(result.current.permissions.alterTopicConfig).toBe(true));
+  act(()=>result.current.handleRowClick({name:'test-topic'}));
+  await waitFor(()=>expect(result.current.detailTopic?.name).toBe('test-topic'));
+  act(()=>result.current.handleConfigDoubleClick('retention.ms','1'));
+  act(()=>result.current.setEditValue('2'));
+  let saving!: Promise<void>;
+  act(()=>{saving=result.current.handleSaveEdit();});
+  act(()=>result.current.closePanel());
+  await act(async()=>{finish({});await saving;});
+  expect(result.current.detailTopic).toBeNull();
+});

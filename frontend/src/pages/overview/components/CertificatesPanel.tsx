@@ -115,9 +115,9 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
     const load = async () => {
       if (!currentCluster) return;
       try {
-        const bootstrap = currentCluster.brokers || currentCluster.bootstrapServers;
+        const bootstrap = currentCluster.id;
         const response = await axios.get<ResponseData>('/api/overview/certificates', {
-          headers: { 'X-Kafka-Bootstrap': bootstrap },
+          headers: { 'X-Kafka-Profile-ID': bootstrap },
         });
         if (!cancelled) setData(response.data);
       } catch (error) {

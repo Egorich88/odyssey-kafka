@@ -20,7 +20,7 @@ export function ClusterHealthProvider({ children }: { children: ReactNode }) {
     const request = new AbortController();
     setLoading(true);
     void axios.get('/api/overview/health', {
-      headers: { 'X-Kafka-Bootstrap': currentCluster.brokers || currentCluster.bootstrapServers },
+      headers: { 'X-Kafka-Profile-ID': currentCluster.id },
       signal: request.signal,
     }).then(response => {
       if (!request.signal.aborted) setSnapshot({ profile: currentCluster, data: response.data });

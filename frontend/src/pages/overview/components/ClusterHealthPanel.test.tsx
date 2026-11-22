@@ -42,7 +42,7 @@ it('игнорирует запоздавшее состояние предыд�
   profile.current = { id: 'b', brokers: 'b.test:9092', connectionStatus: 'connected' };
   await act(async () => { rerender(<ClusterHealthPanel {...panel.props} />); });
   expect(get.mock.calls[0][1]?.signal?.aborted).toBe(true);
-  expect(get.mock.calls[1][1]?.headers).toEqual({ 'X-Kafka-Bootstrap': 'b.test:9092' });
+  expect(get.mock.calls[1][1]?.headers).toEqual({ 'X-Kafka-Profile-ID': 'b' });
   await act(async () => { finishA({ data: { status: 'critical' } }); });
   expect(onData.mock.calls).toEqual([[dataB]]);
 });

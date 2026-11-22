@@ -99,9 +99,9 @@ export default function Overview(): JSX.Element {
     ? timeRange.id
     : `absolute&from=${encodeURIComponent(timeRange.from)}&to=${encodeURIComponent(timeRange.to)}`;
 
-  const currentClusterId = currentCluster?.id ?? null;
-  // Адрес брокеров: используется как заголовок X-Kafka-Bootstrap.
-  const bootstrap = currentCluster?.brokers || currentCluster?.bootstrapServers || '';
+  const currentClusterId = currentCluster ? `${currentCluster.id}:${currentCluster.revision ?? 0}` : null;
+  // Серверная идентичность профиля не зависит от bootstrap-адресов.
+  const bootstrap = currentCluster?.id || '';
 
   /**
    * Сбрасывает данные дашборда при переключении кластера.
@@ -134,7 +134,7 @@ export default function Overview(): JSX.Element {
       clearForClusterSwitch();
     }
 
-    const headers = { 'X-Kafka-Bootstrap': bootstrap };
+    const headers = { 'X-Kafka-Profile-ID': bootstrap };
     const throughputQuery = timeRange.type === 'relative'
       ? `range=${timeRange.id}`
       : `range=${apiRange}&from=${encodeURIComponent(timeRange.from)}&to=${encodeURIComponent(timeRange.to)}`;

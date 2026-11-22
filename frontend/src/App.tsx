@@ -62,13 +62,14 @@ import { enterpriseRoutes } from '@odyssey/registry';
 
 // Контексты
 import { ClusterProvider } from './contexts/ClusterContext';
+import OwnerGate from './security/OwnerGate';
 
 function App() {
   return (
       /* ============================================================
          Глобальный контекст управления Kafka-кластерами
          ============================================================ */
-    <ClusterProvider>
+    <OwnerGate><ClusterProvider>
         {/* ============================================================
             Маршрутизация приложения
             ============================================================ */}
@@ -115,7 +116,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </ClusterProvider>
+    </ClusterProvider></OwnerGate>
   );
 }
 

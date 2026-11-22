@@ -36,7 +36,7 @@
 import {
     useEffect,
     useMemo,
-    useState
+    useState, useRef, useLayoutEffect
 } from 'react';
 
 import toast from 'react-hot-toast';
@@ -88,6 +88,10 @@ import './styles/consumer-groups.css';
 export default function ConsumerGroupsPage() {
 
     const { currentCluster } = useCluster();
+    const profileKey = currentCluster ? `${currentCluster.id}:${currentCluster.revision ?? 0}` : '';
+    const activeProfile = useRef(profileKey);
+    activeProfile.current = profileKey;
+    const groupsRequest = useRef(0);
     const { setPageLoading } = useDashboardControls();
 
     const [groups, setGroups] =
@@ -128,6 +132,7 @@ export default function ConsumerGroupsPage() {
      */
 
     const loadGroups = async (showToast = false) => {
+        const request = ++groupsRequest.current;
 
         if (!currentCluster?.brokers) {
 
@@ -144,9 +149,10 @@ export default function ConsumerGroupsPage() {
 
             const data =
                 await fetchConsumerGroups(
-                    currentCluster.brokers
+                    currentCluster.id
                 );
 
+            if (activeProfile.current !== profileKey || request !== groupsRequest.current) return;
             setGroups(data);
 
             if (showToast) {
@@ -157,6 +163,7 @@ export default function ConsumerGroupsPage() {
             }
 
         } catch (error) {
+            if (activeProfile.current !== profileKey || request !== groupsRequest.current) return;
 
             const message =
                 error instanceof Error
@@ -171,7 +178,7 @@ export default function ConsumerGroupsPage() {
 
         } finally {
 
-            setLoading(false);
+            if (activeProfile.current === profileKey && request === groupsRequest.current) setLoading(false);
         }
     };
 
@@ -182,14 +189,23 @@ export default function ConsumerGroupsPage() {
      * =========================================================================
      */
 
+    useLayoutEffect(() => {
+        activeProfile.current = profileKey;
+        setGroups([]);
+        setSelectedGroup(null);
+        setSelectedDetails(null);
+        setOffsetResetOpen(false);
+        return () => { groupsRequest.current++; activeProfile.current = ''; };
+    }, [profileKey]);
+
     useEffect(() => {
 
         void loadGroups();
 
-        // Зависимость намеренно ограничена адресом Kafka-кластера.
+        // Идентичность подключения определяется серверным ID и ревизией.
         // eslint-disable-next-line react-hooks/exhaustive-deps
 
-    }, [currentCluster?.brokers]);
+    }, [currentCluster?.id, currentCluster?.revision]);
 
 
     /**
@@ -220,7 +236,7 @@ export default function ConsumerGroupsPage() {
 
                 const details =
                     await fetchConsumerGroupDetails(
-                        currentCluster.brokers,
+                        currentCluster.id,
                         selectedGroup.name
                     );
 
@@ -260,7 +276,7 @@ export default function ConsumerGroupsPage() {
 
     }, [
         selectedGroup?.name,
-        currentCluster?.brokers
+        currentCluster?.id, currentCluster?.revision
     ]);
 
 
@@ -476,15 +492,16 @@ export default function ConsumerGroupsPage() {
             ] = await Promise.all([
 
                 fetchConsumerGroups(
-                    currentCluster.brokers
+                    currentCluster.id
                 ),
 
                 fetchConsumerGroupDetails(
-                    currentCluster.brokers,
+                    currentCluster.id,
                     group.name
                 )
             ]);
 
+            if (activeProfile.current !== profileKey) return;
             setGroups(groupsData);
 
             setSelectedDetails(details);

@@ -29,3 +29,14 @@ it('сохраняет старый профиль без потери наст�
   fireEvent.click(screen.getByRole('button', { name: 'Сохранить изменения' }));
   expect(save).toHaveBeenCalledWith({ ...cluster, name: 'Новое имя' });
 });
+
+it('редактирует серверный профиль без возвращённых паролей и ключей', () => {
+  const save=vi.fn();
+  const profile={id:'server-id',name:'SASL',brokers:'a.test:9094,b.test:9094',authType:'SASL',saslMechanism:'SCRAM-SHA-512',revision:3};
+  const {container}=render(<ClusterSettingsPanel cluster={profile} onSave={save} onCancel={vi.fn()} onDelete={vi.fn()} />);
+  expect((container.querySelector('input[name="password"]') as HTMLInputElement).value).toBe('');
+  fireEvent.change(container.querySelector('input[name="name"]')!,{target:{value:'Новое имя'}});
+  fireEvent.click(screen.getByRole('button',{name:'Сохранить изменения'}));
+  expect(save).toHaveBeenCalledWith({...profile,name:'Новое имя'});
+  expect(save.mock.calls[0][0]).not.toHaveProperty('password');
+});

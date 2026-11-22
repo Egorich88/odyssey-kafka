@@ -19,7 +19,7 @@
  * Содержит всю бизнес-логику страницы управления топиками
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useCluster } from '../../../contexts/ClusterContext';
@@ -45,6 +45,11 @@ export const formatRetention = (value) => {
 
 export function useTopics() {
   const { currentCluster } = useCluster();
+  const profileKey = currentCluster ? `${currentCluster.id}:${currentCluster.revision ?? 0}` : '';
+  const activeProfile = useRef(profileKey);
+  activeProfile.current = profileKey;
+  const listRequest = useRef(null);
+  const detailRequest = useRef(null);
   const { t } = useTranslation();
   const { permissions, revoke } = useTopicPermissions(currentCluster);
   const rejectAdministration = useCallback(() => toast.error(t('adminPermissions.readOnly')), [t]);
@@ -119,7 +124,7 @@ export function useTopics() {
   /**
    * Сброс всех состояний при смене кластера
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTopics([]);
     setSelectedTopic(null);
     setDetailTopic(null);
@@ -127,7 +132,12 @@ export function useTopics() {
     setFilter('');
     setSelectedTopics([]);
     setSelectedConfigParam(null);
-  }, [currentCluster?.brokers]);
+    setShowCreateModal(false);
+    setNewTopic(previous => ({ ...previous, topic: '' }));
+    setLoading(false);
+    setDetailLoading(false);
+    return () => { listRequest.current?.abort(); detailRequest.current?.abort(); };
+  }, [profileKey]);
 
   // ===========================================================================
   // Загрузка данных
@@ -137,19 +147,26 @@ export function useTopics() {
    * Загружает список топиков из API
    */
   const fetchTopics = useCallback(async () => {
+    if (activeProfile.current !== profileKey) return;
     if (!currentCluster) {
       setTopics([]);
       return;
     }
 
     setLoading(true);
+    listRequest.current?.abort();
+    const request = new AbortController();
+    listRequest.current = request;
 
     try {
       const response = await axios.get('/api/topics/', {
+        signal: request.signal,
         headers: {
-          'X-Kafka-Bootstrap': currentCluster.brokers,
+          'X-Kafka-Profile-ID': currentCluster.id,
+          'X-Kafka-Profile-Revision': String(currentCluster.revision),
         },
       });
+      if (request.signal.aborted || activeProfile.current !== profileKey) return;
 
       const topicsData = response.data.topics || [];
 
@@ -163,13 +180,14 @@ export function useTopics() {
 
       setTopics(normalized);
     } catch (error) {
-      console.error(error);
+      if (request.signal.aborted || activeProfile.current !== profileKey) return;
+      console.error('Не удалось выполнить запрос Kafka.');
       setTopics([]);
       toast.error('Ошибка загрузки топиков');
     } finally {
-      setLoading(false);
+      if (!request.signal.aborted && activeProfile.current === profileKey) setLoading(false);
     }
-  }, [currentCluster]);
+  }, [profileKey]);
 
   useEffect(() => {
     fetchTopics();
@@ -180,7 +198,10 @@ export function useTopics() {
    * @param {string} topicName - Имя топика
    */
   const loadTopicDetails = useCallback(async (topicName) => {
-    if (!currentCluster) return;
+    if (!currentCluster || activeProfile.current !== profileKey) return;
+    detailRequest.current?.abort();
+    const request = new AbortController();
+    detailRequest.current = request;
 
     setDetailLoading(true);
     setDetailTopic(null);
@@ -191,20 +212,23 @@ export function useTopics() {
       const response = await axios.get(
         `/api/topics/${encodeURIComponent(topicName)}`,
         {
+          signal: request.signal,
           headers: {
-            'X-Kafka-Bootstrap': currentCluster.brokers,
+            'X-Kafka-Profile-ID': currentCluster.id,
+          'X-Kafka-Profile-Revision': String(currentCluster.revision),
           },
         }
       );
 
-      setDetailTopic(response.data);
+      if (!request.signal.aborted && activeProfile.current === profileKey) setDetailTopic(response.data);
     } catch (error) {
-      console.error(error);
+      if (request.signal.aborted || activeProfile.current !== profileKey) return;
+      console.error('Не удалось выполнить запрос Kafka.');
       toast.error('Ошибка загрузки деталей топика');
     } finally {
-      setDetailLoading(false);
+      if (!request.signal.aborted && activeProfile.current === profileKey) setDetailLoading(false);
     }
-  }, [currentCluster]);
+  }, [profileKey]);
 
   // ===========================================================================
   // Обработчики событий таблицы
@@ -248,6 +272,7 @@ export function useTopics() {
    * Закрывает панель деталей топика
    */
   const closePanel = () => {
+    detailRequest.current?.abort();
     setDetailTopic(null);
     setEditingParam(null);
     setSelectedConfigParam(null);
@@ -291,6 +316,7 @@ export function useTopics() {
    * Сохраняет изменённое значение параметра конфигурации
    */
   const handleSaveEdit = useCallback(async () => {
+    if (activeProfile.current !== profileKey) return;
     if (!permissions.alterTopicConfig) { rejectAdministration(); return; }
     if (!selectedTopic || !editingParam) return;
 
@@ -309,32 +335,35 @@ export function useTopics() {
         },
         {
           headers: {
-            'X-Kafka-Bootstrap': currentCluster.brokers,
+            'X-Kafka-Profile-ID': currentCluster.id,
+          'X-Kafka-Profile-Revision': String(currentCluster.revision),
           },
         }
       );
 
+      if (activeProfile.current !== profileKey) return;
       toast.success(`Параметр ${editingParam} обновлён`);
 
-      setDetailTopic((prev) => ({
+      setDetailTopic((prev) => prev ? ({
         ...prev,
         configs: {
           ...prev.configs,
           [editingParam]: editValue,
         },
-      }));
+      }) : prev);
 
       setEditingParam(null);
       setSelectedConfigParam(null);
     } catch (error) {
-      if (error.response?.status === 403) { revoke(); rejectAdministration(); return; }
-      console.error(error);
+      if (activeProfile.current !== profileKey) return;
+      if ([403, 409].includes(error.response?.status)) { revoke(); rejectAdministration(); return; }
+      console.error('Не удалось выполнить запрос Kafka.');
       toast.error(
         'Ошибка сохранения: ' +
           (error.response?.data?.error || error.message)
       );
     }
-  }, [selectedTopic, editingParam, editValue, originalValue, currentCluster, permissions.alterTopicConfig, rejectAdministration, revoke]);
+  }, [profileKey, selectedTopic, editingParam, editValue, originalValue, currentCluster, permissions.alterTopicConfig, rejectAdministration, revoke]);
 
   /**
    * Отменяет редактирование параметра
@@ -354,6 +383,7 @@ export function useTopics() {
    */
   const handleCreateTopic = useCallback(async (e) => {
     e.preventDefault();
+    if (activeProfile.current !== profileKey) return;
     if (!permissions.createTopic) { rejectAdministration(); return; }
 
     if (!currentCluster) return;
@@ -380,10 +410,12 @@ export function useTopics() {
 
       await axios.post('/api/topics', payload, {
         headers: {
-          'X-Kafka-Bootstrap': currentCluster.brokers,
+          'X-Kafka-Profile-ID': currentCluster.id,
+          'X-Kafka-Profile-Revision': String(currentCluster.revision),
         },
       });
 
+      if (activeProfile.current !== profileKey) return;
       toast.success(`Топик "${newTopic.topic}" создан`);
 
       setNewTopic({
@@ -399,8 +431,9 @@ export function useTopics() {
 
       fetchTopics();
     } catch (error) {
-      if (error.response?.status === 403) { revoke(); rejectAdministration(); return; }
-      console.error(error);
+      if (activeProfile.current !== profileKey) return;
+      if ([403, 409].includes(error.response?.status)) { revoke(); rejectAdministration(); return; }
+      console.error('Не удалось выполнить запрос Kafka.');
       const backendError = error.response?.data?.error || '';
 
       if (
@@ -414,12 +447,13 @@ export function useTopics() {
         toast.error(backendError || 'Ошибка создания топика');
       }
     }
-  }, [currentCluster, newTopic, showAdvanced, fetchTopics, permissions.createTopic, rejectAdministration, revoke]);
+  }, [profileKey, currentCluster, newTopic, showAdvanced, fetchTopics, permissions.createTopic, rejectAdministration, revoke]);
 
   /**
    * Удаляет выбранный топик
    */
   const handleDeleteTopic = useCallback(async () => {
+    if (activeProfile.current !== profileKey) return;
     if (!permissions.deleteTopic) { rejectAdministration(); return; }
     if (!selectedTopic) {
       toast.error('Выберите топик');
@@ -435,21 +469,24 @@ export function useTopics() {
         `/api/topics/${encodeURIComponent(selectedTopic.name)}`,
         {
           headers: {
-            'X-Kafka-Bootstrap': currentCluster.brokers,
+            'X-Kafka-Profile-ID': currentCluster.id,
+          'X-Kafka-Profile-Revision': String(currentCluster.revision),
           },
         }
       );
 
+      if (activeProfile.current !== profileKey) return;
       toast.success(`Топик "${selectedTopic.name}" удалён`);
 
       closePanel();
       fetchTopics();
     } catch (error) {
-      if (error.response?.status === 403) { revoke(); rejectAdministration(); return; }
-      console.error(error);
+      if (activeProfile.current !== profileKey) return;
+      if ([403, 409].includes(error.response?.status)) { revoke(); rejectAdministration(); return; }
+      console.error('Не удалось выполнить запрос Kafka.');
       toast.error('Ошибка удаления топика');
     }
-  }, [selectedTopic, currentCluster, fetchTopics, permissions.deleteTopic, rejectAdministration, revoke]);
+  }, [profileKey, selectedTopic, currentCluster, fetchTopics, permissions.deleteTopic, rejectAdministration, revoke]);
 
   // ===========================================================================
   // Экспорт данных
@@ -501,7 +538,8 @@ export function useTopics() {
           `/api/topics/${encodeURIComponent(topic.name)}`,
           {
             headers: {
-              'X-Kafka-Bootstrap': currentCluster.brokers,
+              'X-Kafka-Profile-ID': currentCluster.id,
+          'X-Kafka-Profile-Revision': String(currentCluster.revision),
             },
           }
         );
@@ -527,7 +565,7 @@ export function useTopics() {
       setShowExportMenu(false);
       toast.success(`Экспортировано ${selected.length} топиков`);
     } catch (error) {
-      console.error(error);
+      console.error('Не удалось выполнить запрос Kafka.');
       toast.error('Ошибка экспорта конфигурации');
     }
   }, [currentCluster, topics, selectedTopics]);
