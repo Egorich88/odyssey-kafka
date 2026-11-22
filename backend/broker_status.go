@@ -38,7 +38,7 @@ func newBrokerStatusAdmin(bootstrap string, withDisk bool) (sarama.ClusterAdmin,
 		// ApiVersions для согласования доступных версий запросов.
 		config.Version = sarama.V3_3_0_0
 	}
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		return nil, nil, revision, err
 	}

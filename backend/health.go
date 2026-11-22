@@ -74,7 +74,7 @@ func getClusterHealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Получаем адрес брокера из заголовка (единый способ для всех API)
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	if bootstrap == "" {
 		sendJSONError(w, "Bootstrap server not provided", http.StatusBadRequest)
 		return
@@ -82,7 +82,7 @@ func getClusterHealthHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Сначала строго проверяем формат каждого адреса. Это позволяет сразу
 	// отклонить пустые элементы, отсутствующий порт и буквы вместо номера порта.
-	brokers := parseBootstrapServers(bootstrap)
+	brokers := kafkaProfileBrokers(bootstrap)
 	for _, broker := range brokers {
 		broker = strings.TrimSpace(broker)
 		host, port, splitErr := net.SplitHostPort(broker)
@@ -94,7 +94,7 @@ func getClusterHealthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Health-check должен подтвердить не только TCP-соединение, но и ответ Kafka Admin API.
-	config := kafkaConfigForBootstrap(bootstrap)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 	config.Net.DialTimeout = 5 * time.Second
 	config.Net.ReadTimeout = 4 * time.Second

@@ -71,7 +71,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 
 	// Получаем реальную версию Kafka с логированием
 	kafkaVersion := getRealKafkaVersionWithLog(bootstrap)
@@ -79,7 +79,7 @@ func GetBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	config, revision := kafkaConfigAndRevision(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
 		return

@@ -153,7 +153,7 @@ func getTopicsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[getTopicsHandler] AdminClient error: %v", err)
@@ -222,7 +222,7 @@ func createTopicHandler(w http.ResponseWriter, r *http.Request) {
 		replication = 1
 	}
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[createTopicHandler] AdminClient error: %v", err)
@@ -273,7 +273,7 @@ func deleteTopicHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	log.Printf("[deleteTopicHandler] Deleting topic: %s, bootstrap: %s", topic, bootstrap)
 
 	admin, err := newTopicsAdminClient(bootstrap)
@@ -305,7 +305,7 @@ func getTopicDetailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[getTopicDetailHandler] AdminClient error: %v", err)
@@ -404,7 +404,7 @@ func updateTopicConfigHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	admin, err := newTopicsAdminClient(bootstrap)
 	if err != nil {
 		log.Printf("[updateTopicConfigHandler] AdminClient error: %v", err)

@@ -32,6 +32,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/IBM/sarama"
 )
@@ -40,15 +41,10 @@ import (
 // Вспомогательные функции
 // =============================================================================
 
-// getBootstrapFromRequest возвращает адрес Kafka-брокера из заголовка или переменной окружения.
-func getBootstrapFromRequest(r *http.Request) string {
-	if bootstrap := r.Header.Get("X-Kafka-Bootstrap"); bootstrap != "" {
-		return bootstrap
-	}
-	if env := os.Getenv("KAFKA_BOOTSTRAP_SERVERS"); env != "" {
-		return env
-	}
-	return "localhost:9092"
+// getProfileKeyFromRequest возвращает проверенные middleware ID и ревизию профиля.
+func getProfileKeyFromRequest(r *http.Request) string {
+	key, _ := r.Context().Value(selectedKafkaProfile{}).(string)
+	return key
 }
 
 // parseBootstrapServers разделяет адреса bootstrap-брокеров для Sarama.
@@ -66,8 +62,8 @@ func parseBootstrapServers(bootstrap string) []string {
 
 // createAdminClient создаёт административный клиент Sarama для управления кластером.
 func createAdminClient(bootstrap string) (sarama.ClusterAdmin, error) {
-	config := kafkaConfigForBootstrap(bootstrap)
-	return sarama.NewClusterAdmin(parseBootstrapServers(bootstrap), config)
+	config := kafkaConfigForProfile(bootstrap)
+	return sarama.NewClusterAdmin(kafkaProfileBrokers(bootstrap), config)
 }
 
 // sendJSONError отправляет JSON-ответ с сообщением об ошибке и HTTP-статусом.
@@ -81,14 +77,29 @@ func sendJSONError(w http.ResponseWriter, msg string, status int) {
 // =============================================================================
 
 func main() {
+	if handled, err := ownerCommand(os.Args[1:]); handled {
+		if err != nil {
+			log.Fatal("Не удалось создать владельца: ", err)
+		}
+		return
+	}
+	owner, err := ownerFromEnvironment()
+	if err != nil {
+		log.Fatal("Защита владельца не настроена. Требуются ODYSSEY_DATA_DIR, ODYSSEY_KEY_FILE, ODYSSEY_PUBLIC_ORIGIN и локальный owner-init.")
+	}
+	activeProfileStore = owner.store
+	kafkaAdminPolicy = ownerKafkaAdministration{auth: owner, store: owner.store}
+	activeKafkaPolicy, err = newKafkaAddressPolicy(os.Getenv("ODYSSEY_KAFKA_ALLOWED_NETWORKS"), os.Getenv("ODYSSEY_KAFKA_ALLOWED_PORTS"))
+	if err != nil {
+		log.Fatal("Некорректная серверная политика Kafka-адресов")
+	}
+	profiles := &profileAPI{store: owner.store, auth: owner, policy: activeKafkaPolicy}
+	http.Handle("/api/kafka-profiles", profiles)
+	http.Handle("/api/kafka-profiles/", profiles)
 	// Проверка доступности самого Backend без подключения к Kafka.
 	http.HandleFunc("/api/health", getApplicationHealthHandler)
 	http.HandleFunc("/api/clusters/config", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodDelete {
-			unregisterKafkaConfigHandler(w, r)
-			return
-		}
-		registerKafkaConfigHandler(w, r)
+		sendJSONError(w, "Требуется миграция на защищённые серверные профили", http.StatusGone)
 	})
 
 	// ----- Группа маршрутов для управления топиками (обработчики в topics.go) -----
@@ -205,5 +216,13 @@ func main() {
 
 	port := ":8080"
 	log.Printf("Server running on %s", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	server := &http.Server{Addr: port, Handler: owner.handler(http.DefaultServeMux), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 << 10}
+	if owner.secure {
+		cert, key := os.Getenv("ODYSSEY_TLS_CERT_FILE"), os.Getenv("ODYSSEY_TLS_KEY_FILE")
+		if cert == "" || key == "" {
+			log.Fatal("Для HTTPS требуются пути к серверному сертификату и ключу")
+		}
+		log.Fatal(server.ListenAndServeTLS(cert, key))
+	}
+	log.Fatal(server.ListenAndServe())
 }

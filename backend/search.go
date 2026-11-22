@@ -110,12 +110,12 @@ func getMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Подключение к Kafka
-	bootstrap := getBootstrapFromRequest(r)
-	config := kafkaConfigForBootstrap(bootstrap)
+	bootstrap := getProfileKeyFromRequest(r)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 	config.Consumer.Return.Errors = true
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		log.Printf("Client error: %v", err)
 		sendJSONError(w, "Failed to create client: "+err.Error(), http.StatusInternalServerError)
@@ -263,11 +263,11 @@ func getPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bootstrap := getBootstrapFromRequest(r)
-	config := kafkaConfigForBootstrap(bootstrap)
+	bootstrap := getProfileKeyFromRequest(r)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, err.Error(), http.StatusInternalServerError)
 		return

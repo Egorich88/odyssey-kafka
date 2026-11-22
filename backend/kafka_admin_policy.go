@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 type kafkaAdminAction string
@@ -29,6 +30,23 @@ func (denyKafkaAdministration) Allowed(*http.Request, kafkaAdminAction) bool { r
 // Публичный Core закрыт для записи до реализации безопасной авторизации.
 // Enterprise RBAC здесь не реализуется и автоматически не подключается.
 var kafkaAdminPolicy kafkaAdminAuthorizer = denyKafkaAdministration{}
+
+type ownerKafkaAdministration struct {
+	auth  *ownerAuth
+	store *ownerStore
+}
+
+func (p ownerKafkaAdministration) Allowed(r *http.Request, action kafkaAdminAction) bool {
+	if p.auth == nil || p.store == nil || !p.auth.allowed(r, r.Method != http.MethodGet && r.Method != http.MethodHead) {
+		return false
+	}
+	if action != adminCreateTopic && action != adminDeleteTopic && action != adminAlterTopicConfig {
+		return false
+	}
+	id := r.Header.Get("X-Kafka-Profile-ID")
+	profile, ok := p.store.profile(id)
+	return ok && !isGSSAPIProfile(profile.Config) && getProfileKeyFromRequest(r) == profileKey(profile) && r.Header.Get("X-Kafka-Profile-Revision") == strconv.FormatUint(profile.Revision, 10)
+}
 
 func kafkaAdminAllowed(r *http.Request, action kafkaAdminAction) bool {
 	return kafkaAdminPolicy != nil && kafkaAdminPolicy.Allowed(r, action)

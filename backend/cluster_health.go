@@ -97,7 +97,7 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	if bootstrap == "" {
 		sendJSONError(w, "Bootstrap server not provided", http.StatusBadRequest)
 		return
@@ -109,7 +109,7 @@ func getDashboardHealthHandler(w http.ResponseWriter, r *http.Request) {
 	config.Net.ReadTimeout = 2 * time.Second
 	config.Net.WriteTimeout = 2 * time.Second
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ClusterHealthResponse{
 			Status: "unknown",

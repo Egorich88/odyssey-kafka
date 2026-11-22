@@ -237,7 +237,7 @@ func getConsumerGroupsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	client, err := createKafkaClientForConsumerGroups(bootstrap)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
@@ -293,7 +293,7 @@ func getConsumerGroupDetailsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	client, err := createKafkaClientForConsumerGroups(bootstrap)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
@@ -318,9 +318,9 @@ func getConsumerGroupDetailsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createKafkaClientForConsumerGroups(bootstrap string) (sarama.Client, error) {
-	config := kafkaConfigForBootstrap(bootstrap)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
-	return sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	return sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 }
 
 func normalizeConsumerGroupState(state string) string {

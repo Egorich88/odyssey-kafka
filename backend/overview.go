@@ -84,11 +84,11 @@ func getDashboardMessagesTotalHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
-	config := kafkaConfigForBootstrap(bootstrap)
+	bootstrap := getProfileKeyFromRequest(r)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -126,11 +126,11 @@ func getDashboardOverviewHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
-	config := kafkaConfigForBootstrap(bootstrap)
+	bootstrap := getProfileKeyFromRequest(r)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -208,11 +208,11 @@ func getDashboardBrokersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
-	config := kafkaConfigForBootstrap(bootstrap)
+	bootstrap := getProfileKeyFromRequest(r)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -243,7 +243,7 @@ func getDashboardConsumerGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	admin, err := createAdminClient(bootstrap)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
@@ -304,11 +304,11 @@ func getDashboardPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
-	config := kafkaConfigForBootstrap(bootstrap)
+	bootstrap := getProfileKeyFromRequest(r)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		sendJSONError(w, "Ошибка подключения к Kafka: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -334,7 +334,7 @@ func getDashboardPartitionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Примечание: в данном файле используются вспомогательные функции:
-// - getBootstrapFromRequest(r *http.Request) string
+// - getProfileKeyFromRequest(r *http.Request) string
 // - createAdminClient(bootstrap string) (sarama.ClusterAdmin, error)
 // - sendJSONError(w http.ResponseWriter, message string, code int)
 // Они должны быть определены в другом месте пакета main.
