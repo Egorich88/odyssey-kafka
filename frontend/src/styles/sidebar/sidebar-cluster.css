@@ -56,6 +56,7 @@
     min-height: 36px;
     padding: 0 11px;
     border-radius: 10px;
+    transition: border-color 180ms ease, background 180ms ease;
 }
 
 .cluster-row > .dropdown-wrapper .dropdown-selected-name {
@@ -82,8 +83,14 @@
  */
 .cluster-row > .dropdown-wrapper .dropdown-menu {
     max-height: 240px;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
+    border-radius: 10px;
+    border-color: color-mix(in srgb, var(--accent-color) 55%, var(--border-color));
+    transition: border-color 180ms ease;
+}
+
+.cluster-row > .dropdown-floating .dropdown-selected.open {
+    border-radius: 10px;
+    border-color: var(--accent-color);
 }
 
 .cluster-row > .dropdown-wrapper .dropdown-item {

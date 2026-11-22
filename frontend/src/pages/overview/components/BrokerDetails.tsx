@@ -1,7 +1,10 @@
 import { Component, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiGrid, FiLayers, FiList } from 'react-icons/fi';
+import { FiGrid, FiHardDrive, FiList, FiServer } from 'react-icons/fi';
+import { BrokerIcon } from '../../../components/common/BrokerIcon';
+import { LuCrown } from 'react-icons/lu';
 import type { Broker, BrokersPanelProps } from './BrokersPanel';
+import BrokerResourceRing from './BrokerResourceRing';
 import '../styles/broker-details.css';
 
 export class BrokerDetailsBoundary extends Component<{ children: ReactNode; message: string }, { failed: boolean }> {
@@ -30,12 +33,10 @@ function resource(broker: Broker, key: typeof resourceKeys[number]) {
   return key === 'memory' ? ratio(broker.memory, broker.memoryTotal) : ratio(broker.diskUsage, broker.diskTotal);
 }
 
-function Gauge({ metric, value }: { metric: string; value: number | null }) {
+function Gauge({ metric, value }: { metric: typeof resourceKeys[number]; value: number | null }) {
   return <div className={'broker-detail-gauge broker-metric-' + metric}>
     <svg viewBox="0 0 64 64" aria-hidden="true">
-      <circle className="broker-overview-track" cx="32" cy="32" r="27" />
-      {value !== null && value > 0 && <circle className="broker-overview-arc" cx="32" cy="32" r="27"
-        pathLength="100" strokeDasharray={Math.min(value, 100) + ' 100'} transform="rotate(-90 32 32)" />}
+      <BrokerResourceRing metric={metric} value={value} center={32} radius={26.5} strokeWidth={7.25} />
     </svg>
   </div>;
 }
@@ -83,7 +84,7 @@ export default function BrokerDetails({ data, loading }: BrokersPanelProps) {
   ];
   const partitions = (broker: Broker) => [broker.leaderCount, broker.replicaCount, broker.isrCount, broker.underReplicated];
   const name = (broker: Broker) => broker.name || 'b' + broker.id;
-  const brokerStatus = (broker: Broker) => <span className={'broker-' + statusOf(broker)}>
+  const brokerStatus = (broker: Broker) => <span className={'broker-detail-status broker-' + statusOf(broker)}>
     <i aria-hidden="true" />{t('brokerStatus.' + statusOf(broker))}
   </span>;
   const volumes = (broker: Broker, key: 'memory' | 'disk') => {
@@ -96,7 +97,7 @@ export default function BrokerDetails({ data, loading }: BrokersPanelProps) {
 
   return <div className="broker-details">
     <header className="broker-details-heading">
-      <FiLayers aria-hidden="true" />
+      <BrokerIcon aria-hidden="true" />
       <div><h2>{detail('title')}</h2><p>{t('brokerDetails.count', { count: brokers.length })}</p></div>
     </header>
     {loading ? <p role="status">{label('loading')}</p> : <>
@@ -144,10 +145,12 @@ export default function BrokerDetails({ data, loading }: BrokersPanelProps) {
       ) : (
         <div className="broker-details-grid">
           {visible.map(broker => <article key={broker.id} className="broker-detail-card" aria-label={name(broker)}>
-            <header><h3>{name(broker)}{broker.name && <small> · ID {broker.id}</small>}</h3>{brokerStatus(broker)}</header>
+            <header><div className="broker-detail-identity">
+              <h3>{name(broker)}{broker.name && <small> · ID {broker.id}</small>}</h3>
+              {broker.controller && <span className="broker-detail-controller"><LuCrown aria-hidden="true" />{label('controller')}</span>}
+            </div>{brokerStatus(broker)}</header>
             <div className="broker-detail-address">{broker.address || unavailable}
               {broker.rack && <span> · {detail('rack')} {broker.rack}</span>}
-              {broker.controller && <small className="broker-controller">{label('controller')}</small>}
               {broker.uptime && <small>{detail('uptime')} · {broker.uptime}</small>}
             </div>
             <div className="broker-detail-metrics">
@@ -160,9 +163,18 @@ export default function BrokerDetails({ data, loading }: BrokersPanelProps) {
               </div>)}</dl>
             </div>
             <dl className="broker-detail-volumes">
-              {(['memory', 'disk'] as const).map(key => <div key={key}>
-                <dt>{label(key)}</dt><dd>{volumes(broker, key)}</dd>
-              </div>)}
+              {(['memory', 'disk'] as const).map(key => {
+                const value = resource(broker, key);
+                return <div key={key} className={'broker-detail-volume broker-metric-' + key}>
+                  <dt>{key === 'memory' ? <FiServer aria-hidden="true" /> : <FiHardDrive aria-hidden="true" />}{label(key)}</dt>
+                  <dd>
+                    <span className="broker-detail-volume-track" aria-hidden="true" data-available={value !== null}>
+                      {value !== null && <span style={{ width: `${value}%` }} />}
+                    </span>
+                    <span>{volumes(broker, key)}</span>
+                  </dd>
+                </div>;
+              })}
             </dl>
           </article>)}
         </div>

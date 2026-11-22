@@ -66,6 +66,7 @@ import CreateClusterPanel from '../CreateClusterPanel';
 import ClusterSettingsPanel from '../ClusterSettingsPanel';
 import PageHeader from '../page-header/PageHeader';
 import { DashboardControlsProvider } from '../../contexts/DashboardControlsContext';
+import { ClusterHealthProvider } from '../../contexts/ClusterHealthContext';
 import ClusterStatusScreen from '../cluster-status/ClusterStatusScreen';
 import '../cluster-status/cluster-status-screen.css';
 import { PAGE_CONFIG } from '../page-header/page-config';
@@ -222,6 +223,7 @@ const Layout = () => {
 
       {/* Основная область контента */}
       <DashboardControlsProvider>
+        <ClusterHealthProvider>
         <main className="main-content">
           <PageHeader
             title={currentPage.title}
@@ -238,6 +240,7 @@ const Layout = () => {
             )}
           </div>
         </main>
+        </ClusterHealthProvider>
       </DashboardControlsProvider>
 
       {/* Модальное окно управления кластером */}

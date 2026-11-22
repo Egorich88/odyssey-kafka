@@ -454,11 +454,36 @@
 /* ============================================================
    Tooltips
    ============================================================ */
-.react-tooltip {
+.react-tooltip,
+.react-tooltip.odyssey-tooltip {
     background: var(--tooltip-bg) !important;
     color: var(--tooltip-text) !important;
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    box-shadow: var(--shadow-primary);
+    padding: 6px 9px;
+    max-width: min(360px, calc(100vw - 24px));
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    transition: opacity 160ms ease !important;
     z-index: 99999 !important;
+}
+.odyssey-tooltip-title { display: block; margin-bottom: 8px; font-size: inherit; line-height: 1.4; font-weight: 650; }
+.odyssey-tooltip-lines { display: grid; gap: 6px; }
+.odyssey-tooltip-lines p,
+.odyssey-tooltip-fields,
+.odyssey-tooltip-fields dd { margin: 0; }
+.odyssey-tooltip-fields > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.odyssey-tooltip-fields dt { opacity: .75; }
+.odyssey-tooltip-fields dd { text-align: right; }
+.odyssey-tooltip-scroll { max-height: min(320px, 60vh); overflow-y: auto; overscroll-behavior: contain; }
+.odyssey-tooltip-scroll:focus-visible { outline: 2px solid var(--accent-color); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) {
+    .react-tooltip,
+    .react-tooltip.odyssey-tooltip { transition: none !important; }
 }

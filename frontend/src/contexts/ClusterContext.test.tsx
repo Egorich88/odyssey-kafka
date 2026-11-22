@@ -55,3 +55,16 @@ it('после сохранения активного профиля регис
   })));
   await screen.findByText('connected');
 });
+
+it('загружает и сохраняет старый профиль с ZooKeeper, передавая backend только Kafka-настройки', async () => {
+  const legacy = { id: 'legacy', name: 'Старый профиль', brokers: 'a.test:9092,b.test:9092',
+    authType: 'PLAINTEXT', zookeeper: 'zk.test:2181' };
+  localStorage.setItem('kafka_clusters', JSON.stringify([legacy]));
+  const post = vi.mocked(axios.post).mockResolvedValue({});
+  vi.mocked(axios.get).mockResolvedValue({ data: { status: 'connected' } });
+  render(<ClusterProvider><Controls /></ClusterProvider>);
+  await screen.findByText('connected');
+  expect(post.mock.calls[0][1]).toMatchObject({ brokers: legacy.brokers, authType: legacy.authType });
+  expect(post.mock.calls[0][1]).not.toHaveProperty('zookeeper');
+  expect(JSON.parse(localStorage.getItem('kafka_clusters')!)[0]).toMatchObject(legacy);
+});

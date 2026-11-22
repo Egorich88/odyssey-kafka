@@ -113,13 +113,13 @@
   box-sizing: border-box;
 }
 
-.panel-title-with-info,
+.panel-header .panel-title-with-info,
 .dashboard-container .topics-panel-title,
 .dashboard-container .throughput-title,
-.events-title {
+.events-panel-header .events-title {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 11px;
   min-width: 0;
   color: var(--text-primary);
   font-size: 15px;
@@ -134,6 +134,22 @@
   padding: 12px 14px;
   color: var(--text-secondary);
   box-sizing: border-box;
+}
+
+/* Только декоративные иконки заголовков; значки i и кнопки остаются прежними. */
+.panel-header .panel-title-with-info > svg,
+.dashboard-container .topics-panel-title > svg,
+.dashboard-container .throughput-title > svg,
+.events-panel-header .events-title > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  color: var(--accent-color);
+}
+.panel-header .panel-info-trigger svg,
+.events-panel-header .panel-info-trigger svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* Центрированная модальная панель вместо реального fullscreen. */

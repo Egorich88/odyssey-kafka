@@ -14,63 +14,38 @@
  * limitations under the License.
  */
 
-/**
- * =============================================================================
- * @file LoadingBootstrap.tsx
- * =============================================================================
- *
- * Контроллер первоначального запуска Odyssey.
- *
- * Назначение:
- *
- * • запускает реальную инициализацию приложения;
- * • отображает LoadingScreen во время запуска;
- * • после успешного завершения передаёт управление App;
- * • не содержит бизнес-логики Kafka или страниц приложения.
- *
- * Архитектура:
- *
- * LoadingBootstrap
- *       │
- *       ├── useLoading()
- *       │
- *       ├── LoadingScreen
- *       │
- *       └── App
- *
- * =============================================================================
- */
 
-import { useEffect } from 'react';
+import { Component, useEffect, type ReactNode } from 'react';
 import { useLoading } from './hooks/useLoading';
+import { completeStartup, showStartupError } from './startup';
+import i18n from '../../i18n';
 
-import LoadingScreen from './components/LoadingScreen';
+// Граница охватывает также восстановление темы и языка в main.tsx.
+export class StartupBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { showStartupError(); }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    if (document.getElementById('initial-splash')) return null;
+    // После завершения заставки ошибка также оставляет доступное действие восстановления.
+    return <div className="startup-error" role="alert">
+      <p>{i18n.t('startup.failed')}</p>
+      <button type="button" onClick={() => window.location.reload()}>{i18n.t('startup.retry')}</button>
+    </div>;
+  }
+}
 
-import App from '../../App';
+function ApplicationReady() {
+  // Эффекты App, включая восстановление сохранённого профиля, уже выполнены.
+  // Сетевые проверки кластеров продолжаются независимо от готовности UI.
+  useEffect(() => completeStartup(), []);
+  return null;
+}
 
-
-/**
- * =============================================================================
- * LoadingBootstrap
- * =============================================================================
- *
- * Основная точка перехода от стартового экрана к приложению.
- * =============================================================================
- */
-export default function LoadingBootstrap(): JSX.Element | null {
-    const loading = useLoading();
-
-    useEffect(() => {
-        if (loading.completed) {
-            // Статический splash из index.html является единственным экраном
-            // самого раннего запуска. После готовности React он удаляется.
-            document.getElementById('initial-splash')?.remove();
-        }
-    }, [loading.completed]);
-
-    // Не рисуем второй React-splash поверх статического. Именно это раньше
-    // вызывало визуальный скачок логотипа и повторное появление полоски.
-    if (!loading.completed) return null;
-
-    return <App />;
+export default function LoadingBootstrap() {
+  const { App, failed } = useLoading();
+  useEffect(() => { if (failed) showStartupError(); }, [failed]);
+  if (!App || failed) return null;
+  return <><App /><ApplicationReady /></>;
 }

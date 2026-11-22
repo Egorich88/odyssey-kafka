@@ -11,7 +11,9 @@
  * выглядеть во всех темах и браузерах.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import OdysseyTooltip from '../common/OdysseyTooltip';
 import { FiChevronDown } from 'react-icons/fi';
 import { REFRESH_INTERVALS } from './constants';
 import type { RefreshInterval } from './types';
@@ -23,6 +25,8 @@ interface Props {
 
 export default function RefreshIntervalPicker({ value, onChange }: Props): JSX.Element {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+  const tooltipId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = REFRESH_INTERVALS.find((item) => item.value === value) ?? REFRESH_INTERVALS[0];
 
@@ -43,10 +47,15 @@ export default function RefreshIntervalPicker({ value, onChange }: Props): JSX.E
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={t('headerControls.interval')}
+        data-tooltip-id={open ? undefined : tooltipId}
+        data-tooltip-content={t('headerControls.interval')}
       >
         <strong>{selected.label}</strong>
         <FiChevronDown />
       </button>
+
+      <OdysseyTooltip id={tooltipId} place="bottom" hidden={open} />
 
       {open && (
         <div className="page-header-refresh-menu" role="listbox" aria-label="Интервал обновления">

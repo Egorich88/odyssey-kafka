@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { FiChevronDown, FiChevronUp, FiSearch } from 'react-icons/fi';
+import { useState, useEffect, useId, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { FiChevronDown, FiChevronUp, FiSearch, FiCheck } from 'react-icons/fi';
 import '../../styles/dropdown.css';
+import useDropdownPosition from '../../hooks/useDropdownPosition';
 
 /**
  * Универсальный выпадающий список.
@@ -36,15 +38,22 @@ export default function Dropdown({
   addLabel,
   onAdd,
   statusResolver,
-  searchable = false
+  searchable = false,
+  floating = false,
+  connections = false
 }) {
+  const { t } = useTranslation();
+  const menuId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef(null);
+  const menuRef = useRef(null);
+  const pendingFocus = useRef(null);
+  const menuStyle = useDropdownPosition(isOpen, dropdownRef, menuRef, floating, 240);
 
   // Фильтрация элементов по поисковому запросу
   const filteredItems = searchable && searchTerm
-    ? items.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    ? items.filter(item => String(item.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
     : items;
 
   // Закрытие при клике вне
@@ -66,17 +75,60 @@ export default function Dropdown({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !pendingFocus.current) return;
+    const buttons = menuRef.current?.querySelectorAll('button') || [];
+    const index = pendingFocus.current === 'last' ? buttons.length - 1 : 0;
+    buttons?.[index]?.focus();
+    pendingFocus.current = null;
+  }, [isOpen]);
+
+  const focusTrigger = () => dropdownRef.current?.querySelector('.dropdown-selected')?.focus();
+  const connectionLabel = (item) => {
+    // Показываем только известные виды подключения, без произвольных полей профиля.
+    const auth = String(item.authType || 'PLAINTEXT');
+    if (auth === 'MTLS') return 'mTLS';
+    if (['SASL', 'SASL_PLAIN', 'SASL_SCRAM'].includes(auth)) return 'SASL';
+    return ['PLAINTEXT', 'TLS', 'SSL', 'SASL_SSL', 'SASL_PLAINTEXT'].includes(auth)
+      ? auth : t('connectionsMenu.connection');
+  };
+
   const handleSelect = (item) => {
     onSelect(item);
     setIsOpen(false);
     setSearchTerm('');
+    focusTrigger();
   };
 
   return (
-    <div className="dropdown-wrapper" ref={dropdownRef}>
+    <div className={`dropdown-wrapper ${floating ? 'dropdown-floating' : ''} ${connections ? 'dropdown-connections' : ''}`} ref={dropdownRef}
+      onKeyDown={event => {
+        if (event.key === 'Escape' && isOpen) {
+          event.stopPropagation();
+          setIsOpen(false);
+          focusTrigger();
+        } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) && event.target.tagName !== 'INPUT') {
+          event.preventDefault();
+          const last = event.key === 'ArrowUp' || event.key === 'End';
+          if (!isOpen) {
+            pendingFocus.current = last ? 'last' : 'first';
+            setIsOpen(true);
+            return;
+          }
+          const buttons = [...(menuRef.current?.querySelectorAll('button') || [])];
+          if (!buttons.length) return;
+          const index = buttons.indexOf(document.activeElement);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+            : (index + (event.key === 'ArrowUp' ? -1 : 1) + buttons.length) % buttons.length;
+          buttons[next]?.focus();
+        }
+      }}>
       <button
         type="button"
         className={`dropdown-selected ${isOpen ? 'open' : ''}`}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-controls={isOpen ? menuId : undefined}
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="dropdown-selected-left">
@@ -91,7 +143,7 @@ export default function Dropdown({
       </button>
 
       {isOpen && (
-        <div className="dropdown-menu">
+        <div className="dropdown-menu" id={menuId} role="menu" aria-label={selectedItem.name} ref={menuRef} style={menuStyle}>
           {/* Поле поиска (если включено) */}
           {searchable && (
             <div className="dropdown-search">
@@ -99,7 +151,7 @@ export default function Dropdown({
               <input
                 type="text"
                 className="dropdown-search-input"
-                placeholder="Поиск..."
+                placeholder={t('connectionsMenu.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -109,26 +161,34 @@ export default function Dropdown({
 
           <div className="dropdown-list">
             {filteredItems.map(item => (
-              <div
+              <button
+                type="button"
                 key={item.id}
-                className="dropdown-item"
+                role="menuitemradio"
+                aria-checked={item.id === selectedItem.id}
+                className={`dropdown-item ${item.id === selectedItem.id ? 'selected' : ''}`}
                 onClick={() => handleSelect(item)}
               >
                 {statusResolver && (
                   <div className={`dropdown-status-dot ${statusResolver(item)}`} />
                 )}
-                <span>{item.name}</span>
-              </div>
+                <span className="dropdown-item-copy"><span>{item.name}</span>
+                  {connections && <small>{connectionLabel(item)}</small>}
+                </span>
+                {item.id === selectedItem.id && <span className="dropdown-item-active"><FiCheck aria-hidden="true" />
+                  {connections && <span>{t('connectionsMenu.active')}</span>}
+                </span>}
+              </button>
             ))}
             {filteredItems.length === 0 && (
-              <div className="dropdown-item disabled">Ничего не найдено</div>
+              <div className="dropdown-item disabled">{t('connectionsMenu.empty')}</div>
             )}
           </div>
 
-          {onAdd && (
-            <div className="dropdown-add" onClick={() => { setIsOpen(false); onAdd(); }}>
+          {onAdd && addLabel && (
+            <button type="button" role="menuitem" className="dropdown-add" onClick={() => { setIsOpen(false); focusTrigger(); onAdd(); }}>
               {addLabel}
-            </div>
+            </button>
           )}
         </div>
       )}

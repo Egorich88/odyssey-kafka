@@ -30,12 +30,12 @@
 
 import { useState, useEffect, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from 'react-tooltip';
-import { NavLink } from 'react-router-dom';
+import OdysseyTooltip from './OdysseyTooltip';
+import { BrokerIcon } from './BrokerIcon';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   FiHome,
   FiPlus,
-  FiServer,
   FiLayers,
   FiUsers,
   FiSearch,
@@ -98,7 +98,7 @@ interface SidebarItem {
 
 // Публичные страницы, готовые к показу в стандартной сборке.
 const CORE_ITEMS: SidebarItem[] = [
-  { title: 'Брокеры', titleKey: 'brokers', path: '/brokers', icon: FiServer },
+  { title: 'Брокеры', titleKey: 'brokers', path: '/brokers', icon: BrokerIcon },
   { title: 'Топики', titleKey: 'topics', path: '/topics', icon: FiLayers },
   { title: 'Группы потребителей', titleKey: 'consumerGroups', path: '/groups', icon: FiUsers },
   { title: 'Поиск сообщений', titleKey: 'searchMessages', path: '/search', icon: FiSearch },
@@ -114,6 +114,8 @@ const ENTERPRISE_OPERATIONS = enterpriseSidebarItems.filter((item) =>
 );
 
 export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailable = false }: SidebarProps) {
+  const { pathname } = useLocation();
+  const overviewActive = pathname === '/' || pathname === '/overview';
   const { clusters, currentCluster, changeCluster } = useCluster();
   const { t } = useTranslation();
   const version = packageJson.version;
@@ -212,10 +214,10 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
                 <div className={`cluster-row ${collapsed ? 'collapsed' : ''}`}>
                     {!collapsed && (
                         <Dropdown
+                            floating
+                            connections
                             selectedItem={currentCluster}
-                            items={clusters.filter(
-                                cluster => cluster.id !== currentCluster.id
-                            )}
+                            items={clusters}
                             onSelect={changeCluster}
                             addLabel={t('sidebar.addCluster')}
                             onAdd={onAddCluster}
@@ -254,10 +256,10 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
 
         {hasCluster && !clusterUnavailable && (
           <nav className="sidebar-nav">
-            <NavLink
+            <Link
               to="/"
-              end
-              className={`sidebar-link ${navigationDisabled ? 'is-disabled' : ''}`}
+              aria-current={overviewActive ? 'page' : undefined}
+              className={`sidebar-link ${overviewActive ? 'active' : ''} ${navigationDisabled ? 'is-disabled' : ''}`}
               onClick={(event) => { if (navigationDisabled) event.preventDefault(); }}
               data-tooltip-id={collapsed || navigationDisabled ? 'sidebar-tooltip' : undefined}
               data-tooltip-content={collapsed || navigationDisabled ? t('overview') : undefined}
@@ -266,7 +268,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             >
               <FiHome />
               {!collapsed && <span>{t('overview')}</span>}
-            </NavLink>
+            </Link>
 
             <div className="sidebar-divider" />
 
@@ -441,7 +443,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
           )}
         </div>
       </div>
-      <Tooltip id="sidebar-tooltip" place="right" offset={12} />
+      <OdysseyTooltip id="sidebar-tooltip" place="right" />
     </aside>
   );
 }

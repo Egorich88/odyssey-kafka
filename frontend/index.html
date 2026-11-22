@@ -13,288 +13,165 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 -->
-
-<!--
- * ============================================================================
- * @file index.html
- * ============================================================================
- *
- * Главный HTML-документ frontend-приложения Kafka System Control.
- *
- * ----------------------------------------------------------------------------
- * Назначение
- * ----------------------------------------------------------------------------
- *
- * Этот файл является самым ранним этапом запуска frontend-приложения.
- *
- * Браузер загружает index.html до выполнения React и main.tsx.
- *
- * Файл отвечает только за:
- *
- * • базовую HTML-структуру страницы;
- * • подключение шрифтов;
- * • метаданные документа;
- * • ранний статический Splash Screen;
- * • DOM-контейнер для React;
- * • подключение точки входа React-приложения.
- *
- * ----------------------------------------------------------------------------
- * Что НЕ находится в index.html
- * ----------------------------------------------------------------------------
- *
- * Здесь не должно быть:
- *
- * • React-логики;
- * • Context Provider'ов;
- * • API-запросов;
- * • бизнес-логики;
- * • состояния приложения;
- * • логики загрузки Kafka;
- * • анимации React-компонентов.
- *
- * ----------------------------------------------------------------------------
- * Архитектура запуска
- * ----------------------------------------------------------------------------
- *
- * Browser
- *    ↓
- * index.html
- *    ↓
- * Static Splash
- *    ↓
- * main.tsx
- *    ↓
- * React
- *    ↓
- * LoadingDemo / LoadingScreen
- *    ↓
- * App
- *
- * ----------------------------------------------------------------------------
- * Важный принцип
- * ----------------------------------------------------------------------------
- *
- * Static Splash здесь является только самым ранним визуальным экраном.
- *
- * Он нужен для того, чтобы пользователь не видел белый экран в момент,
- * когда HTML уже загружен, но React ещё не начал отображать интерфейс.
- *
- * Полноценный Splash Screen находится в React-компонентах:
- *
- * src/components/loading/
- *
- * Его стили находятся в:
- *
- * src/components/loading/styles/loading-screen.css
- *
- * Поэтому сложные стили Loading Screen намеренно НЕ дублируются здесь.
- *
- * ============================================================================
--->
-
 <!doctype html>
-
-<html lang="en">
-
+<html lang="ru" data-theme="dark">
 <head>
-
-    <!-- =====================================================================
-         Кодировка документа
-    ====================================================================== -->
-
     <meta charset="UTF-8" />
-
-
-    <!-- =====================================================================
-         Адаптивность
-    ====================================================================== -->
-
-    <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-    />
-
-
-    <!-- =====================================================================
-         Цвет браузерного интерфейса
-    ====================================================================== -->
-
-    <meta
-            name="theme-color"
-            content="#0f1117"
-    />
-
-    <!-- =====================================================================
-         Заголовок приложения
-    ====================================================================== -->
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f1117" />
     <title>ODYSSEY — Kafka Monitoring & Management</title>
-
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-
-
-    <!-- =====================================================================
-         Шрифты приложения
-    ======================================================================
-
-         Orbitron:
-         используется для фирменных элементов и заголовков.
-
-         Inter:
-         основной интерфейсный шрифт приложения.
-
-         JetBrains Mono:
-         техническая информация и Kafka-related данные.
-    ====================================================================== -->
-
-    <link
-            href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap"
-            rel="stylesheet"
-    />
-
-    <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-            rel="stylesheet"
-    />
-
-    <link
-            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
-            rel="stylesheet"
-    />
-
-    <link
-            href="https://fonts.googleapis.com/css2?family=Questrial&display=swap"
-            rel="stylesheet"
-    />
-
-
-    <!-- =====================================================================
-         Минимальные стили самого раннего этапа запуска
-    ======================================================================
-
-         Эти стили находятся непосредственно в index.html намеренно.
-
-         Причина:
-         внешний CSS и React ещё могут быть не загружены в момент,
-         когда браузер уже начинает отображать HTML.
-
-         Здесь оставлены ТОЛЬКО стили, необходимые для Static Splash.
-
-         Все остальные стили Loading Screen находятся в:
-
-         src/components/loading/styles/loading-screen.css
-    ====================================================================== -->
-
+    <script>
+        // Восстанавливаем только оформление до первого кадра, без чтения профилей Kafka.
+        try {
+            const themes = ['dark','light','github-dark','github-light','dracula','nord','material','monokai-pro','solarized-dark','solarized-light','deep-ocean','mac','linux','coffee','kitty','rainbow'];
+            const theme = localStorage.getItem('ksc_theme');
+            if (themes.includes(theme)) document.documentElement.dataset.theme = theme;
+            document.documentElement.lang = localStorage.getItem('ksc_language') === 'en' ? 'en' : 'ru';
+        } catch {}
+        // Восстановление работает до React и не обращается к backend/Kafka.
+        let recoveryStarted = false;
+        let recoveryStopped = false;
+        let recoveryTimer;
+        let probeAbort;
+        const recoveryKey = 'odyssey_startup_auto_reload';
+        const recoveryDelays = [3000, 5000, 10000, 15000, 30000, 30000];
+        function recoverStartup() {
+            if (recoveryStarted || !document.getElementById('initial-splash') || typeof fetch !== 'function') return;
+            let reloads;
+            try {
+                const saved = JSON.parse(sessionStorage.getItem(recoveryKey) || 'null');
+                reloads = saved && Date.now() - saved.at < 300000 ? Number(saved.count) : 0;
+                if (!Number.isInteger(reloads) || reloads < 0 || reloads >= 2) return;
+            } catch { return; }
+            recoveryStarted = true;
+            let attempt = 0;
+            const schedule = () => {
+                if (!recoveryStopped && attempt < recoveryDelays.length && document.getElementById('initial-splash')) {
+                    recoveryTimer = window.setTimeout(probe, recoveryDelays[attempt++]);
+                }
+            };
+            const probe = async () => {
+                if (recoveryStopped || !document.getElementById('initial-splash') || document.getElementById('root')?.classList.contains('is-ready')) return;
+                const script = Array.from(document.querySelectorAll('script[type="module"][src]')).at(-1);
+                if (!script) return;
+                const url = new URL(script.src, location.href);
+                if (url.origin !== location.origin) return;
+                probeAbort = new AbortController();
+                const timeout = window.setTimeout(() => probeAbort?.abort(), 3000);
+                try {
+                    const response = await fetch(url.href, { method: 'HEAD', cache: 'no-store', redirect: 'error', signal: probeAbort.signal });
+                    const mime = response.headers.get('content-type') || '';
+                    if (response.ok && /(?:java|ecma)script/i.test(mime) && document.getElementById('initial-splash') && !document.getElementById('root')?.classList.contains('is-ready')) {
+                        // Счётчик переживает reload, чтобы постоянная ошибка не создала цикл.
+                        sessionStorage.setItem(recoveryKey, JSON.stringify({ count: reloads + 1, at: Date.now() }));
+                        location.reload();
+                        return;
+                    }
+                } catch {} finally { window.clearTimeout(timeout); }
+                schedule();
+            };
+            schedule();
+        }
+        function failStartup() {
+            const status = document.getElementById('initial-splash-status');
+            const retry = document.getElementById('initial-splash-retry');
+            const english = document.documentElement.lang === 'en';
+            if (status) status.textContent = english ? 'Unable to start the Odyssey interface.\nTry reloading the page.' : 'Не удалось запустить интерфейс Odyssey.\nПопробуйте перезагрузить страницу.';
+            if (retry) { retry.textContent = english ? 'Reload page' : 'Повторить загрузку'; retry.hidden = false; }
+            recoverStartup();
+        }
+        window.addEventListener('error', function (event) {
+            const moduleFailed = event.target instanceof HTMLScriptElement && event.target.type === 'module';
+            const earlyError = event instanceof ErrorEvent && !document.getElementById('root')?.hasChildNodes();
+            if (moduleFailed || earlyError) failStartup();
+        }, true);
+        window.addEventListener('odyssey-startup-failed', recoverStartup);
+        window.addEventListener('odyssey-startup-ready', () => {
+            recoveryStarted = true;
+            recoveryStopped = true;
+            window.clearTimeout(recoveryTimer);
+            probeAbort?.abort();
+            try { sessionStorage.removeItem(recoveryKey); } catch {}
+        });
+    </script>
+    <link rel="stylesheet" href="/src/styles/themes.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet" />
     <style>
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background: #0f1117;
-        }
-
-        #root {
-            width: 100%;
-            min-height: 100%;
-        }
-
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-primary, #0f1117); }
+        #root { width: 100%; min-height: 100%; opacity: 0; transition: opacity 400ms ease; }
+        #root.is-ready { opacity: 1; }
         #initial-splash {
-            position: fixed;
-            inset: 0;
-            z-index: 999999;
-            display: grid;
-            place-items: center;
-            background: #0f1117;
+            position: fixed; inset: 0; z-index: 999999;
+            display: grid; place-items: center;
+            background: var(--bg-primary, #0f1117);
+            opacity: 1; transition: opacity 400ms ease;
         }
-
-        .initial-splash-logo-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Статус находится в HTML, поэтому виден ещё до запуска React. */
+        #initial-splash.is-leaving { opacity: 0; pointer-events: none; }
+        .initial-splash-logo-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: calc(100vw - 32px); }
+        .initial-splash-logo { display: block; width: min(160px, 38vw); height: auto; aspect-ratio: 265 / 302.56; flex: none; filter: drop-shadow(0 10px 24px rgba(0,0,0,.35)); }
         #initial-splash-status {
-            min-height: 20px;
-            margin-top: 12px;
-            color: #d0d7de;
-            font-family: Inter, sans-serif;
-            font-size: 14px;
-            font-weight: 400;
-            letter-spacing: .2px;
-            text-align: center;
+            min-height: 44px; max-width: 440px; margin-top: 12px;
+            color: var(--text-secondary, #d0d7de); font-family: Inter, sans-serif;
+            font-size: 14px; font-weight: 400; line-height: 22px;
+            letter-spacing: .2px; text-align: center; white-space: pre-line;
         }
-
-        .initial-splash-logo-wrap img {
-            width: 160px;
-            height: auto;
-            filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
-        }
-
-        .initial-splash-logo-wrap span {
-            width: 120px;
-            height: 3px;
-            border-radius: 999px;
+        /* Существующая фирменная полоска сохранена без изменения визуального эффекта. */
+        .initial-splash-pulse {
+            width: 120px; height: 3px; border-radius: 999px;
             background: radial-gradient(ellipse at center, #55e6dc, rgba(34,220,200,.35) 45%, transparent 80%);
             box-shadow: 0 0 18px rgba(85,230,220,.45);
             animation: initialSplashGlow 1.8s ease-in-out infinite;
         }
-
         @keyframes initialSplashGlow {
             0%, 100% { opacity: .48; transform: scaleX(.82); }
             50% { opacity: 1; transform: scaleX(1.08); }
         }
+        #initial-splash-retry { padding: 8px 12px; border: 1px solid var(--border-color, rgba(255,255,255,.15)); border-radius: var(--panel-radius, 8px); background: var(--panel-bg, #111827); color: var(--text-primary, #f8fafc); font: inherit; cursor: pointer; }
+        #initial-splash-retry:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 3px; }
+        .startup-error { min-height: 100vh; display: grid; place-content: center; gap: 16px; padding: 24px; text-align: center; color: var(--text-primary); }
+        .startup-error button { padding: 8px 12px; background: var(--panel-bg); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--panel-radius); font: inherit; cursor: pointer; }
+        .startup-error p { white-space: pre-line; }
+        html[data-theme='light'] #initial-splash { background: var(--bg-primary, #f3f6fb); }
+        html[data-theme='light'] #initial-splash-status { color: var(--text-secondary, #59636e); }
+        html[data-theme='light'] #initial-splash-retry { background: var(--panel-bg, #fff); color: var(--text-primary, #0f172a); border-color: var(--border-color, #d0d7de); }
+        @media (prefers-reduced-motion: reduce) {
+            #root, #initial-splash { transition: none; }
+            .initial-splash-pulse { animation: none; }
+        }
     </style>
-
 </head>
-
-
 <body>
-
-<!-- =====================================================================
-     Static Splash Screen
-======================================================================
-
-     Отображается непосредственно браузером до запуска React.
-
-     Логотип находится внутри этого контейнера намеренно.
-
-     После завершения React LoadingBootstrap удаляет #initial-splash.
-====================================================================== -->
-
-
-
-
-<!-- =====================================================================
-     React Root
-======================================================================
-
-     В этот элемент React монтирует приложение.
-====================================================================== -->
-
-<div id="initial-splash" aria-label="ODYSSEY">
+<!-- Единственная заставка: оригинальный SVG встроен для отображения вместе с полоской без сетевого ожидания. -->
+<div id="initial-splash" aria-label="Odyssey">
     <div class="initial-splash-logo-wrap">
-        <img src="/logo.svg" alt="ODYSSEY" />
-        <span></span>
-        <div id="initial-splash-status" role="status" aria-live="polite">Инициализация...</div>
+        <svg class="initial-splash-logo" role="img" aria-label="Odyssey" id="_Слой_1" data-name="Слой 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 265 302.56">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#_Безымянный_градиент_2);
+      }
+    </style>
+    <linearGradient id="_Безымянный_градиент_2" data-name="Безымянный градиент 2" x1="0" y1="151.28" x2="265" y2="151.28" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7b5cff"/>
+      <stop offset=".5" stop-color="#00c2ff"/>
+      <stop offset="1" stop-color="#00e676"/>
+    </linearGradient>
+  </defs>
+  <path class="cls-1" d="M241.08,183.93l.16-66.77c13.49-2.25,23.76-13.98,23.76-28.1,0-15.74-12.76-28.5-28.5-28.5-8.56,0-16.23,3.77-21.44,9.74l-56.51-33.36c.83-2.67,1.27-5.5,1.27-8.44,0-15.74-12.76-28.5-28.5-28.5s-28.5,12.76-28.5,28.5c0,3.08.49,6.05,1.39,8.83l-54.72,32.46c-5.21-5.68-12.68-9.23-20.99-9.23-15.74,0-28.5,12.76-28.5,28.5,0,13.35,9.18,24.56,21.57,27.64l-.17,67.76c-12.31,3.15-21.4,14.31-21.4,27.6,0,15.74,12.76,28.5,28.5,28.5,7.8,0,14.86-3.13,20-8.21l55.86,32.98c-.88,2.75-1.36,5.69-1.36,8.73,0,15.74,12.76,28.5,28.5,28.5s28.5-12.76,28.5-28.5c0-3.25-.54-6.37-1.55-9.28l56.82-33.72c5.21,5.83,12.79,9.5,21.23,9.5,15.74,0,28.5-12.76,28.5-28.5,0-14.18-10.36-25.94-23.92-28.13ZM221.99,85.23c.83-3.13,2.64-5.86,5.08-7.84,2.58-2.08,5.86-3.33,9.43-3.33,8.28,0,15,6.71,15,15,0,6.61-4.28,12.22-10.22,14.22-1.5.51-3.11.78-4.78.78-1.83,0-3.58-.33-5.21-.93-5.71-2.12-9.79-7.62-9.79-14.07,0-1.32.17-2.61.49-3.83ZM154.65,44.87l55.52,33.27c-1.4,3.36-2.17,7.05-2.17,10.92s.73,7.34,2.05,10.62l-23.78,13.74-49.21-28.67v-28.33c7.24-1.48,13.49-5.71,17.59-11.55ZM171.32,128.91l-.11,45-40,22.59-39.89-22.41.11-45,40-22.59,39.89,22.41ZM131.32,13.5c8.28,0,15,6.72,15,15,0,.4-.02.8-.05,1.19-.24,3.09-1.42,5.92-3.26,8.2-2.75,3.42-6.96,5.61-11.69,5.61s-8.73-2.08-11.48-5.35c-1.87-2.22-3.11-5-3.43-8.05-.06-.52-.09-1.06-.09-1.6,0-8.28,6.72-15,15-15ZM108.2,45.16c4.23,5.88,10.66,10.07,18.08,11.39v28l-48.63,28.48h-.01l-22.77-13.15c1.37-3.34,2.13-6.99,2.13-10.82,0-4.12-.88-8.04-2.46-11.58l53.66-32.32ZM13.5,89.06c0-8.29,6.72-15,15-15,3.32,0,6.4,1.08,8.88,2.91,2.54,1.87,4.46,4.51,5.42,7.58.46,1.42.7,2.94.7,4.51,0,7.22-5.11,13.26-11.92,14.69-.99.2-2.02.31-3.08.31-2.49,0-4.84-.61-6.9-1.68-4.81-2.5-8.1-7.53-8.1-13.32ZM42.33,217.89c-1.27,2.99-3.48,5.49-6.27,7.12-2.22,1.3-4.8,2.05-7.56,2.05-8.28,0-15-6.72-15-15,0-5.7,3.18-10.66,7.86-13.2,2.12-1.15,4.56-1.8,7.14-1.8.98,0,1.93.09,2.85.27,6.92,1.33,12.15,7.42,12.15,14.73,0,2.07-.42,4.04-1.17,5.83ZM31.39,183.71l.16-66.31c6.8-.72,12.88-3.84,17.38-8.49l22.55,13.02-.15,59.6-21.06,12.15c-4.64-5.5-11.33-9.21-18.88-9.97ZM108.34,257.46l-54.38-32.6c1.95-3.85,3.04-8.2,3.04-12.8,0-3.14-.51-6.16-1.45-8.98l22.09-12.76h.01l48.5,28.27v27.48c-7.31,1.38-13.64,5.56-17.81,11.39ZM131.5,289.06c-8.28,0-15-6.72-15-15,0-.51.03-1.02.08-1.51.3-3.07,1.53-5.87,3.41-8.11,2.75-3.29,6.89-5.38,11.51-5.38s8.43,1.93,11.17,4.99c1.94,2.16,3.26,4.89,3.68,7.9.1.69.15,1.39.15,2.11,0,8.28-6.72,15-15,15ZM154.34,257.02c-4.16-5.57-10.32-9.57-17.41-10.94v-27.97l48.96-28.67,23.57,13.61c-.95,2.83-1.46,5.86-1.46,9.01,0,3.99.82,7.79,2.3,11.24l-55.96,33.72ZM214.75,193.66l-23.58-13.62.13-57.07h0s24.61-14.22,24.61-14.22c4.04,4.23,9.36,7.22,15.35,8.32l-.17,67.01c-6.51,1.25-12.23,4.71-16.34,9.58ZM236.5,227.06c-3.46,0-6.65-1.17-9.18-3.14-2.49-1.93-4.35-4.61-5.23-7.71-.39-1.32-.59-2.71-.59-4.15,0-6.37,3.97-11.81,9.56-13.98,1.69-.66,3.52-1.02,5.44-1.02,1.58,0,3.11.25,4.54.7,6.06,1.92,10.46,7.59,10.46,14.3,0,8.28-6.72,15-15,15Z"/>
+</svg>
+        <span class="initial-splash-pulse" aria-hidden="true"></span>
+        <div id="initial-splash-status" role="status" aria-live="polite">Загрузка интерфейса…</div>
+        <button id="initial-splash-retry" type="button" hidden onclick="window.location.reload()">Повторить загрузку</button>
     </div>
 </div>
-
 <div id="root"></div>
-
-
-<!-- =====================================================================
-     React Entry Point
-====================================================================== -->
-
-<script
-        type="module"
-        src="src/main.tsx"
-></script>
-
+<script>
+    if (document.documentElement.lang === 'en') document.getElementById('initial-splash-status').textContent = 'Loading interface…';
+</script>
+<script type="module" src="/src/main.tsx"></script>
 </body>
-
 </html>

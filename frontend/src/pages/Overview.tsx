@@ -23,7 +23,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Tooltip } from 'react-tooltip';
+import OdysseyTooltip from '../components/common/OdysseyTooltip';
 import { FiBookOpen, FiGithub } from 'react-icons/fi';
 import { SiApache } from 'react-icons/si';
 import './overview/styles/overview.css';
@@ -238,7 +238,7 @@ export default function Overview(): JSX.Element {
           </div>
         </div>
 
-        <Tooltip id="welcome-tooltip" place="bottom" offset={10} />
+        <OdysseyTooltip id="welcome-tooltip" place="bottom" />
       </div>
     );
   }

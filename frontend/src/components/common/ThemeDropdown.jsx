@@ -28,6 +28,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FiCheck, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import '../../styles/theme-dropdown.css';
+import useDropdownPosition from '../../hooks/useDropdownPosition';
 
 export default function ThemeDropdown({
   selectedItem,
@@ -36,6 +37,8 @@ export default function ThemeDropdown({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const menuRef = useRef(null);
+  const menuStyle = useDropdownPosition(isOpen, dropdownRef, menuRef);
 
   // Закрытие меню при клике за его пределами.
   useEffect(() => {
@@ -64,6 +67,13 @@ export default function ThemeDropdown({
     <div
       className="theme-dropdown"
       ref={dropdownRef}
+      onKeyDown={event => {
+        if (event.key === 'Escape' && isOpen) {
+          event.stopPropagation();
+          setIsOpen(false);
+          dropdownRef.current?.querySelector('button')?.focus();
+        }
+      }}
     >
       <button
         type="button"
@@ -84,6 +94,8 @@ export default function ThemeDropdown({
       {isOpen && (
         <div
           className="theme-dropdown-menu"
+          ref={menuRef}
+          style={menuStyle}
           role="listbox"
           aria-label="Themes"
         >

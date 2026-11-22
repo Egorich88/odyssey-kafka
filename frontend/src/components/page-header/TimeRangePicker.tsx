@@ -30,7 +30,9 @@
  * =============================================================================
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import OdysseyTooltip from '../common/OdysseyTooltip';
 import { FiCalendar, FiChevronDown } from 'react-icons/fi';
 import { RELATIVE_TIME_RANGES } from './constants';
 import type { TimeRange } from './types';
@@ -65,6 +67,8 @@ function formatAbsolute(value: string): string {
 
 export default function TimeRangePicker({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+  const tooltipId = useId();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -122,11 +126,16 @@ export default function TimeRangePicker({ value, onChange }: Props) {
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-label={t('headerControls.period')}
+        data-tooltip-id={open ? undefined : tooltipId}
+        data-tooltip-content={t('headerControls.period')}
       >
         <FiCalendar className="page-header-control-icon time-range-calendar" />
         <span>{label}</span>
         <FiChevronDown className="page-header-chevron time-range-chevron" />
       </button>
+
+      <OdysseyTooltip id={tooltipId} place="bottom" hidden={open} />
 
       {open && (
         <div className="page-header-time-menu" role="dialog" aria-label="Выбор периода">

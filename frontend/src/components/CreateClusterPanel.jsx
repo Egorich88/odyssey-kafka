@@ -16,7 +16,6 @@ export default function CreateClusterPanel({
   const [config, setConfig] = useState({
 
     name: '',
-    zookeeper: '',
     brokers: '',
 
     authType: 'PLAINTEXT',
@@ -100,19 +99,6 @@ export default function CreateClusterPanel({
           name="name"
           placeholder="Введите название кластера"
           value={config.name}
-          onChange={handleChange}
-        />
-
-        {/* ZOOKEEPER */}
-
-        <label>
-          Zookeeper (host:port, через запятую)
-        </label>
-
-        <input
-          name="zookeeper"
-          placeholder="zookeeper1:2181,zookeeper2:2181,zookeeper3:2181"
-          value={config.zookeeper}
           onChange={handleChange}
         />
 
