@@ -87,3 +87,23 @@ it('загружает и сохраняет старый профиль с ZooK
   expect(post.mock.calls[0][1].config).not.toHaveProperty('zookeeper');
   expect(localStorage.getItem('kafka_clusters')).toBeNull();
 });
+
+it('после отказа ошибочной записи показывает исправные профили и сохраняет выбор для использования', async () => {
+  const second = { ...first, id: 'server-b' };
+  const legacy = JSON.stringify([{ id: 'bad', brokers: 'rrr' }, { id: 'old-a', brokers: first.brokers }, { id: 'old-b', brokers: second.brokers }]);
+  localStorage.setItem('kafka_clusters', legacy);
+  localStorage.setItem('ksc_current_cluster_id', 'old-b');
+  vi.mocked(axios.post).mockRejectedValueOnce({ response: { status: 403 } })
+    .mockResolvedValueOnce({ data: first }).mockResolvedValueOnce({ data: second });
+  vi.mocked(axios.get).mockImplementation(async url => ({ data: url === '/api/kafka-profiles' ? [first, second] : { status: 'connected' } }));
+  render(<ClusterProvider><Controls /></ClusterProvider>);
+  await screen.findByText('server-b:connected');
+  expect(screen.getByRole('alert').textContent).toContain('owner.migrationPartial');
+  expect(axios.post).toHaveBeenCalledTimes(3);
+  expect(localStorage.getItem('kafka_clusters')).toBe(legacy);
+  expect(localStorage.getItem('ksc_current_cluster_id')).toBe('old-b');
+  fireEvent.click(screen.getByText('server-a'));
+  await screen.findByText('server-a:connected');
+  expect(localStorage.getItem('kafka_clusters')).toBe(legacy);
+  expect(JSON.stringify(localStorage)).not.toContain('server-a');
+});
