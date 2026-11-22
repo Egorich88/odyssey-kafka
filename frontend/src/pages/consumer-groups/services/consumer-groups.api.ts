@@ -20,7 +20,7 @@
  *
  * Единая точка HTTP-взаимодействия страницы Consumer Groups.
  *
- * Все запросы передают X-Kafka-Bootstrap, поэтому backend работает
+ * Все запросы передают X-Kafka-Profile-ID, поэтому backend работает
  * с тем Kafka-кластером, который выбран в ClusterContext.
  * =============================================================================
  */
@@ -30,14 +30,16 @@ import type {
     ConsumerGroupDetails
 } from '../types/consumer-groups.types';
 
+import { ownerFetch } from '../../../security/ownerSession';
+
 export async function fetchConsumerGroups(
     bootstrap: string
 ): Promise<ConsumerGroup[]> {
 
-    const response = await fetch('/api/consumer-groups', {
+    const response = await ownerFetch('/api/consumer-groups', {
         headers: {
             'Content-Type': 'application/json',
-            'X-Kafka-Bootstrap': bootstrap
+            'X-Kafka-Profile-ID': bootstrap
         }
     });
 
@@ -54,12 +56,12 @@ export async function fetchConsumerGroupDetails(
     groupName: string
 ): Promise<ConsumerGroupDetails> {
 
-    const response = await fetch(
+    const response = await ownerFetch(
         `/api/consumer-groups/${encodeURIComponent(groupName)}`,
         {
             headers: {
                 'Content-Type': 'application/json',
-                'X-Kafka-Bootstrap': bootstrap
+                'X-Kafka-Profile-ID': bootstrap
             }
         }
     );

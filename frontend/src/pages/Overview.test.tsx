@@ -35,7 +35,7 @@ vi.mock('./overview/components/CertificatesPanel', () => ({ default: () => null 
 const eventsPath = '/api/overview/events';
 const request = vi.mocked(axios.get);
 const unexpectedPaths: string[] = [];
-const headers = { 'X-Kafka-Bootstrap': cluster.brokers };
+const headers = { 'X-Kafka-Profile-ID': cluster.id };
 
 function eventsResponse(message = 'Тестовое событие') {
   return { data: { events: [{ time: '12:00', level: 'INFO', message, source: 'Kafka' }] } };

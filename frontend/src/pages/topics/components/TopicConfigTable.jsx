@@ -26,6 +26,7 @@ export default function TopicConfigTable({
   setSelectedConfigParam,
   editingParam,
   handleConfigDoubleClick,
+  canEdit = false,
 }) {
   return (
     <div className="topic-section topic-config-section">
@@ -61,9 +62,8 @@ export default function TopicConfigTable({
                     className={`config-value ${
                       editingParam === key ? 'editing' : ''
                     }`}
-                    onDoubleClick={() =>
-                      handleConfigDoubleClick(key, value)
-                    }
+                    style={canEdit ? undefined : { cursor: 'text' }}
+                    onDoubleClick={canEdit ? () => handleConfigDoubleClick(key, value) : undefined}
                   >
                     {value}
                   </span>

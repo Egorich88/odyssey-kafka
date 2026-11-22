@@ -1,19 +1,27 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render as rtlRender, screen } from '@testing-library/react';
 import axios from 'axios';
 import { afterEach, expect, it, vi } from 'vitest';
 import { isSameHealthProfile, retainBrokerList } from '../clusterHealthProfile';
 import ClusterHealthPanel from './ClusterHealthPanel';
+import { ClusterHealthProvider } from '../../../contexts/ClusterHealthContext';
+import type { ReactNode } from 'react';
 
 const { profile } = vi.hoisted(() => ({
-  profile: { current: { id: 'a', brokers: 'a.test:9092' } },
+  profile: { current: { id: 'a', brokers: 'a.test:9092', connectionStatus: 'connected' } },
 }));
 
 vi.mock('../../../contexts/ClusterContext', () => ({
   useCluster: () => ({ currentCluster: profile.current }),
 }));
 vi.mock('axios', () => ({ default: { get: vi.fn() } }));
+vi.mock('../../../contexts/DashboardControlsContext', () => ({
+  useDashboardControls: () => ({ refreshPulse: 0 }),
+}));
+const render = (ui: ReactNode) => rtlRender(ui, {
+  wrapper: ({ children }) => <ClusterHealthProvider>{children}</ClusterHealthProvider>,
+});
 
 afterEach(() => {
   cleanup();
@@ -31,10 +39,10 @@ it('игнорирует запоздавшее состояние предыд�
     refreshKey={0} overview={null} consumerGroups={[]} messagesIn={0} messagesOut={0} onData={onData}
   />;
   const { rerender } = render(panel);
-  profile.current = { id: 'b', brokers: 'b.test:9092' };
+  profile.current = { id: 'b', brokers: 'b.test:9092', connectionStatus: 'connected' };
   await act(async () => { rerender(<ClusterHealthPanel {...panel.props} />); });
   expect(get.mock.calls[0][1]?.signal?.aborted).toBe(true);
-  expect(get.mock.calls[1][1]?.headers).toEqual({ 'X-Kafka-Bootstrap': 'b.test:9092' });
+  expect(get.mock.calls[1][1]?.headers).toEqual({ 'X-Kafka-Profile-ID': 'b' });
   await act(async () => { finishA({ data: { status: 'critical' } }); });
   expect(onData.mock.calls).toEqual([[dataB]]);
 });
@@ -69,4 +77,12 @@ it('показывает нижнюю границу числа групп пр�
     consumerGroups={[{}]} consumerGroupsPartial messagesIn={0} messagesOut={0}
   />);
   expect(await screen.findByText('≥ 3')).toBeTruthy();
+});
+
+it('делит один запрос состояния между несколькими потребителями', async () => {
+  vi.mocked(axios.get).mockResolvedValue({ data: { status: 'healthy', brokerCount: 7 } });
+  const props = { refreshKey: 0, overview: null, consumerGroups: [], messagesIn: 0, messagesOut: 0 };
+  render(<><ClusterHealthPanel {...props} /><ClusterHealthPanel {...props} /></>);
+  await screen.findAllByText('7');
+  expect(axios.get).toHaveBeenCalledTimes(1);
 });

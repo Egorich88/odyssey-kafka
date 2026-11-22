@@ -1,4 +1,5 @@
 import { useCluster } from '../contexts/ClusterContext';
+import { ownerFetch } from '../security/ownerSession';
 
 export function useKafkaFetch() {
   const { currentCluster } = useCluster();
@@ -9,10 +10,11 @@ export function useKafkaFetch() {
     }
     const headers = {
       'Content-Type': 'application/json',
-      'X-Kafka-Bootstrap': currentCluster.brokers,
+      'X-Kafka-Profile-ID': currentCluster.id,
+          'X-Kafka-Profile-Revision': String(currentCluster.revision),
       ...options.headers,
     };
-    const response = await fetch(url, {
+    const response = await ownerFetch(url, {
       ...options,
       headers,
     });

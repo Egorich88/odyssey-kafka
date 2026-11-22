@@ -69,11 +69,13 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
+	profileConfig, _ := kafkaAuthProfileSnapshot(bootstrap)
+	addresses := profileConfig.Bootstrap
 	var result []CertificateInfo
 	seen := make(map[string]bool)
 
-	if isLocalBootstrap(bootstrap) {
+	if isLocalBootstrap(addresses) {
 		for _, path := range findLocalKeystores() {
 			if info, ok := readKeystoreCertificate(path, ""); ok && !seen[info.Path] {
 				seen[info.Path] = true
@@ -82,7 +84,7 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if container := findKafkaContainerForBootstrap(bootstrap); container != "" {
+	if container := findKafkaContainerForBootstrap(addresses); container != "" {
 		for _, path := range findDockerKeystores(container) {
 			if info, ok := readKeystoreCertificate(path, container); ok {
 				info.Path = container + ":" + path
@@ -98,7 +100,7 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 	// Получаем сертификаты, которые реально предъявляют брокеры при TLS.
 	// Проверка допускает самоподписанные сертификаты только для чтения их
 	// метаданных; это соединение не используется для выполнения Kafka-команд.
-	for _, endpoint := range strings.Split(bootstrap, ",") {
+	for _, endpoint := range strings.Split(addresses, ",") {
 		endpoint = strings.TrimSpace(endpoint)
 		if endpoint == "" {
 			continue
@@ -147,20 +149,30 @@ func getCertificatesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func readRemoteTLSCertificate(endpoint, bootstrap string) (CertificateInfo, bool) {
-	dialer := &net.Dialer{Timeout: 3 * time.Second}
 	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 	// Reuse the selected profile's CA and client certificate so the certificate
 	// panel can inspect a broker that requires mTLS without bypassing verification.
-	if kafkaConfig := kafkaConfigForBootstrap(bootstrap); kafkaConfig.Net.TLS.Enable && kafkaConfig.Net.TLS.Config != nil {
+	if kafkaConfig := kafkaConfigForProfile(bootstrap); kafkaConfig.Net.TLS.Enable && kafkaConfig.Net.TLS.Config != nil {
 		tlsConfig = kafkaConfig.Net.TLS.Config.Clone()
 		tlsConfig.MinVersion = tls.VersionTLS12
 		tlsConfig.InsecureSkipVerify = false
 	}
-	connection, err := tls.DialWithDialer(dialer, "tcp", endpoint, tlsConfig)
+	connectionRaw, err := activeKafkaPolicy.Dial("tcp", endpoint)
 	if err != nil {
 		return CertificateInfo{}, false
 	}
+	host, _, err := net.SplitHostPort(endpoint)
+	if err != nil {
+		connectionRaw.Close()
+		return CertificateInfo{}, false
+	}
+	tlsConfig.ServerName = host
+	connection := tls.Client(connectionRaw, tlsConfig)
 	defer connection.Close()
+	_ = connection.SetDeadline(time.Now().Add(3 * time.Second))
+	if connection.Handshake() != nil {
+		return CertificateInfo{}, false
+	}
 
 	state := connection.ConnectionState()
 	if len(state.PeerCertificates) == 0 {

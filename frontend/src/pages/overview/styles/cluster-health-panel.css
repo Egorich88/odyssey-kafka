@@ -270,11 +270,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 0;
+  flex-wrap: wrap;
 }
 .cluster-health-summary .cluster-kpi {
   flex: 0 0 auto;
   width: max-content;
-  padding: 7px clamp(10px, .8vw, 16px);
+  padding: 5px clamp(10px, .8vw, 16px);
   gap: 9px;
 }
 .cluster-health-summary .cluster-kpi-icon {

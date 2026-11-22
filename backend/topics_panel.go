@@ -208,10 +208,10 @@ func (tc *TopicsPanelCollector) collect() {
 }
 
 func (tc *TopicsPanelCollector) fetchTopicOffsets() (map[string]int64, error) {
-	config := kafkaConfigForBootstrap(tc.bootstrap)
+	config := kafkaConfigForProfile(tc.bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(tc.bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(tc.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +266,9 @@ var (
 func ensureTopicsCollectorForBootstrap(bootstrap string) {
 	topicsCollectorMu.Lock()
 	defer topicsCollectorMu.Unlock()
+	if _, revision := kafkaAuthProfileSnapshot(bootstrap); revision == 0 {
+		return
+	}
 	if topicsCollectorByBootstrap[bootstrap] != nil {
 		return
 	}
@@ -281,7 +284,7 @@ func GetTopicsPanelHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	if bootstrap == "" {
 		sendJSONError(w, "Bootstrap server not provided", http.StatusBadRequest)
 		return

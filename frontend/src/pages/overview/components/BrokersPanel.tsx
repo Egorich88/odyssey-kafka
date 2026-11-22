@@ -21,6 +21,8 @@ import { LuChartNoAxesColumnIncreasing, LuCrown } from 'react-icons/lu';
 import PanelInfo from '../../../components/common/PanelInfo';
 import PanelFullscreenButton from './PanelFullscreenButton';
 import BrokerDetails, { BrokerDetailsBoundary } from './BrokerDetails';
+import BrokerResourceRing from './BrokerResourceRing';
+import { BrokerIcon } from '../../../components/common/BrokerIcon';
 import '../styles/brokers-overview.css';
 
 export interface Broker {
@@ -134,7 +136,7 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
       ) : <>
       <div className="panel-header">
         <div className="panel-title-with-info">
-          <FiLayers aria-hidden="true" />
+          <BrokerIcon aria-hidden="true" />
           <span>{t('brokers')}</span>
           <PanelInfo title={t('brokers')} description={label('description')} />
         </div>
@@ -148,13 +150,8 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
               <svg viewBox="0 0 180 180" aria-hidden="true">
                 <circle className="broker-overview-outline" cx="90" cy="90" r="89" />
                 {metrics.map(({ key, value }, index) => (
-                  <g key={key} className={'broker-metric-' + key}>
-                    <circle className="broker-overview-track" cx="90" cy="90" r={81 - index * 14} />
-                    {value !== null && value > 0 && (
-                      <circle className="broker-overview-arc" cx="90" cy="90" r={81 - index * 14}
-                        pathLength="100" strokeDasharray={Math.min(value, 100) + ' 100'} transform="rotate(-90 90 90)" />
-                    )}
-                  </g>
+                  <BrokerResourceRing key={key} metric={key as 'cpu' | 'memory' | 'disk'} value={value}
+                    center={90} radius={80 - index * 17} />
                 ))}
               </svg>
               <div className="broker-overview-count">
@@ -167,7 +164,7 @@ export default function BrokersPanel({ data, loading = false }: BrokersPanelProp
               {metrics.map(({ key, value, detail }) => (
                 <div key={key} className={'broker-metric-' + key}>
                   <dt>{label(key)}</dt>
-                  <dd className="broker-overview-legend-value"><strong>{percent(value)}</strong></dd>
+                  <dd className="broker-overview-legend-value"><strong className={value === null ? 'is-unavailable' : undefined}>{percent(value)}</strong></dd>
                   {detail && <dd className="broker-overview-legend-detail"><small>{detail}</small></dd>}
                   {key === 'disk' && totals.count < brokers.length && (
                     <dd className="broker-overview-legend-detail">

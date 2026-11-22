@@ -19,21 +19,21 @@
  * Точка входа frontend-приложения Odyssey.
  *
  * Статический splash из index.html показывается раньше React.
- * После монтирования его место занимает React LoadingScreen.
+ * Единственная HTML-заставка плавно скрывается после монтирования интерфейса.
  */
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import './styles/global.css';
-import './styles/themes.css';
 import './styles/layout.css';
 import './styles/sidebar.css';
 import './i18n/index.js';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
-import LoadingBootstrap from './components/loading/LoadingBootstrap';
+import LoadingBootstrap, { StartupBoundary } from './components/loading/LoadingBootstrap';
+import { setStartupStatus } from './components/loading/startup';
 
 const rootElement = document.getElementById('root');
 
@@ -41,12 +41,15 @@ if (!rootElement) {
   throw new Error('Odyssey: root element "#root" was not found.');
 }
 
+setStartupStatus('settings');
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <LanguageProvider>
-        <LoadingBootstrap />
-      </LanguageProvider>
-    </ThemeProvider>
+    <StartupBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <LoadingBootstrap />
+        </LanguageProvider>
+      </ThemeProvider>
+    </StartupBoundary>
   </React.StrictMode>
 );

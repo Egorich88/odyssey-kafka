@@ -164,6 +164,7 @@ export default function Settings() {
             <p>Язык интерфейса приложения.</p>
           </div>
           <Dropdown
+            floating
             selectedItem={currentLanguageObj}
             items={LANGUAGES.filter((item) => item.id !== i18n.language)}
             onSelect={handleLanguageSelect}

@@ -9,11 +9,10 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
+
 	"fmt"
-	"net/http"
+
 	"strings"
-	"sync"
 
 	"github.com/IBM/sarama"
 	"github.com/xdg-go/scram"
@@ -36,111 +35,13 @@ type kafkaAuthConfig struct {
 	KerberosKeytabPath  string `json:"kerberosKeytabPath"`
 }
 
-var kafkaAuthRegistry = struct {
-	sync.RWMutex
-	byBootstrap map[string]kafkaAuthProfile
-	revision    uint64
-}{byBootstrap: make(map[string]kafkaAuthProfile)}
-
-type kafkaAuthProfile struct {
-	config   kafkaAuthConfig
-	revision uint64
-}
-
-// registerKafkaConfigHandler validates and registers the connection profile.
-// Credentials are held in backend memory only; after backend restart the UI
-// re-registers the profile during its first health check.
-func registerKafkaConfigHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, 128*1024)
-	var cfg kafkaAuthConfig
-	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
-		sendJSONError(w, "Некорректная конфигурация подключения", http.StatusBadRequest)
-		return
-	}
-	cfg.Bootstrap = strings.TrimSpace(cfg.Bootstrap)
-	if cfg.Bootstrap == "" {
-		sendJSONError(w, "Не указан адрес Kafka", http.StatusBadRequest)
-		return
-	}
-	if _, err := buildKafkaConfig(cfg); err != nil {
-		kafkaAuthRegistry.Lock()
-		deleteKafkaAuthProfile(cfg.Bootstrap)
-		kafkaAuthRegistry.Unlock()
-		sendJSONError(w, "Ошибка конфигурации Kafka: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-	kafkaAuthRegistry.Lock()
-	if kafkaAuthRegistry.byBootstrap[cfg.Bootstrap].config != cfg {
-		kafkaAuthRegistry.revision++
-		kafkaAuthRegistry.byBootstrap[cfg.Bootstrap] = kafkaAuthProfile{cfg, kafkaAuthRegistry.revision}
-	}
-	kafkaAuthRegistry.Unlock()
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func unregisterKafkaConfigHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	bootstrap := strings.TrimSpace(r.Header.Get("X-Kafka-Bootstrap"))
-	if bootstrap == "" {
-		bootstrap = strings.TrimSpace(r.URL.Query().Get("bootstrap"))
-	}
-	if bootstrap == "" {
-		sendJSONError(w, "Не указан адрес Kafka", http.StatusBadRequest)
-		return
-	}
-	kafkaAuthRegistry.Lock()
-	deleteKafkaAuthProfile(bootstrap)
-	kafkaAuthRegistry.Unlock()
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// Вызывается под блокировкой реестра.
-func deleteKafkaAuthProfile(bootstrap string) {
-	if _, exists := kafkaAuthRegistry.byBootstrap[bootstrap]; exists {
-		delete(kafkaAuthRegistry.byBootstrap, bootstrap)
-		kafkaAuthRegistry.revision++
-	}
-}
-
-func kafkaAuthProfileSnapshot(bootstrap string) (kafkaAuthConfig, uint64) {
-	kafkaAuthRegistry.RLock()
-	defer kafkaAuthRegistry.RUnlock()
-	if profile, ok := kafkaAuthRegistry.byBootstrap[strings.TrimSpace(bootstrap)]; ok {
-		return profile.config, profile.revision
-	}
-	return kafkaAuthConfig{Bootstrap: bootstrap, AuthType: "PLAINTEXT"}, kafkaAuthRegistry.revision
-}
-
-func kafkaConfigForBootstrap(bootstrap string) *sarama.Config {
-	config, _ := kafkaConfigAndRevision(bootstrap)
-	return config
-}
-
-func kafkaConfigAndRevision(bootstrap string) (*sarama.Config, uint64) {
-	cfg, revision := kafkaAuthProfileSnapshot(bootstrap)
-	config, err := buildKafkaConfig(cfg)
-	if err != nil {
-		// Profiles are validated before entering the registry. Fail closed if
-		// a corrupt/inconsistent entry is ever observed.
-		config = sarama.NewConfig()
-		config.Net.DialTimeout = 3_000_000_000
-		config.Net.TLS.Enable = true
-		config.Net.TLS.Config = &tls.Config{MinVersion: tls.VersionTLS13}
-		config.Net.SASL.Enable = true
-		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
-	}
-	return config, revision
-}
-
 func buildKafkaConfig(cfg kafkaAuthConfig) (*sarama.Config, error) {
+	// gokrb5 самостоятельно открывает DNS/TCP/UDP к KDC, обходя Sarama Dialer.
+	// Пока нет контроля фактического транспорта KDC, GSSAPI закрыт даже для
+	// владельца. Существующая реализация ниже сохранена для будущего расширения.
+	if isGSSAPIProfile(cfg) {
+		return nil, fmt.Errorf("GSSAPI временно недоступен: требуется защищённый транспорт KDC")
+	}
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_8_0_0
 	config.Net.DialTimeout = 5_000_000_000
@@ -243,6 +144,12 @@ func buildKafkaConfig(cfg kafkaAuthConfig) (*sarama.Config, error) {
 		return nil, err
 	}
 	return config, nil
+}
+
+func isGSSAPIProfile(cfg kafkaAuthConfig) bool {
+	return strings.EqualFold(strings.TrimSpace(cfg.AuthType), "SASL_GSSAPI") ||
+		strings.EqualFold(strings.TrimSpace(cfg.SASLMechanism), "GSSAPI") ||
+		strings.EqualFold(strings.TrimSpace(cfg.SASLMechanism), "KERBEROS")
 }
 
 type odysseySCRAMClient struct {

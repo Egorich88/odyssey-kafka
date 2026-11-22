@@ -35,10 +35,11 @@
 .theme-toggle:hover,
 .theme-toggle:focus-visible {
     color: var(--accent-hover);
-    background: var(--sidebar-hover);
-    border-radius: 9px;
-    box-shadow: 0 0 0 5px var(--sidebar-hover);
-    outline: none;
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 4px;
 }
 
 .theme-toggle:active {

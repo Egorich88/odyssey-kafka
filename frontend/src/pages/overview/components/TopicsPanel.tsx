@@ -99,7 +99,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
     if (!currentCluster) return;
     setLoading(true);
     try {
-      const headers = { 'X-Kafka-Bootstrap': currentCluster.brokers || currentCluster.bootstrapServers };
+      const headers = { 'X-Kafka-Profile-ID': currentCluster.id };
       const response = await axios.get(`/api/overview/topics-throughput?range=${timeRange}`, { headers });
       const points = response.data.points || [];
 

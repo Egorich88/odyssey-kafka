@@ -25,6 +25,7 @@
                     Страница настроек (Settings)
    ============================================================ */
 .settings-page {
+    container: settings-page / inline-size;
     min-height: 100%;
     padding: 0;
     color: var(--text-primary);
@@ -45,20 +46,23 @@
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--panel-radius);
-    padding: 28px;
-    backdrop-filter: blur(10px);
+    padding: clamp(16px, 3vw, 24px);
+    min-width: 0;
 }
 .settings-block {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 440px);
     align-items: center;
     gap: 24px;
 }
+.settings-block-info { min-width: 0; }
 .settings-block-info h3 {
-    font-size: 20px;
-    margin-bottom: 6px;
+    font-size: 18px;
+    margin: 0 0 6px;
 }
 .settings-block-info p {
+    margin: 0;
+    line-height: 1.5;
     color: var(--text-secondary);
     font-size: 14px;
 }
@@ -76,10 +80,11 @@
  * ThemeDropdown использует такое же значение напрямую
  * в theme-dropdown.css.
  */
-.settings-block .dropdown-wrapper {
-    flex: 0 0 auto;
-    width: 220px;
-    min-width: 220px;
+.settings-block > .dropdown-wrapper,
+.settings-block > .theme-dropdown {
+    justify-self: end;
+    width: min(100%, 220px);
+    min-width: 0;
 }
 .settings-theme-select:focus {
   border-color: var(--accent-color);
@@ -87,12 +92,12 @@
 }
 
 .settings-block + .settings-block {
-    margin-top: 28px;
-    padding-top: 28px;
+    margin-top: 20px;
+    padding-top: 20px;
     border-top: 1px solid var(--border-color);
 }
 /* Панель проверки и запуска обновления версии. */
-.version-update-controls { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: min(100%, 440px); }
+.version-update-controls { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; min-width: 0; }
 .version-check-result { display: flex; align-items: flex-start; gap: 12px; padding: 13px 14px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--panel-bg); color: var(--text-secondary); }
 .version-check-result > svg { flex: 0 0 auto; margin-top: 2px; font-size: 19px; }
 .version-check-result strong, .version-check-result span { display: block; }
@@ -107,8 +112,7 @@
 .settings-action-button.primary { background: var(--accent-hover); border-color: var(--accent-hover); color: #07131b; font-weight: 650; }
 .settings-action-button svg { font-size: 15px; }
 .version-update-error { display: flex; align-items: flex-start; gap: 9px; margin-top: 22px; padding: 12px 14px; border: 1px solid rgba(239,68,68,.35); border-radius: 10px; color: var(--danger-color, #ef4444); font-size: 13px; line-height: 1.5; }
-.version-settings-block { align-items: flex-start; }
-.version-settings-block .settings-block-info { flex: 1; }
+.version-settings-block { align-items: start; }
 .version-settings-block .settings-block-info p { max-width: 560px; line-height: 1.5; }
 .is-spinning { animation: updateSpin .9s linear infinite; }
 @keyframes updateSpin { to { transform: rotate(360deg); } }
@@ -134,8 +138,10 @@
 .update-log-line > span:first-child { color: var(--accent-hover); font-variant-numeric: tabular-nums; }
 .update-log-line.error { color: var(--danger-color, #ef4444); }
 .update-log-line.completed { color: #22c55e; }
-@media (max-width: 900px) {
-  .version-settings-block { flex-direction: column; align-items: stretch; }
-  .version-update-controls { width: 100%; }
-  .settings-card { padding: 20px; }
+@container settings-page (max-width: 720px) {
+  .settings-block { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .settings-block > .dropdown-wrapper,
+  .settings-block > .theme-dropdown { justify-self: stretch; width: 100%; }
+  .version-update-actions { justify-content: flex-start; }
+  .settings-action-button { white-space: normal; padding-block: 8px; }
 }

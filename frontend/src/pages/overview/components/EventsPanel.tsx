@@ -45,11 +45,10 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
     setLoading(true);
 
     try {
-      const bootstrap =
-        currentCluster.brokers || currentCluster.bootstrapServers;
+      const bootstrap = currentCluster.id;
 
       const response = await axios.get(`/api/overview/events?${timeRange}`, {
-        headers: { 'X-Kafka-Bootstrap': bootstrap }
+        headers: { 'X-Kafka-Profile-ID': bootstrap }
       });
 
       setEvents(response.data.events || []);

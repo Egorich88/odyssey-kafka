@@ -177,9 +177,9 @@ func (ec *EventCollector) Stop() {
 }
 
 func (ec *EventCollector) getControllerAddress() string {
-	config := kafkaConfigForBootstrap(ec.bootstrap)
+	config := kafkaConfigForProfile(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(ec.bootstrap), config)
 	if err != nil {
 		return "controller"
 	}
@@ -469,9 +469,9 @@ func (ec *EventCollector) collect() {
 }
 
 func (ec *EventCollector) getTopicPartitions(topic string) int32 {
-	config := kafkaConfigForBootstrap(ec.bootstrap)
+	config := kafkaConfigForProfile(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(ec.bootstrap), config)
 	if err != nil {
 		return 0
 	}
@@ -515,9 +515,9 @@ func (ec *EventCollector) fetchConsumerLags(timeStr string) (map[string]int64, e
 	}
 	defer admin.Close()
 
-	config := kafkaConfigForBootstrap(ec.bootstrap)
+	config := kafkaConfigForProfile(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(ec.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
@@ -557,9 +557,9 @@ func (ec *EventCollector) fetchConsumerLags(timeStr string) (map[string]int64, e
 }
 
 func (ec *EventCollector) fetchTopicOffsets() (map[string]int64, error) {
-	config := kafkaConfigForBootstrap(ec.bootstrap)
+	config := kafkaConfigForProfile(ec.bootstrap)
 	config.Version = sarama.V2_8_0_0
-	client, err := sarama.NewClient(parseBootstrapServers(ec.bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(ec.bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
@@ -652,6 +652,9 @@ var (
 func ensureEventCollectorForBootstrap(bootstrap string) {
 	eventCollectorMu.Lock()
 	defer eventCollectorMu.Unlock()
+	if _, revision := kafkaAuthProfileSnapshot(bootstrap); revision == 0 {
+		return
+	}
 	if eventCollectorByBootstrap[bootstrap] != nil {
 		return
 	}
@@ -666,7 +669,7 @@ func getDashboardEventsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	if bootstrap == "" {
 		sendJSONError(w, "Bootstrap server not provided", http.StatusBadRequest)
 		return

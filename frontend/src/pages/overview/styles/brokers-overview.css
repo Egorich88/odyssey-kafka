@@ -40,27 +40,24 @@
 
 .broker-overview-gauge {
   position: relative;
-  width: min(100%, 190px);
+  width: min(100%, 160px);
   margin-inline: auto;
 }
 
 .broker-overview-gauge svg { display: block; width: 100%; }
-.broker-overview-gauge circle { fill: none; stroke-width: 11; }
-.broker-overview-gauge .broker-overview-outline { stroke: var(--border-color); stroke-width: 1; }
-.broker-overview-track { stroke: var(--border-color); }
-.broker-overview-arc { stroke: var(--broker-metric); stroke-linecap: round; }
+.broker-overview-gauge .broker-overview-outline { fill: none; stroke: var(--border-color); stroke-width: 1; }
 
 .broker-overview-count {
   position: absolute;
-  inset: 24%;
+  inset: 29%;
   display: grid;
   align-content: center;
   justify-items: center;
   text-align: center;
   line-height: 1.15;
-  font-size: clamp(.65rem, 2cqi, .85rem);
+  font-size: clamp(.6rem, 1.8cqi, .75rem);
 }
-.broker-overview-count strong { font-size: clamp(1rem, 4cqi, 1.7rem); }
+.broker-overview-count strong { font-size: clamp(1rem, 3.5cqi, 1.4rem); }
 .broker-overview-online {
   margin-top: 4px;
   padding: 2px 5px;
@@ -71,25 +68,33 @@
   font-size: .85em;
 }
 
-.broker-metric-cpu { --broker-metric: var(--accent-color); }
-.broker-metric-memory { --broker-metric: color-mix(in srgb, var(--accent-color) 65%, var(--danger-color)); }
-.broker-metric-disk { --broker-metric: var(--success-color); }
 
 .broker-overview-legend, .broker-overview-kpis { margin: 0; }
 .broker-overview-legend > div {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   column-gap: 4px;
-  border-inline-start: 3px solid var(--broker-metric);
-  padding-inline-start: 8px;
+  padding-inline-start: 14px;
   margin-block: 8px;
 }
-.broker-overview-legend dt { color: var(--text-primary); font-weight: 600; text-transform: uppercase; overflow-wrap: anywhere; }
+.broker-overview-legend > div::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: .4em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--broker-metric);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--broker-metric) 35%, transparent);
+}
+.broker-overview-legend dt { color: var(--broker-metric); font-size: clamp(.7rem, 1.8cqi, .85rem); font-weight: 600; text-transform: uppercase; overflow-wrap: anywhere; }
 .broker-overview-legend-value { text-align: end; white-space: nowrap; color: var(--broker-metric); }
 .broker-overview-legend-detail { grid-column: 1 / -1; }
-.broker-overview-legend dt,
-.broker-overview-legend strong { font-size: clamp(.83125rem, 2.1cqi, .9625rem); }
+.broker-overview-legend strong { font-size: clamp(.9rem, 2.4cqi, 1.1rem); }
+.broker-overview-legend strong.is-unavailable { color: var(--text-secondary); }
 .broker-overview-kpis dt { color: var(--text-secondary); font-size: .8rem; }
 .broker-overview-legend dd, .broker-overview-kpis dd { margin: 0; }
 .broker-overview-legend small { display: block; color: var(--text-secondary); overflow-wrap: anywhere; }

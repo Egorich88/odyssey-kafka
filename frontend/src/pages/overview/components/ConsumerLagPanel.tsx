@@ -125,8 +125,8 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
 
     try {
       const headers = {
-        'X-Kafka-Bootstrap':
-          currentCluster.brokers || currentCluster.bootstrapServers
+        'X-Kafka-Profile-ID':
+          currentCluster.id
       };
 
       const response = await axios.get(

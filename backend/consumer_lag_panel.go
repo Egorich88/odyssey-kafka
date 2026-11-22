@@ -245,10 +245,10 @@ func (lc *LagCollector) fetchConsumerLagsWithTopics() (
 	}
 	defer admin.Close()
 
-	config := kafkaConfigForBootstrap(lc.bootstrap)
+	config := kafkaConfigForProfile(lc.bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(lc.bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(lc.bootstrap), config)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -317,6 +317,9 @@ var (
 )
 
 func getConsumerLagState(bootstrap string) map[string]consumerLagSnapshot {
+	if _, revision := kafkaAuthProfileSnapshot(bootstrap); revision == 0 {
+		return make(map[string]consumerLagSnapshot)
+	}
 	state, ok := consumerLagState[bootstrap]
 	if !ok {
 		state = make(map[string]consumerLagSnapshot)
@@ -334,10 +337,10 @@ func collectConsumerLagRows(bootstrap string) ([]ConsumerLagRow, error) {
 	}
 	defer admin.Close()
 
-	config := kafkaConfigForBootstrap(bootstrap)
+	config := kafkaConfigForProfile(bootstrap)
 	config.Version = sarama.V2_8_0_0
 
-	client, err := sarama.NewClient(parseBootstrapServers(bootstrap), config)
+	client, err := sarama.NewClient(kafkaProfileBrokers(bootstrap), config)
 	if err != nil {
 		return nil, err
 	}
@@ -454,6 +457,9 @@ var (
 func ensureLagCollectorForBootstrap(bootstrap string) {
 	lagCollectorMu.Lock()
 	defer lagCollectorMu.Unlock()
+	if _, revision := kafkaAuthProfileSnapshot(bootstrap); revision == 0 {
+		return
+	}
 	if lagCollectorByBootstrap[bootstrap] != nil {
 		return
 	}
@@ -482,7 +488,7 @@ func GetConsumerLagHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
-	bootstrap := getBootstrapFromRequest(r)
+	bootstrap := getProfileKeyFromRequest(r)
 	if bootstrap == "" {
 		sendJSONError(w, "Bootstrap server not provided", http.StatusBadRequest)
 		return

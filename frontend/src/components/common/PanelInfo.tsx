@@ -15,6 +15,8 @@
  */
 
 import { FiInfo } from 'react-icons/fi';
+import { useId } from 'react';
+import OdysseyTooltip from './OdysseyTooltip';
 
 interface PanelInfoProps {
   title: string;
@@ -25,25 +27,27 @@ export default function PanelInfo({
   title,
   description
 }: PanelInfoProps) {
+  const tooltipId = useId();
   return (
     <div className="panel-info">
       <button
         type="button"
         className="panel-info-trigger"
+        data-tooltip-id={tooltipId}
         aria-label={`Информация о панели: ${title}`}
       >
         <FiInfo />
       </button>
 
-      <div className="panel-info-tooltip" role="tooltip">
-        <div className="panel-info-tooltip-title">
+      <OdysseyTooltip id={tooltipId} place="bottom" clickable>
+        <strong className="odyssey-tooltip-title">
           {title}
-        </div>
+        </strong>
 
-        <div className="panel-info-tooltip-description">
+        <div>
           {description}
         </div>
-      </div>
+      </OdysseyTooltip>
     </div>
   );
 }

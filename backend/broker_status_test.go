@@ -7,10 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/http"
-	"net/http/httptest"
+
 	"runtime"
-	"strings"
+
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -130,31 +129,31 @@ func TestBrokerEventsKeepLastConfirmedStatus(t *testing.T) {
 }
 
 func TestBrokerStatusProfileRevision(t *testing.T) {
-	const bootstrap = "profile-a.test:9092, profile-b.test:9092"
-	register := func(body string) uint64 {
-		req := httptest.NewRequest(http.MethodPost, "/api/clusters/config", strings.NewReader(body))
-		rec := httptest.NewRecorder()
-		registerKafkaConfigHandler(rec, req)
-		if rec.Code != http.StatusNoContent {
-			t.Fatalf("Ответ регистрации: %d", rec.Code)
-		}
-		_, revision := kafkaAuthProfileSnapshot(bootstrap)
-		return revision
+	s, _, _ := testOwnerStore(t)
+	old := activeProfileStore
+	activeProfileStore = s
+	t.Cleanup(func() { activeProfileStore = old })
+	p, err := s.putProfile(storedKafkaProfile{Config: kafkaAuthConfig{Bootstrap: "profile-a.test:9092,profile-b.test:9092", AuthType: "PLAINTEXT"}}, true)
+	if err != nil {
+		t.Fatal(err)
 	}
-	plain := `{"brokers":"profile-a.test:9092, profile-b.test:9092","authType":"PLAINTEXT"}`
-	sasl := `{"brokers":"profile-a.test:9092, profile-b.test:9092","authType":"SASL_PLAIN","username":"test-user","password":"test-value"}`
-	first := register(plain)
-	if again := register(plain); first != again {
-		t.Fatal("Повторная регистрация не должна сбрасывать состояние")
+	first := p.Revision
+	oldKey := profileKey(p)
+	p.Config.AuthType = "SASL_PLAIN"
+	p.Config.Username = "synthetic-user"
+	p.Config.Password = "synthetic-password"
+	p, err = s.putProfile(p, false)
+	if err != nil {
+		t.Fatal(err)
 	}
-	second := register(sasl)
-	config, revision := kafkaConfigAndRevision(bootstrap)
-	if second == first || second != revision || !config.Net.TLS.Enable || !config.Net.SASL.Enable ||
-		len(parseBootstrapServers(bootstrap)) != 2 {
-		t.Fatal("Изменение профиля и несколько bootstrap не сохранились")
+	config, revision := kafkaConfigAndRevision(profileKey(p))
+	if revision == first || !config.Net.TLS.Enable || !config.Net.SASL.Enable || len(kafkaProfileBrokers(profileKey(p))) != 2 {
+		t.Fatal("Профили не изолированы")
+	}
+	if len(kafkaProfileBrokers(oldKey)) != 0 {
+		t.Fatal("Старая ревизия доступна")
 	}
 }
-
 func TestBrokerStatusesKeepPartialResults(t *testing.T) {
 	var calls atomic.Int32
 	targets := make([]groupListingBroker, 7)

@@ -65,6 +65,24 @@ var updateState = struct {
 	clients map[chan updateEvent]struct{}
 }{clients: make(map[chan updateEvent]struct{})}
 
+// Подмена исполнителя используется только в тестах запрещённых HTTP-запросов.
+var executeUpdateCommand = runUpdateCommand
+
+// Серверное разрешение необходимо, но не заменяет аутентификацию владельца.
+// Пока проверка владельца не реализована, ни флаг, ни заголовки запроса
+// не разрешают запуск команды или подписку на её вывод через HTTP.
+func authorizeServerUpdate(w http.ResponseWriter, r *http.Request) bool {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if strings.TrimSpace(os.Getenv("ODYSSEY_ALLOW_SERVER_UPDATE")) != "true" {
+		sendJSONError(w, "Серверное обновление через HTTP запрещено.", http.StatusForbidden)
+		return false
+	}
+	sendJSONError(w, "Серверное обновление через HTTP недоступно: аутентификация владельца не реализована.", http.StatusForbidden)
+	return false
+}
+
 func currentOdysseyVersion() string {
 	if value := strings.TrimSpace(os.Getenv("ODYSSEY_VERSION")); value != "" {
 		return strings.TrimPrefix(value, "v")
@@ -165,6 +183,9 @@ func updateStartHandler(w http.ResponseWriter, r *http.Request) {
 		sendJSONError(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 		return
 	}
+	if !authorizeServerUpdate(w, r) {
+		return
+	}
 	command := strings.TrimSpace(os.Getenv("ODYSSEY_UPDATE_COMMAND"))
 	if command == "" {
 		sendJSONError(w, "Автоматическое обновление не настроено на сервере. Укажите ODYSSEY_UPDATE_COMMAND для вашей среды развёртывания.", http.StatusNotImplemented)
@@ -182,7 +203,7 @@ func updateStartHandler(w http.ResponseWriter, r *http.Request) {
 	updateState.Unlock()
 
 	publishUpdate(updateEvent{Progress: 1, Stage: "Подготовка", Message: "Подготовка к запуску обновления", Status: "running"})
-	go runUpdateCommand(command)
+	go executeUpdateCommand(command)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusAccepted)
@@ -277,6 +298,9 @@ func publishUpdate(event updateEvent) {
 func updateEventsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		sendJSONError(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		return
+	}
+	if !authorizeServerUpdate(w, r) {
 		return
 	}
 	flusher, ok := w.(http.Flusher)

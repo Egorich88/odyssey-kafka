@@ -144,7 +144,17 @@ Hover
   */
 
 .sidebar-settings-link:hover {
+    background: transparent;
+    color: var(--text-primary);
+}
+
+/* Наведение на ссылку выделяет всю строку вместе с переключателем темы. */
+.sidebar-settings-row:has(.sidebar-settings-link:hover),
+.sidebar-settings-row:has(.sidebar-settings-link:focus-visible) {
     background: var(--sidebar-hover);
+}
+.sidebar-settings-row:has(.sidebar-settings-link:hover) .theme-toggle,
+.sidebar-settings-row:has(.sidebar-settings-link:focus-visible) .theme-toggle {
     color: var(--text-primary);
 }
 

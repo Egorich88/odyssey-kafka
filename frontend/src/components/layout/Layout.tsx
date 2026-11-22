@@ -66,6 +66,7 @@ import CreateClusterPanel from '../CreateClusterPanel';
 import ClusterSettingsPanel from '../ClusterSettingsPanel';
 import PageHeader from '../page-header/PageHeader';
 import { DashboardControlsProvider } from '../../contexts/DashboardControlsContext';
+import { ClusterHealthProvider } from '../../contexts/ClusterHealthContext';
 import ClusterStatusScreen from '../cluster-status/ClusterStatusScreen';
 import '../cluster-status/cluster-status-screen.css';
 import { PAGE_CONFIG } from '../page-header/page-config';
@@ -137,7 +138,7 @@ const Layout = () => {
    *
    * @param {Object} clusterConfig - Конфигурация кластера
    */
-  const handleSave = (clusterConfig) => {
+  const handleSave = async (clusterConfig) => {
     // Проверка: если редактируемый кластер был удалён
     if (
       editingCluster &&
@@ -149,14 +150,15 @@ const Layout = () => {
 
     // Обновление существующего кластера
     if (editingCluster) {
-      updateCluster({
+      const saved=await updateCluster({
         ...clusterConfig,
         id: editingCluster.id,
       });
+      if (!saved) return;
     }
     // Создание нового кластера
     else {
-      addCluster(clusterConfig);
+      if (!await addCluster(clusterConfig)) return;
     }
 
     handleClose();
@@ -176,8 +178,8 @@ const Layout = () => {
    *
    * @param {string} clusterId - ID удаляемого кластера
    */
-  const handleDelete = (clusterId) => {
-    removeCluster(clusterId);
+  const handleDelete = async (clusterId) => {
+    if (!await removeCluster(clusterId)) return;
     handleClose();
     navigate('/');
   };
@@ -222,6 +224,7 @@ const Layout = () => {
 
       {/* Основная область контента */}
       <DashboardControlsProvider>
+        <ClusterHealthProvider>
         <main className="main-content">
           <PageHeader
             title={currentPage.title}
@@ -238,6 +241,7 @@ const Layout = () => {
             )}
           </div>
         </main>
+        </ClusterHealthProvider>
       </DashboardControlsProvider>
 
       {/* Модальное окно управления кластером */}

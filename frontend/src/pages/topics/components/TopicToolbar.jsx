@@ -20,6 +20,7 @@
  */
 
 import { FiDownload, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 
 export default function TopicToolbar({
   filter,
@@ -33,7 +34,9 @@ export default function TopicToolbar({
   setShowCreateModal,
   selectedTopic,
   handleDeleteTopic,
+  permissions = {},
 }) {
+  const { t } = useTranslation();
   return (
     <div className="topics-toolbar">
       <div className="toolbar-left">
@@ -70,7 +73,8 @@ export default function TopicToolbar({
         </div>
 
         {/* Кнопка создания топика */}
-        <button className="action-btn" onClick={() => setShowCreateModal(true)}>
+        <button className="action-btn" onClick={() => setShowCreateModal(true)}
+          disabled={!permissions.createTopic} title={!permissions.createTopic ? t('adminPermissions.readOnly') : undefined}>
           Создать
         </button>
 
@@ -78,7 +82,8 @@ export default function TopicToolbar({
         <button
           className="action-btn delete"
           onClick={handleDeleteTopic}
-          disabled={!selectedTopic}
+          disabled={!selectedTopic || !permissions.deleteTopic}
+          title={!permissions.deleteTopic ? t('adminPermissions.readOnly') : undefined}
         >
           Удалить
         </button>

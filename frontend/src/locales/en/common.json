@@ -1,4 +1,53 @@
 {
+  "connectionsMenu": {
+    "connection": "Connection",
+    "active": "Active",
+    "search": "Search…",
+    "empty": "Nothing found"
+  },
+  "startup": {
+    "interface": "Loading interface…",
+    "settings": "Restoring settings…",
+    "workspace": "Preparing workspace…",
+    "ready": "Ready",
+    "failed": "Unable to start the Odyssey interface.\nTry reloading the page.",
+    "retry": "Reload page"
+  },
+  "headerControls": {
+    "period": "Select time range",
+    "interval": "Automatic refresh interval",
+    "refresh": "Refresh"
+  },
+  "headerCluster": {
+    "healthy": "Cluster is healthy",
+    "warning": "Warnings detected",
+    "critical": "Critical state",
+    "unavailable": "Unavailable",
+    "none": "Not selected",
+    "loading": "Loading…",
+    "unknown": "Status unknown",
+    "healthyDescription": "All monitored components are operating normally",
+    "warningDescription": "The cluster is available, but some conditions require attention",
+    "criticalDescription": "There are unavailable brokers, leaderless partitions or stopped consumer groups",
+    "unknownDescription": "Retrieving the current cluster status",
+    "loadingDescription": "Retrieving the current cluster status",
+    "noneDescription": "Select a Kafka cluster to display its status",
+    "unavailableDescription": "The connection to the selected Kafka cluster is unavailable",
+    "versionUnknown": "Version unknown",
+    "different": "Mixed versions",
+    "partial": "Not all brokers identified",
+    "versionTitle": "Apache Kafka version",
+    "statusTitle": "Cluster status",
+    "statusLabel": "Status",
+    "uptimeLabel": "Uptime",
+    "uptimeUnavailableDescription": "The start date and time of continuous Kafka cluster operation are unknown. Reliable data is unavailable; individual broker or connection start times are not used.",
+    "versionsTitle": "Broker details",
+    "notAvailable": "N/A",
+    "versionsAbsent": "Broker version data is unavailable",
+    "addressUnknown": "address unknown",
+    "brokerVersionUnknown": "version unknown",
+    "broker": "Broker"
+  },
   "overview": "Overview",
   "brokers": "Brokers",
   "brokerStatus": {"online":"Online","offline":"Offline","unknown":"Unknown"},
@@ -95,5 +144,7 @@
   "integration": {
     "comingSoon": "Coming soon",
     "description": "This section is already prepared in the interface. Integration functionality will be added later."
-  }
+  },
+  "adminPermissions": {"readOnly":"Kafka administrative operations are unavailable: server-side owner authorization is required.","editHint":"Double-click a parameter value to edit it"},
+  "owner": {"password":"Owner password","checking":"Checking session…","signIn":"Sign in","retry":"Retry","signingIn":"Signing in…","localSetup":"Create the installation owner locally using owner-init. Kerberos/GSSAPI is temporarily unavailable.","profileError":"Some profiles could not be saved or migrated. Original browser configurations are retained until migration succeeds. Check the server address policy; GSSAPI is temporarily unavailable.","error":"The action failed. Check the password, backend availability and sign-in attempt limit.","title":"Odyssey owner","signOut":"Sign out"}
 }

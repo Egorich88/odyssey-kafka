@@ -1,0 +1,20 @@
+.broker-metric-cpu { --broker-metric: var(--accent-color); }
+.broker-metric-memory { --broker-metric: color-mix(in srgb, var(--accent-color) 65%, var(--danger-color)); }
+.broker-metric-disk { --broker-metric: var(--success-color); }
+
+.broker-resource-ring circle { fill: none; }
+.broker-resource-ring > .broker-overview-track { stroke: color-mix(in srgb, var(--broker-metric) 16%, var(--panel-bg)); }
+.broker-resource-ring[data-available="false"] > .broker-overview-track { opacity: .65; }
+.broker-resource-ring .broker-overview-arc,
+.broker-resource-ring .broker-overview-highlight {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 650ms cubic-bezier(.22, .61, .36, 1);
+}
+.broker-resource-ring .broker-overview-arc { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--broker-metric) 35%, transparent)); }
+.broker-resource-ring .broker-overview-progress { transition: opacity 180ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .broker-resource-ring .broker-overview-arc,
+  .broker-resource-ring .broker-overview-highlight,
+  .broker-resource-ring .broker-overview-progress { transition: none; }
+}

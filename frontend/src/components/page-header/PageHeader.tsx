@@ -20,17 +20,21 @@
  * =============================================================================
  * Единая горизонтальная шапка страниц Odyssey.
  *
- * Содержит название, краткое описание и, только для
- * мониторинговых страниц, выбор периода и интервала обновления.
+ * Показывает состояние Kafka и, только для мониторинговых страниц,
+ * выбор периода и интервала обновления.
  * =============================================================================
  */
 
 import { FiRefreshCw } from 'react-icons/fi';
+import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
+import OdysseyTooltip from '../common/OdysseyTooltip';
 import { useDashboardControls } from '../../contexts/DashboardControlsContext';
 import TimeRangePicker from './TimeRangePicker';
 import RefreshIntervalPicker from './RefreshIntervalPicker';
 import type { PageHeaderMode } from './types';
 import './page-header.css';
+import HeaderClusterStatus from './HeaderClusterStatus';
 
 interface Props {
   title: string;
@@ -40,7 +44,9 @@ interface Props {
   clusterUnavailable?: boolean;
 }
 
-export default function PageHeader({ title, description, mode, clusterUnavailable = false }: Props) {
+export default function PageHeader({ mode, clusterUnavailable = false }: Props) {
+  const { t } = useTranslation();
+  const refreshTooltipId = useId();
   const {
     timeRange,
     refreshInterval,
@@ -57,11 +63,7 @@ export default function PageHeader({ title, description, mode, clusterUnavailabl
     <header className={`page-header-bar page-header-${mode} ${loading ? 'is-loading' : ''} ${clusterUnavailable ? 'is-cluster-unavailable' : ''}`}>
       <div className="page-header-loading-line" aria-hidden="true" />
 
-      <div className="page-header-title-group">
-        <h1>{title}</h1>
-        {description && <p>{description}</p>}
-
-      </div>
+      <HeaderClusterStatus />
 
       {mode === 'monitoring' && (
         <div className="page-header-controls">
@@ -75,11 +77,13 @@ export default function PageHeader({ title, description, mode, clusterUnavailabl
             className="page-header-refresh-button"
             onClick={() => void refreshNow()}
             disabled={isRefreshing}
-            title="Обновить"
-            aria-label="Обновить"
+            data-tooltip-id={refreshTooltipId}
+            data-tooltip-content={t('headerControls.refresh')}
+            aria-label={t('headerControls.refresh')}
           >
             <FiRefreshCw className={loading ? 'is-spinning' : ''} />
           </button>
+          <OdysseyTooltip id={refreshTooltipId} place="bottom" />
         </div>
       )}
     </header>

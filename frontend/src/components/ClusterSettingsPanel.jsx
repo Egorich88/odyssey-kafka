@@ -100,19 +100,6 @@ export default function ClusterSettingsPanel({
           onChange={handleChange}
         />
 
-        {/* ZOOKEEPER */}
-
-        <label>
-          Zookeeper (host:port, через запятую)
-        </label>
-
-        <input
-          name="zookeeper"
-          placeholder="zookeeper1:2181,zookeeper2:2181"
-          value={config.zookeeper || ''}
-          onChange={handleChange}
-        />
-
         {/* BROKERS */}
 
         <label>

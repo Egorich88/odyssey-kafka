@@ -46,6 +46,7 @@
     min-width: 0;
     max-height: 280px;         /* ← ограничение высоты, скролл при превышении */
     overflow-y: auto;          /* ← вертикальная прокрутка */
+    overflow-x: hidden;
     background: var(--dropdown-bg);
     border: 1px solid var(--border-color);
     border-top: none;
@@ -56,12 +57,28 @@
     backdrop-filter: blur(10px);
 }
 
+.dropdown-floating .dropdown-menu {
+    top: calc(100% + 8px);
+    box-sizing: border-box;
+    border-top: 1px solid var(--border-color);
+    border-radius: 14px;
+}
+
+.dropdown-floating .dropdown-selected.open {
+    border-radius: 14px;
+}
+
 /* ============================================================
    3. Элемент выпадающего списка
    ============================================================ */
 
 /* Также для элементов выпадающего списка */
 .dropdown-item {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -75,6 +92,13 @@
 .dropdown-item:hover {
     background: var(--sidebar-hover);
 }
+.dropdown-item.selected { background: var(--menu-active-bg); }
+.dropdown-item:focus-visible,
+.dropdown-add:focus-visible { outline: 2px solid var(--accent-color); outline-offset: -2px; }
+.dropdown-item-copy { display: grid; min-width: 0; gap: 2px; overflow-wrap: anywhere; }
+.dropdown-item-copy small { color: var(--text-secondary); font-size: 12px; }
+.dropdown-item-active { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: var(--accent-hover); font-size: 12px; white-space: nowrap; }
+.dropdown-connections .dropdown-item { padding: 8px 14px; }
 
 /* ============================================================
    4. Выбранное значение (закрытое состояние)
@@ -163,6 +187,12 @@
 
 /* Кнопка добавления нового элемента */
 .dropdown-add {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    font-family: inherit;
+    margin-top: 8px;
     position: relative;
     display: flex;
     align-items: center;
@@ -181,15 +211,17 @@
 .dropdown-add::before {
     content: '';
     position: absolute;
-    top: 0;
+    top: -8px;
     left: 14px;
     right: 14px;
     height: 1px;
     background: linear-gradient(
         90deg,
-        transparent,
-        rgba(96,165,250,0.35),
-        transparent
+        transparent 0%,
+        color-mix(in srgb, var(--accent-hover) 55%, transparent) 18%,
+        color-mix(in srgb, var(--accent-hover) 80%, transparent) 50%,
+        color-mix(in srgb, var(--accent-hover) 55%, transparent) 82%,
+        transparent 100%
     );
 }
 
@@ -333,11 +365,6 @@
 
 .dropdown-search-input::placeholder {
     color: var(--text-secondary);
-}
-
-.dropdown-list {
-    max-height: 260px;
-    overflow-y: auto;
 }
 
 .dropdown-item.disabled {
