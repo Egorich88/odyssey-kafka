@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -27,6 +29,7 @@ export default function PanelInfo({
   title,
   description
 }: PanelInfoProps) {
+  useInterfaceLanguage();
   const tooltipId = useId();
   return (
     <div className="panel-info">
@@ -34,7 +37,7 @@ export default function PanelInfo({
         type="button"
         className="panel-info-trigger"
         data-tooltip-id={tooltipId}
-        aria-label={`Информация о панели: ${title}`}
+        aria-label={odysseyI18n.t('interface.panelInformation', { v0: title })}
       >
         <FiInfo />
       </button>

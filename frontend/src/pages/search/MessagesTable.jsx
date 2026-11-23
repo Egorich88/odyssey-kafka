@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -29,6 +31,7 @@ export default function MessagesTable({
   allCurrentSelected,   // флаг: выбраны ли все сообщения на текущей странице
   getRowKey            // функция получения уникального ключа сообщения
 }) {
+  useInterfaceLanguage();
   return (
     <table className="messages-table">
       <thead>
@@ -41,11 +44,11 @@ export default function MessagesTable({
             />
           </th>
           <th>Offset</th>
-          <th>Партиция</th>
-          <th>Ключ</th>
-          <th>Время</th>
-          <th>Размер</th>
-          <th>Предпросмотр значения</th>
+          <th>{odysseyI18n.t('interface.partition')}</th>
+          <th>{odysseyI18n.t('interface.key')}</th>
+          <th>{odysseyI18n.t('interface.time')}</th>
+          <th>{odysseyI18n.t('interface.size')}</th>
+          <th>{odysseyI18n.t('interface.valuePreview')}</th>
         </tr>
       </thead>
       <tbody>

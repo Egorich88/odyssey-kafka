@@ -7,7 +7,7 @@ import BrokersPanel from './BrokersPanel';
 import PanelFullscreenButton from './PanelFullscreenButton';
 import { BrokerIcon } from '../../../components/common/BrokerIcon';
 
-vi.mock('react-i18next', () => ({
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(),
   useTranslation: () => ({
     i18n: { language: 'ru' },
     t: (key: string, values?: Record<string, string | number>) => {

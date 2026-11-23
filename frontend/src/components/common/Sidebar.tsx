@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -98,10 +100,10 @@ interface SidebarItem {
 
 // Публичные страницы, готовые к показу в стандартной сборке.
 const CORE_ITEMS: SidebarItem[] = [
-  { title: 'Брокеры', titleKey: 'brokers', path: '/brokers', icon: BrokerIcon },
-  { title: 'Топики', titleKey: 'topics', path: '/topics', icon: FiLayers },
-  { title: 'Группы потребителей', titleKey: 'consumerGroups', path: '/groups', icon: FiUsers },
-  { title: 'Поиск сообщений', titleKey: 'searchMessages', path: '/search', icon: FiSearch },
+  { get title() { return odysseyI18n.t('interface.brokers'); }, titleKey: 'brokers', path: '/brokers', icon: BrokerIcon },
+  { get title() { return odysseyI18n.t('interface.topics'); }, titleKey: 'topics', path: '/topics', icon: FiLayers },
+  { get title() { return odysseyI18n.t('interface.consumerGroups'); }, titleKey: 'consumerGroups', path: '/groups', icon: FiUsers },
+  { get title() { return odysseyI18n.t('interface.messageSearch'); }, titleKey: 'searchMessages', path: '/search', icon: FiSearch },
   { title: 'ACL', titleKey: 'acl', path: '/acls', icon: FiShield },
 ];
 
@@ -114,6 +116,7 @@ const ENTERPRISE_OPERATIONS = enterpriseSidebarItems.filter((item) =>
 );
 
 export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailable = false }: SidebarProps) {
+  useInterfaceLanguage();
   const { pathname } = useLocation();
   const overviewActive = pathname === '/' || pathname === '/overview';
   const { clusters, currentCluster, changeCluster } = useCluster();
@@ -382,7 +385,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
               to="/settings"
               className={`sidebar-version-hint ${hasUpdate ? 'update-available' : ''}`}
             >
-              {hasUpdate ? `Доступна новая версия ${latestVersion}` : 'Версия актуальна'}
+              {hasUpdate ? odysseyI18n.t('interface.newVersionAvailable', { v0: latestVersion }) : odysseyI18n.t('interface.upToDate')}
             </NavLink>
           )}
 
@@ -393,8 +396,8 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
               target="_blank"
               rel="noopener noreferrer"
               data-tooltip-id="sidebar-tooltip"
-              data-tooltip-content="Владелец продукта"
-              aria-label="Владелец продукта"
+              data-tooltip-content={odysseyI18n.t('interface.productOwner')}
+              aria-label={odysseyI18n.t('interface.productOwner')}
             >
               Egorich88
             </a>
@@ -403,7 +406,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
 
             <NavLink
               to="/settings"
-              aria-label={hasUpdate ? `Доступна новая версия ${latestVersion}. Открыть настройки обновления` : 'Открыть настройки версии'}
+              aria-label={hasUpdate ? odysseyI18n.t('interface.versionAvailableOpenUpdateSettings', { v0: latestVersion }) : odysseyI18n.t('interface.openVersionSettings')}
               className={`sidebar-version ${hasUpdate ? 'update-available' : ''} ${animateVersion ? 'animate' : ''}`}
               data-tooltip-id="sidebar-tooltip"
               data-tooltip-content={

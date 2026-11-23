@@ -1,3 +1,4 @@
+import odysseyI18n from '../../i18n';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -25,14 +26,14 @@
 import type { RefreshInterval, RelativeTimeRange } from './types';
 
 export const RELATIVE_TIME_RANGES: RelativeTimeRange[] = [
-  { type: 'relative', id: '5m', label: '5 минут' },
-  { type: 'relative', id: '15m', label: '15 минут' },
-  { type: 'relative', id: '30m', label: '30 минут' },
-  { type: 'relative', id: '1h', label: '1 час' },
-  { type: 'relative', id: '3h', label: '3 часа' },
-  { type: 'relative', id: '6h', label: '6 часов' },
-  { type: 'relative', id: '12h', label: '12 часов' },
-  { type: 'relative', id: '24h', label: '24 часа' },
+  { type: 'relative', id: '5m', get label() { return odysseyI18n.t('interface.5Minutes'); } },
+  { type: 'relative', id: '15m', get label() { return odysseyI18n.t('interface.15Minutes'); } },
+  { type: 'relative', id: '30m', get label() { return odysseyI18n.t('interface.30Minutes'); } },
+  { type: 'relative', id: '1h', get label() { return odysseyI18n.t('interface.1Hour'); } },
+  { type: 'relative', id: '3h', get label() { return odysseyI18n.t('interface.3Hours'); } },
+  { type: 'relative', id: '6h', get label() { return odysseyI18n.t('interface.6Hours'); } },
+  { type: 'relative', id: '12h', get label() { return odysseyI18n.t('interface.12Hours'); } },
+  { type: 'relative', id: '24h', get label() { return odysseyI18n.t('interface.24Hours'); } },
 ];
 
 export const REFRESH_INTERVALS: RefreshInterval[] = [

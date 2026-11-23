@@ -1,3 +1,5 @@
+import odysseyI18n from '../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -54,6 +56,7 @@ interface OverviewData {
 }
 
 export default function Overview(): JSX.Element {
+  useInterfaceLanguage();
   // Текущий выбранный кластер и элементы управления дашбордом.
   const { currentCluster } = useCluster();
   const { timeRange, registerRefreshHandler, setPageLoading } = useDashboardControls();
@@ -190,8 +193,8 @@ export default function Overview(): JSX.Element {
             rel="noreferrer"
             className="welcome-docs-link"
             data-tooltip-id="welcome-tooltip"
-            data-tooltip-content="Открыть документацию"
-            aria-label="Открыть документацию"
+            data-tooltip-content={odysseyI18n.t('interface.openDocumentation')}
+            aria-label={odysseyI18n.t('interface.openDocumentation')}
           >
             <FiBookOpen className="welcome-docs-icon" />
           </a>
@@ -205,9 +208,8 @@ export default function Overview(): JSX.Element {
             <div className="welcome-tagline">KAFKA MONITORING &amp; MANAGEMENT</div>
           </div>
 
-          <div className="welcome-description">
-            Чтобы начать работу — нажмите{' '}
-            <span className="welcome-highlight">+ Добавить кластер</span>
+          <div className="welcome-description"> {odysseyI18n.t('interface.toGetStartedSelect')}{' '}
+            <span className="welcome-highlight">{odysseyI18n.t('interface.addCluster')}</span>
           </div>
 
           <div className="welcome-links">
@@ -217,8 +219,8 @@ export default function Overview(): JSX.Element {
               rel="noopener noreferrer"
               className="welcome-link"
               data-tooltip-id="welcome-tooltip"
-              data-tooltip-content="Открыть на GitHub"
-              aria-label="Открыть на GitHub"
+              data-tooltip-content={odysseyI18n.t('interface.openOnGitHub')}
+              aria-label={odysseyI18n.t('interface.openOnGitHub')}
             >
               <FiGithub />
               <span>GitHub</span>

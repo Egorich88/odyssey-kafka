@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -152,6 +154,7 @@ function highlightRaw(jsonString) {
 }
 
 export default function MessageViewer({ selectedMessage, viewFormat, setViewFormat }) {
+  useInterfaceLanguage();
   const [isFormatOpen, setIsFormatOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -197,10 +200,10 @@ export default function MessageViewer({ selectedMessage, viewFormat, setViewForm
   return (
     <div className="message-detail-panel">
       <div className="message-detail-header">
-        <h3>Детали сообщения</h3>
+        <h3>{odysseyI18n.t('interface.messageDetails')}</h3>
         {/* Дропдаун выбора формата с подписью */}
         <div className="format-selector-wrapper">
-          <span className="format-label">Формат:</span>
+          <span className="format-label">{odysseyI18n.t('interface.format')}</span>
           <div className="message-format-dropdown" ref={dropdownRef}>
             <button
               type="button"
@@ -232,16 +235,15 @@ export default function MessageViewer({ selectedMessage, viewFormat, setViewForm
 
       <div className="message-detail-meta">
         <span>Offset: {selectedMessage.offset}</span>
-        <span>Партиция: {selectedMessage.partition ?? "—"}</span>
-        <span>Ключ: {selectedMessage.key || "-"}</span>
+        <span>{odysseyI18n.t('interface.partition2')} {selectedMessage.partition ?? "—"}</span>
+        <span>{odysseyI18n.t('interface.key2')} {selectedMessage.key || "-"}</span>
       </div>
 
       {/* Заголовок и кнопка скачивания */}
       <div className="message-value-header">
-        <div className="message-detail-value-title">Значение ({viewFormat.toUpperCase()})</div>
+        <div className="message-detail-value-title">{odysseyI18n.t('interface.value')}{viewFormat.toUpperCase()})</div>
         <button className="download-message-btn" onClick={downloadMessage}>
-          <FiDownload /> Скачать сообщение
-        </button>
+          <FiDownload /> {odysseyI18n.t('interface.downloadMessage')} </button>
       </div>
       <pre className="message-detail-content">
         {renderContent()}

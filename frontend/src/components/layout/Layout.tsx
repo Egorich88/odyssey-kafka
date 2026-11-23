@@ -1,3 +1,4 @@
+import odysseyI18n from '../../i18n';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -190,7 +191,7 @@ const Layout = () => {
 
   const configuredPage = PAGE_CONFIG[location.pathname] ?? {
     title: 'ODYSSEY',
-    description: 'Платформа мониторинга и управления Apache Kafka',
+    description: odysseyI18n.t('interface.apacheKafkaMonitoringAndManagementPlatform'),
     mode: 'default' as const,
   };
 

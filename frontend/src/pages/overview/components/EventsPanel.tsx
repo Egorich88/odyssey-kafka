@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 import { formatTimestamp } from './overviewTime';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
@@ -32,6 +34,7 @@ import { useCluster } from '../../../contexts/ClusterContext';
 import { FiCheck, FiChevronDown, FiFileText } from 'react-icons/fi';
 
 export default function EventsPanel({ refreshKey, timeRange = "range=24h", hoverTime = null }) {
+  useInterfaceLanguage();
   const { currentCluster } = useCluster();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -96,14 +99,14 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
         <div className="events-title">
           <FiFileText aria-hidden="true" />
           <PanelInfo
-            title="События"
-            description="Показывает последние изменения и проблемы кластера. Для событий Consumer Groups дополнительно отображаются группа, топик и актуальное состояние: Stable, Rebalancing, Empty или Dead."
+            title={odysseyI18n.t('interface.events')}
+            description={odysseyI18n.t('interface.recentClusterChangesAndIssuesConsumerGroupEvents')}
           />
-          <span>События</span>
+          <span>{odysseyI18n.t('interface.events')}</span>
         </div>
         <div className="events-panel-actions">
           <div className="events-filter" ref={filterRef}>
-            <span>Уровень:</span>
+            <span>{odysseyI18n.t('interface.severity2')}</span>
             <button
               type="button"
               className={`events-filter-button ${filterOpen ? 'is-open' : ''}`}
@@ -111,7 +114,7 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
               aria-haspopup="listbox"
               aria-expanded={filterOpen}
             >
-              <span>{levelFilter === 'ALL' ? 'Все' : levelFilter}</span>
+              <span>{levelFilter === 'ALL' ? odysseyI18n.t('interface.all') : levelFilter}</span>
               <FiChevronDown />
             </button>
             {filterOpen && (
@@ -125,7 +128,7 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
                     key={value}
                     onClick={() => { setLevelFilter(value); setFilterOpen(false); }}
                   >
-                    <span>{value === 'ALL' ? 'Все' : value}</span>
+                    <span>{value === 'ALL' ? odysseyI18n.t('interface.all') : value}</span>
                     {levelFilter === value && <FiCheck />}
                   </button>
                 ))}
@@ -138,10 +141,10 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
 
       <div className="events-table">
         <div className="events-table-header">
-          <div>Время</div>
-          <div>Уровень</div>
-          <div>Сообщение</div>
-          <div>Источник</div>
+          <div>{odysseyI18n.t('interface.time')}</div>
+          <div>{odysseyI18n.t('interface.severity')}</div>
+          <div>{odysseyI18n.t('interface.message')}</div>
+          <div>{odysseyI18n.t('interface.source')}</div>
         </div>
 
         {filteredEvents.map((event, index) => (
@@ -152,7 +155,7 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
               <span className={`event-level-badge ${getLevelClass(event.level)}`}>{event.level || 'INFO'}</span>
             </div>
             <div className="events-cell event-message">
-              <span className="event-message-text">{event.message}</span>
+              <span className="event-message-text">{event.messageKey ? odysseyI18n.t('clusterEvent.' + event.messageKey, { defaultValue: event.message, ...Object.fromEntries((event.messageArgs || []).map((value, i) => ['v' + i, value])) }) : event.message}</span>
             </div>
 
             <div className="events-cell source">
@@ -162,10 +165,10 @@ export default function EventsPanel({ refreshKey, timeRange = "range=24h", hover
         ))}
 
         {!loading && events.length === 0 && (
-          <div className="events-loading">Событий пока нет</div>
+          <div className="events-loading">{odysseyI18n.t('interface.noEventsYet')}</div>
         )}
 
-        {loading && <div className="events-loading">Загрузка...</div>}
+        {loading && <div className="events-loading">{odysseyI18n.t('interface.loading')}</div>}
       </div>
     </div>
   );

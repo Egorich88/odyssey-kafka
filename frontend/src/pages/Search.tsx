@@ -1,3 +1,6 @@
+import { serverMessage } from '../i18n/serverMessage';
+import odysseyI18n from '../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -33,6 +36,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useCluster } from '../contexts/ClusterContext';
 
 export default function Search() {
+  useInterfaceLanguage();
   const { currentCluster } = useCluster();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -101,7 +105,7 @@ export default function Search() {
         }
         setTopics(topicsList);
       } catch (err) {
-        toast.error('Ошибка загрузки топиков');
+        toast.error(odysseyI18n.t('interface.couldNotLoadTopics'));
       }
     };
     loadTopics();
@@ -186,9 +190,9 @@ export default function Search() {
       });
       setMessages(response.data.messages || [])
       setTotalMessages(response.data.total || 0)
-      toast.success(`Получено ${response.data.messages?.length || 0} сообщений из ${response.data.total || 0}`);
+      toast.success(odysseyI18n.t('interface.receivedMessagesFrom', { v0: response.data.messages?.length || 0, v1: response.data.total || 0 }));
     } catch (err) {
-      toast.error('Ошибка чтения сообщений: ' + (err.response?.data?.error || err.message));
+      toast.error(odysseyI18n.t('interface.couldNotReadMessages') + serverMessage(err.response?.data?.error || err.message));
       setMessages([]);
       setTotalMessages(0);
     } finally {
@@ -231,7 +235,7 @@ export default function Search() {
       ? messages.filter((m) => selectedRows.includes(getRowKey(m)))
       : messages
     if (rows.length === 0) {
-      toast.error("Нет сообщений для выгрузки")
+      toast.error(odysseyI18n.t('interface.noMessagesToExport'))
       return
     }
     if (format === "json") {
@@ -317,8 +321,8 @@ export default function Search() {
         <div className="search-results-card">
           <div className="search-results-header">
             <div className="search-results-title-row">
-              <h2>Результаты поиска</h2>
-              <div className="search-results-badge">Найдено: {totalMessages} сообщений</div>
+              <h2>{odysseyI18n.t('interface.searchResults')}</h2>
+              <div className="search-results-badge">{odysseyI18n.t('interface.found')} {totalMessages} {odysseyI18n.t('interface.messages')}</div>
             </div>
             <div className="search-actions">
               {/* Единый экспорт — если есть выбранные, экспортируем их, иначе все */}
@@ -328,8 +332,7 @@ export default function Search() {
                   className="export-btn"
                   onClick={() => setExportMenu(exportMenu === 'export' ? null : 'export')}
                 >
-                  <FiDownload className="export-icon" />
-                  Экспорт ({selectedRows.length})
+                  <FiDownload className="export-icon" /> {odysseyI18n.t('interface.export2')}{selectedRows.length})
                   <FiChevronDown className="export-chevron" />
                 </button>
 
@@ -366,8 +369,8 @@ export default function Search() {
 
           <div className="table-footer">
             <div className="table-footer-left">
-              <span className="selected-count">Выбрано: {selectedRows.length} сообщений</span>
-              <button className="clear-selection-btn" onClick={() => setSelectedRows([])}>Очистить выбор</button>
+              <span className="selected-count">{odysseyI18n.t('interface.selected')} {selectedRows.length} {odysseyI18n.t('interface.messages')}</span>
+              <button className="clear-selection-btn" onClick={() => setSelectedRows([])}>{odysseyI18n.t('interface.clearSelection')}</button>
             </div>
             <Pagination
               currentPage={currentPage}

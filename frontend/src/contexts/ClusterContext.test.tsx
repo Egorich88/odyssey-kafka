@@ -4,7 +4,7 @@ import axios from 'axios';
 import { afterEach, expect, it, vi } from 'vitest';
 import { ClusterProvider, useCluster } from './ClusterContext';
 vi.mock('axios', () => ({ default: { post: vi.fn(), get: vi.fn(), put: vi.fn(), delete: vi.fn() } }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({ t: (key: string) => key }) }));
 afterEach(() => { cleanup(); localStorage.clear(); vi.resetAllMocks(); });
 const first = { id: 'server-a', name: 'A', brokers: 'a.test:9092', authType: 'PLAINTEXT', revision: 1 };
 function Controls() {

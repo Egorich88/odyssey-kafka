@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -39,9 +41,10 @@ interface Props {
     onClose: () => void;
 }
 
-const STEPS = ['Подготовка', 'Метод сброса', 'Подтверждение'];
+const STEPS = [() => odysseyI18n.t('interface.preparation'), () => odysseyI18n.t('interface.resetMethod'), () => odysseyI18n.t('interface.confirmation')];
 
 export default function OffsetResetWizard({ group, open, onClose }: Props) {
+  useInterfaceLanguage();
     const [step, setStep] = useState(0);
     const [consumersStopped, setConsumersStopped] = useState(false);
     const [topicScope, setTopicScope] = useState<'all' | 'specific'>('all');
@@ -75,7 +78,7 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
     };
 
     const handleConfirm = () => {
-        toast.success(`Оффсеты группы «${group.name}» сброшены (${resetMethod})`);
+        toast.success(odysseyI18n.t('interface.offsetsForGroupReset', { v0: group.name, v1: resetMethod }));
         handleClose();
     };
 
@@ -90,7 +93,7 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
             >
                 <div className="offset-reset-header">
                     <div>
-                        <h2>Сброс оффсетов</h2>
+                        <h2>{odysseyI18n.t('interface.offsetReset')}</h2>
                         <p className="offset-reset-group-name">{group.name}</p>
                     </div>
                     <button type="button" className="offset-reset-close" onClick={handleClose}>
@@ -102,13 +105,13 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
                 <div className="offset-reset-steps">
                     {STEPS.map((label, i) => (
                         <div
-                            key={label}
+                            key={label()}
                             className={`offset-reset-step ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`}
                         >
                             <span className="step-num">
                                 {i < step ? <FiCheck /> : i + 1}
                             </span>
-                            <span className="step-label">{label}</span>
+                            <span className="step-label">{label()}</span>
                         </div>
                     ))}
                 </div>
@@ -119,10 +122,7 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
                             <div className="offset-reset-warning">
                                 <FiAlertTriangle />
                                 <div>
-                                    <strong>Важно!</strong> Перед сбросом оффсетов необходимо
-                                    остановить все consumer-приложения группы «{group.name}».
-                                    Иначе они могут перезаписать оффсеты после сброса.
-                                </div>
+                                    <strong>{odysseyI18n.t('interface.important')}</strong> {odysseyI18n.t('interface.beforeResettingOffsetsStopAllConsumerApplicationsIn')}{group.name}{odysseyI18n.t('interface.otherwiseTheyMayOverwriteTheOffsetsAfterThe')} </div>
                             </div>
 
                             <label className="offset-reset-checkbox">
@@ -130,28 +130,23 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
                                     type="checkbox"
                                     checked={consumersStopped}
                                     onChange={(e) => setConsumersStopped(e.target.checked)}
-                                />
-                                Я подтверждаю, что все consumer-приложения остановлены
-                            </label>
+                                /> {odysseyI18n.t('interface.iConfirmThatAllConsumerApplicationsHaveStopped')} </label>
 
                             <div className="offset-reset-section">
-                                <div className="offset-reset-section-title">Выбор топика</div>
+                                <div className="offset-reset-section-title">{odysseyI18n.t('interface.selectTopic')}</div>
                                 <label className="offset-reset-radio">
                                     <input
                                         type="radio"
                                         checked={topicScope === 'all'}
                                         onChange={() => setTopicScope('all')}
-                                    />
-                                    Все топики ({topics.length})
+                                    /> {odysseyI18n.t('interface.allTopics')}{topics.length})
                                 </label>
                                 <label className="offset-reset-radio">
                                     <input
                                         type="radio"
                                         checked={topicScope === 'specific'}
                                         onChange={() => setTopicScope('specific')}
-                                    />
-                                    Конкретный топик
-                                </label>
+                                    /> {odysseyI18n.t('interface.specificTopic')} </label>
                                 {topicScope === 'specific' && (
                                     <select
                                         className="offset-reset-select"
@@ -166,23 +161,20 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
                             </div>
 
                             <div className="offset-reset-section">
-                                <div className="offset-reset-section-title">Выбор партиции</div>
+                                <div className="offset-reset-section-title">{odysseyI18n.t('interface.selectPartition')}</div>
                                 <label className="offset-reset-radio">
                                     <input
                                         type="radio"
                                         checked={partitionScope === 'all'}
                                         onChange={() => setPartitionScope('all')}
-                                    />
-                                    Все партиции ({partitions})
+                                    /> {odysseyI18n.t('interface.allPartitions')}{partitions})
                                 </label>
                                 <label className="offset-reset-radio">
                                     <input
                                         type="radio"
                                         checked={partitionScope === 'specific'}
                                         onChange={() => setPartitionScope('specific')}
-                                    />
-                                    Конкретная партиция
-                                </label>
+                                    /> {odysseyI18n.t('interface.specificPartition')} </label>
                                 {partitionScope === 'specific' && (
                                     <select
                                         className="offset-reset-select"
@@ -190,8 +182,7 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
                                         onChange={(e) => setSelectedPartition(e.target.value)}
                                     >
                                         {Array.from({ length: partitions }, (_, i) => (
-                                            <option key={i} value={String(i)}>
-                                                Партиция {i}
+                                            <option key={i} value={String(i)}> {odysseyI18n.t('interface.partition')} {i}
                                             </option>
                                         ))}
                                     </select>
@@ -202,13 +193,13 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
 
                     {step === 1 && (
                         <div className="offset-reset-section">
-                            <div className="offset-reset-section-title">Метод сброса оффсета</div>
+                            <div className="offset-reset-section-title">{odysseyI18n.t('interface.offsetResetMethod')}</div>
                             {([
-                                ['earliest', 'Earliest — начало топика'],
-                                ['latest', 'Latest — конец топика'],
-                                ['datetime', 'По дате/времени'],
-                                ['offset', 'По конкретному offset'],
-                                ['current', 'Текущее значение (без изменений)']
+                                ['earliest', odysseyI18n.t('interface.earliestBeginningOfTopic')],
+                                ['latest', odysseyI18n.t('interface.latestEndOfTopic')],
+                                ['datetime', odysseyI18n.t('interface.byDateAndTime')],
+                                ['offset', odysseyI18n.t('interface.byOffset')],
+                                ['current', odysseyI18n.t('interface.currentValueNoChange')]
                             ] as [OffsetResetMethod, string][]).map(([value, label]) => (
                                 <label key={value} className="offset-reset-radio">
                                     <input
@@ -244,51 +235,44 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
 
                     {step === 2 && (
                         <div className="offset-reset-preview">
-                            <div className="offset-reset-section-title">Предварительный просмотр</div>
+                            <div className="offset-reset-section-title">{odysseyI18n.t('interface.preview')}</div>
                             <div className="preview-row">
-                                <span>Группа</span>
+                                <span>{odysseyI18n.t('interface.group')}</span>
                                 <strong>{group.name}</strong>
                             </div>
                             <div className="preview-row">
-                                <span>Топик</span>
+                                <span>{odysseyI18n.t('interface.topic')}</span>
                                 <strong>
-                                    {topicScope === 'all' ? 'Все' : selectedTopic}
+                                    {topicScope === 'all' ? odysseyI18n.t('interface.all') : selectedTopic}
                                 </strong>
                             </div>
                             <div className="preview-row">
-                                <span>Партиция</span>
+                                <span>{odysseyI18n.t('interface.partition')}</span>
                                 <strong>
-                                    {partitionScope === 'all' ? 'Все' : selectedPartition}
+                                    {partitionScope === 'all' ? odysseyI18n.t('interface.all') : selectedPartition}
                                 </strong>
                             </div>
                             <div className="preview-row">
-                                <span>Метод</span>
+                                <span>{odysseyI18n.t('interface.method')}</span>
                                 <strong>{resetMethod}</strong>
                             </div>
 
                             <div className="offset-reset-warning">
                                 <FiAlertTriangle />
-                                <div>
-                                    Эта операция необратимо изменит оффсеты для выбранной группы.
-                                    Убедитесь, что consumer-приложения остановлены.
-                                </div>
+                                <div> {odysseyI18n.t('interface.thisOperationPermanentlyChangesOffsetsForTheSelected')} </div>
                             </div>
                         </div>
                     )}
                 </div>
 
                 <div className="offset-reset-footer">
-                    <button type="button" className="offset-reset-btn cancel" onClick={handleClose}>
-                        Отмена
-                    </button>
+                    <button type="button" className="offset-reset-btn cancel" onClick={handleClose}> {odysseyI18n.t('interface.cancel')} </button>
                     {step > 0 && (
                         <button
                             type="button"
                             className="offset-reset-btn secondary"
                             onClick={() => setStep(step - 1)}
-                        >
-                            Назад
-                        </button>
+                        > {odysseyI18n.t('interface.back')} </button>
                     )}
                     {step < 2 ? (
                         <button
@@ -299,17 +283,13 @@ export default function OffsetResetWizard({ group, open, onClose }: Props) {
                                 (step === 1 && !canProceedStep1)
                             }
                             onClick={() => setStep(step + 1)}
-                        >
-                            Далее
-                        </button>
+                        > {odysseyI18n.t('interface.next')} </button>
                     ) : (
                         <button
                             type="button"
                             className="offset-reset-btn primary"
                             onClick={handleConfirm}
-                        >
-                            Сбросить оффсеты
-                        </button>
+                        > {odysseyI18n.t('interface.resetOffsets')} </button>
                     )}
                 </div>
             </div>

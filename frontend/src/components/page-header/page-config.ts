@@ -1,3 +1,4 @@
+import odysseyI18n from '../../i18n';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -39,83 +40,83 @@ export interface PageConfig {
 
 export const PAGE_CONFIG: Record<string, PageConfig> = {
   '/': {
-    title: 'Обзор',
-    description: 'Мониторинг состояния и ключевых показателей Kafka-кластера',
+    get title() { return odysseyI18n.t('interface.overview'); },
+    get description() { return odysseyI18n.t('interface.monitorKafkaClusterHealthAndKeyMetrics'); },
     mode: 'monitoring',
   },
   '/overview': {
-    title: 'Обзор',
-    description: 'Мониторинг состояния и ключевых показателей Kafka-кластера',
+    get title() { return odysseyI18n.t('interface.overview'); },
+    get description() { return odysseyI18n.t('interface.monitorKafkaClusterHealthAndKeyMetrics'); },
     mode: 'monitoring',
   },
   '/brokers': {
-    title: 'Брокеры',
-    description: 'Состояние и параметры брокеров Kafka-кластера',
+    get title() { return odysseyI18n.t('interface.brokers'); },
+    get description() { return odysseyI18n.t('interface.kafkaBrokerHealthAndConfiguration'); },
     mode: 'monitoring',
   },
   '/topics': {
-    title: 'Топики',
-    description: 'Управление топиками и их конфигурацией',
+    get title() { return odysseyI18n.t('interface.topics'); },
+    get description() { return odysseyI18n.t('interface.manageTopicsAndTheirConfiguration'); },
     mode: 'monitoring',
   },
   '/groups': {
-    title: 'Группы потребителей',
-    description: 'Мониторинг групп потребителей и потребительского лага',
+    get title() { return odysseyI18n.t('interface.consumerGroups'); },
+    get description() { return odysseyI18n.t('interface.monitorConsumerGroupsAndConsumerLag'); },
     mode: 'monitoring',
   },
   '/alerts': {
-    title: 'Оповещения',
-    description: 'Активные события и предупреждения Kafka-кластера',
+    get title() { return odysseyI18n.t('interface.alerts'); },
+    get description() { return odysseyI18n.t('interface.activeClusterEventsAndWarnings'); },
     mode: 'monitoring',
   },
   '/search': {
-    title: 'Поиск сообщений',
-    description: 'Поиск и просмотр сообщений в Kafka',
+    get title() { return odysseyI18n.t('interface.messageSearch'); },
+    get description() { return odysseyI18n.t('interface.findAndInspectKafkaMessages'); },
     mode: 'monitoring',
   },
   '/acls': {
     title: 'ACL',
-    description: 'Управление политиками доступа Kafka',
+    get description() { return odysseyI18n.t('interface.manageKafkaAccessPolicies'); },
     mode: 'monitoring',
   },
   '/audit': {
-    title: 'Аудит',
-    description: 'Обзор активности и событий безопасности в кластере',
+    get title() { return odysseyI18n.t('interface.audit'); },
+    get description() { return odysseyI18n.t('interface.reviewClusterActivityAndSecurityEvents'); },
     mode: 'default',
   },
   '/console': {
-    title: 'Консоль',
-    description: 'Выполнение команд и операций Kafka',
+    get title() { return odysseyI18n.t('interface.console'); },
+    get description() { return odysseyI18n.t('interface.runKafkaCommandsAndOperations'); },
     mode: 'default',
   },
   '/settings': {
-    title: 'Настройки',
-    description: 'Настройки интерфейса и приложения',
+    get title() { return odysseyI18n.t('interface.settings'); },
+    get description() { return odysseyI18n.t('interface.interfaceAndApplicationSettings'); },
     mode: 'default',
   },
   '/user': {
-    title: 'Пользователь',
-    description: 'Профиль и параметры пользователя',
+    get title() { return odysseyI18n.t('interface.user'); },
+    get description() { return odysseyI18n.t('interface.userProfileAndPreferences'); },
     mode: 'default',
   },
   '/delete': {
-    title: 'Удаление',
-    description: 'Удаление выбранного Kafka-кластера',
+    get title() { return odysseyI18n.t('interface.deletion'); },
+    get description() { return odysseyI18n.t('interface.deleteTheSelectedKafkaCluster'); },
     mode: 'default',
   },
   '/connect': {
     title: 'Kafka Connect',
-    description: 'Интеграция с Kafka Connect',
+    get description() { return odysseyI18n.t('interface.kafkaConnectIntegration'); },
     mode: 'default',
   },
   '/ksqldb': {
     title: 'ksqlDB',
-    description: 'Работа с потоками и запросами ksqlDB',
+    get description() { return odysseyI18n.t('interface.workWithKsqlDBStreamsAndQueries'); },
     mode: 'default',
   },
   '/schema-registry': {
     title: 'Schema Registry',
-    description: 'Управление схемами сообщений Kafka',
+    get description() { return odysseyI18n.t('interface.manageKafkaMessageSchemas'); },
     mode: 'default',
   },
 };

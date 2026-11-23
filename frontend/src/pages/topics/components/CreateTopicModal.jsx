@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -27,19 +29,20 @@ export default function CreateTopicModal({
   setShowAdvanced,
   handleCreateTopic,
 }) {
+  useInterfaceLanguage();
   if (!showCreateModal) return null;
 
   return (
     <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h2>Создать топик</h2>
+        <h2>{odysseyI18n.t('interface.createTopic')}</h2>
 
         <form onSubmit={handleCreateTopic}>
           <div className="modal-field">
-            <label>Имя топика</label>
+            <label>{odysseyI18n.t('interface.topicName')}</label>
             <input
               type="text"
-              placeholder="Например: orders.events"
+              placeholder={odysseyI18n.t('interface.exampleOrdersEvents')}
               value={newTopic.topic}
               onChange={(e) =>
                 setNewTopic({
@@ -52,7 +55,7 @@ export default function CreateTopicModal({
           </div>
 
           <div className="modal-field">
-            <label>Количество партиций</label>
+            <label>{odysseyI18n.t('interface.partitionCount')}</label>
             <input
               type="text"
               placeholder="1"
@@ -67,7 +70,7 @@ export default function CreateTopicModal({
           </div>
 
           <div className="modal-field">
-            <label>Фактор репликации</label>
+            <label>{odysseyI18n.t('interface.replicationFactor')}</label>
             <input
               type="text"
               placeholder="1"
@@ -87,8 +90,8 @@ export default function CreateTopicModal({
             onClick={() => setShowAdvanced(!showAdvanced)}
           >
             {showAdvanced
-              ? 'Скрыть дополнительные параметры'
-              : 'Дополнительные параметры'}
+              ? odysseyI18n.t('interface.hideAdvancedOptions')
+              : odysseyI18n.t('interface.advancedOptions')}
           </button>
 
           {showAdvanced && (
@@ -142,10 +145,8 @@ export default function CreateTopicModal({
           )}
 
           <div className="modal-buttons">
-            <button type="submit">Создать</button>
-            <button type="button" onClick={() => setShowCreateModal(false)}>
-              Отмена
-            </button>
+            <button type="submit">{odysseyI18n.t('interface.create')}</button>
+            <button type="button" onClick={() => setShowCreateModal(false)}> {odysseyI18n.t('interface.cancel')} </button>
           </div>
         </form>
       </div>

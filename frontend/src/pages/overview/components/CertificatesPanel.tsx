@@ -1,3 +1,6 @@
+import { serverMessage } from '../../../i18n/serverMessage';
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -74,16 +77,17 @@ function expiryStatus(days: number): 'ok' | 'warning' | 'critical' | 'neutral' {
 
 function expiryLabel(days: number): string {
   if (days < 0) return '—';
-  return `${days} дн.`;
+  return odysseyI18n.t('interface.days', { v0: days });
 }
 
 function formatDate(value: string): string {
   if (!value) return '—';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(odysseyI18n.language, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
 }
 
 export default function CertificatesPanel({ refreshKey }: { refreshKey: number }): JSX.Element {
+  useInterfaceLanguage();
   const { currentCluster } = useCluster();
   const [data, setData] = useState<ResponseData | null>(null);
   const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('ALL');
@@ -168,25 +172,25 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
         <div className="panel-title-with-info">
           <LuShieldCheck aria-hidden="true" />
           <PanelInfo
-            title="Сертификаты"
-            description="Список TLS-сертификатов и связанных хранилищ Kafka. Отображаются срок действия, расположение и данные Subject/Issuer, если их удалось прочитать."
+            title={odysseyI18n.t('interface.certificates')}
+            description={odysseyI18n.t('interface.tlsCertificatesAndAssociatedKafkaStoresShowsExpiration')}
           />
-          <span>Сертификаты</span>
+          <span>{odysseyI18n.t('interface.certificates')}</span>
         </div>
         <div className="certificate-header-controls">
-          <div className="certificate-summary-main"><strong>{count}</strong><span>сертификатов</span></div>
-          <div className="certificate-summary-nearest">Ближайшее истечение: <strong>{nearest >= 0 ? `${nearest} дн.` : '—'}</strong></div>
+          <div className="certificate-summary-main"><strong>{count}</strong><span>{odysseyI18n.t('interface.certificates2')}</span></div>
+          <div className="certificate-summary-nearest">{odysseyI18n.t('interface.nextExpiration')} <strong>{nearest >= 0 ? odysseyI18n.t('interface.days', { v0: nearest }) : '—'}</strong></div>
           <div className="certificate-filters" ref={filtersRef}>
             <div className="certificate-filter-menu-wrap">
-              <button type="button" className={`certificate-filter-trigger ${openFilter === 'type' ? 'is-open' : ''}`} aria-label="Выбрать тип сертификата" aria-expanded={openFilter === 'type'} onClick={() => setOpenFilter((value) => value === 'type' ? null : 'type')}><span>{typeFilter === 'ALL' ? 'Все типы' : typeFilter}</span><FiChevronDown /></button>
-              {openFilter === 'type' && <div className="certificate-dropdown-menu" role="listbox" aria-label="Тип сертификата">
-                {[['ALL', 'Все типы'], ...types.map((type) => [type, type])].map(([value, label]) => <button type="button" key={value} className={typeFilter === value ? 'selected' : ''} onClick={() => { setTypeFilter(value); setOpenFilter(null); }}><span>{label}</span>{typeFilter === value && <FiCheck />}</button>)}
+              <button type="button" className={`certificate-filter-trigger ${openFilter === 'type' ? 'is-open' : ''}`} aria-label={odysseyI18n.t('interface.selectCertificateType')} aria-expanded={openFilter === 'type'} onClick={() => setOpenFilter((value) => value === 'type' ? null : 'type')}><span>{typeFilter === 'ALL' ? odysseyI18n.t('interface.allTypes') : typeFilter}</span><FiChevronDown /></button>
+              {openFilter === 'type' && <div className="certificate-dropdown-menu" role="listbox" aria-label={odysseyI18n.t('interface.certificateType')}>
+                {[['ALL', odysseyI18n.t('interface.allTypes')], ...types.map((type) => [type, type])].map(([value, label]) => <button type="button" key={value} className={typeFilter === value ? 'selected' : ''} onClick={() => { setTypeFilter(value); setOpenFilter(null); }}><span>{label}</span>{typeFilter === value && <FiCheck />}</button>)}
               </div>}
             </div>
             <div className="certificate-filter-menu-wrap">
-              <button type="button" className={`certificate-filter-trigger ${openFilter === 'expiry' ? 'is-open' : ''}`} aria-label="Выбрать срок действия" aria-expanded={openFilter === 'expiry'} onClick={() => setOpenFilter((value) => value === 'expiry' ? null : 'expiry')}><span>{({ ALL: 'Все сроки', OK: 'Более 30 дней', WARNING: 'Менее 30 дней', CRITICAL: 'Менее 7 дней' } as Record<ExpiryFilter, string>)[expiryFilter]}</span><FiChevronDown /></button>
-              {openFilter === 'expiry' && <div className="certificate-dropdown-menu" role="listbox" aria-label="Статус срока действия">
-                {([['ALL', 'Все сроки'], ['OK', 'Более 30 дней'], ['WARNING', 'Менее 30 дней'], ['CRITICAL', 'Менее 7 дней']] as [ExpiryFilter, string][]).map(([value, label]) => <button type="button" key={value} className={expiryFilter === value ? 'selected' : ''} onClick={() => { setExpiryFilter(value); setOpenFilter(null); }}><span>{label}</span>{expiryFilter === value && <FiCheck />}</button>)}
+              <button type="button" className={`certificate-filter-trigger ${openFilter === 'expiry' ? 'is-open' : ''}`} aria-label={odysseyI18n.t('interface.selectExpirationRange')} aria-expanded={openFilter === 'expiry'} onClick={() => setOpenFilter((value) => value === 'expiry' ? null : 'expiry')}><span>{({ ALL: odysseyI18n.t('interface.anyExpiration'), OK: odysseyI18n.t('interface.moreThan30Days'), WARNING: odysseyI18n.t('interface.lessThan30Days'), CRITICAL: odysseyI18n.t('interface.lessThan7Days') } as Record<ExpiryFilter, string>)[expiryFilter]}</span><FiChevronDown /></button>
+              {openFilter === 'expiry' && <div className="certificate-dropdown-menu" role="listbox" aria-label={odysseyI18n.t('interface.expirationStatus')}>
+                {([['ALL', odysseyI18n.t('interface.anyExpiration')], ['OK', odysseyI18n.t('interface.moreThan30Days')], ['WARNING', odysseyI18n.t('interface.lessThan30Days')], ['CRITICAL', odysseyI18n.t('interface.lessThan7Days')]] as [ExpiryFilter, string][]).map(([value, label]) => <button type="button" key={value} className={expiryFilter === value ? 'selected' : ''} onClick={() => { setExpiryFilter(value); setOpenFilter(null); }}><span>{label}</span>{expiryFilter === value && <FiCheck />}</button>)}
               </div>}
             </div>
           </div>
@@ -198,17 +202,17 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
         <div className="certificate-table-wrap">
           <div className="certificate-table">
             <div className="certificate-table-row header">
-              <button type="button" onClick={() => changeSort('name')}>Сертификат <SortIcon column="name" /></button>
-              <button type="button" onClick={() => changeSort('type')}>Тип</button>
-              <button type="button" onClick={() => changeSort('expiresAt')}>Истекает <SortIcon column="expiresAt" /></button>
-              <button type="button" onClick={() => changeSort('daysLeft')}>Осталось <SortIcon column="daysLeft" /></button>
-              <button type="button" onClick={() => changeSort('path')}>Расположение</button>
+              <button type="button" onClick={() => changeSort('name')}>{odysseyI18n.t('interface.certificate')} <SortIcon column="name" /></button>
+              <button type="button" onClick={() => changeSort('type')}>{odysseyI18n.t('interface.type')}</button>
+              <button type="button" onClick={() => changeSort('expiresAt')}>{odysseyI18n.t('interface.expires')} <SortIcon column="expiresAt" /></button>
+              <button type="button" onClick={() => changeSort('daysLeft')}>{odysseyI18n.t('interface.remaining')} <SortIcon column="daysLeft" /></button>
+              <button type="button" onClick={() => changeSort('path')}>{odysseyI18n.t('interface.location')}</button>
               <button type="button" onClick={() => changeSort('subject')}>Subject / Issuer</button>
             </div>
 
             {filteredCertificates.length === 0 && (
               <div className="certificate-empty-state">
-                {data?.message || (data ? 'Отсутствуют сертификаты' : 'Не получилось подключиться к сертификатам. Проверьте доступ к кластеру.')}
+                {data?.message || (data ? odysseyI18n.t('interface.noCertificates') : odysseyI18n.t('interface.couldNotRetrieveCertificatesCheckClusterAccess'))}
               </div>
             )}
             {filteredCertificates.map((certificate) => {
@@ -219,9 +223,9 @@ export default function CertificatesPanel({ refreshKey }: { refreshKey: number }
                   <span title={certificate.type}>{certificate.type || '—'}</span>
                   <span className="certificate-expiry">{formatDate(certificate.expiresAt)}</span>
                   <span className={`certificate-days certificate-${status}`}>{expiryLabel(certificate.daysLeft)}</span>
-                  <span className="certificate-location" title={certificate.error || certificate.path}>{certificate.error ? `Ошибка: ${certificate.error}` : (certificate.path || '—')}</span>
-                  <span className="certificate-metadata" title={`${certificate.subject || '—'} / ${certificate.issuer || '—'}`}>
-                    <strong>{certificate.commonName || certificate.subject || '—'}</strong>
+                  <span className="certificate-location" title={serverMessage(certificate.error || '') || certificate.path}>{certificate.error ? odysseyI18n.t('interface.error', { v0: serverMessage(certificate.error) }) : (certificate.path || '—')}</span>
+                  <span className="certificate-metadata" title={`${((certificate.type === 'Private Key / KEY' || certificate.type === 'PKCS#8 / P8') ? serverMessage(certificate.subject || '') : certificate.subject) || '—'} / ${certificate.issuer || '—'}`}>
+                    <strong>{certificate.commonName || ((certificate.type === 'Private Key / KEY' || certificate.type === 'PKCS#8 / P8') ? serverMessage(certificate.subject || '') : certificate.subject) || '—'}</strong>
                     <small>{certificate.issuer || '—'}{certificate.san && certificate.san !== '—' ? ` · ${certificate.san}` : ''}</small>
                   </span>
                 </div>

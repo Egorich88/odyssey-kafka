@@ -1,3 +1,5 @@
+import { serverMessage } from '../../../i18n/serverMessage';
+import odysseyI18n from '../../../i18n';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -183,7 +185,7 @@ export function useTopics() {
       if (request.signal.aborted || activeProfile.current !== profileKey) return;
       console.error('Не удалось выполнить запрос Kafka.');
       setTopics([]);
-      toast.error('Ошибка загрузки топиков');
+      toast.error(odysseyI18n.t('interface.couldNotLoadTopics'));
     } finally {
       if (!request.signal.aborted && activeProfile.current === profileKey) setLoading(false);
     }
@@ -224,7 +226,7 @@ export function useTopics() {
     } catch (error) {
       if (request.signal.aborted || activeProfile.current !== profileKey) return;
       console.error('Не удалось выполнить запрос Kafka.');
-      toast.error('Ошибка загрузки деталей топика');
+      toast.error(odysseyI18n.t('interface.couldNotLoadTopicDetails'));
     } finally {
       if (!request.signal.aborted && activeProfile.current === profileKey) setDetailLoading(false);
     }
@@ -342,7 +344,7 @@ export function useTopics() {
       );
 
       if (activeProfile.current !== profileKey) return;
-      toast.success(`Параметр ${editingParam} обновлён`);
+      toast.success(odysseyI18n.t('interface.updatedParameter', { v0: editingParam }));
 
       setDetailTopic((prev) => prev ? ({
         ...prev,
@@ -359,8 +361,8 @@ export function useTopics() {
       if ([403, 409].includes(error.response?.status)) { revoke(); rejectAdministration(); return; }
       console.error('Не удалось выполнить запрос Kafka.');
       toast.error(
-        'Ошибка сохранения: ' +
-          (error.response?.data?.error || error.message)
+        odysseyI18n.t('interface.couldNotSave') +
+          serverMessage(error.response?.data?.error || error.message)
       );
     }
   }, [profileKey, selectedTopic, editingParam, editValue, originalValue, currentCluster, permissions.alterTopicConfig, rejectAdministration, revoke]);
@@ -389,7 +391,7 @@ export function useTopics() {
     if (!currentCluster) return;
 
     if (!newTopic.topic.trim()) {
-      toast.error('Введите имя топика');
+      toast.error(odysseyI18n.t('interface.enterATopicName'));
       return;
     }
 
@@ -416,7 +418,7 @@ export function useTopics() {
       });
 
       if (activeProfile.current !== profileKey) return;
-      toast.success(`Топик "${newTopic.topic}" создан`);
+      toast.success(odysseyI18n.t('interface.createdTopic', { v0: newTopic.topic }));
 
       setNewTopic({
         topic: '',
@@ -441,10 +443,10 @@ export function useTopics() {
         backendError.includes('contains one or more characters')
       ) {
         toast.error(
-          'Ошибка создания топика. Используйте только латинские символы, цифры, ".", "_" или "-"'
+          odysseyI18n.t('interface.couldNotCreateTopicUseOnlyLettersA')
         );
       } else {
-        toast.error(backendError || 'Ошибка создания топика');
+        toast.error(serverMessage(backendError) || odysseyI18n.t('interface.couldNotCreateTopic'));
       }
     }
   }, [profileKey, currentCluster, newTopic, showAdvanced, fetchTopics, permissions.createTopic, rejectAdministration, revoke]);
@@ -456,11 +458,11 @@ export function useTopics() {
     if (activeProfile.current !== profileKey) return;
     if (!permissions.deleteTopic) { rejectAdministration(); return; }
     if (!selectedTopic) {
-      toast.error('Выберите топик');
+      toast.error(odysseyI18n.t('interface.selectATopic'));
       return;
     }
 
-    if (!window.confirm(`Удалить топик "${selectedTopic.name}"?`)) {
+    if (!window.confirm(odysseyI18n.t('interface.deleteTopic', { v0: selectedTopic.name }))) {
       return;
     }
 
@@ -476,7 +478,7 @@ export function useTopics() {
       );
 
       if (activeProfile.current !== profileKey) return;
-      toast.success(`Топик "${selectedTopic.name}" удалён`);
+      toast.success(odysseyI18n.t('interface.deletedTopic', { v0: selectedTopic.name }));
 
       closePanel();
       fetchTopics();
@@ -484,7 +486,7 @@ export function useTopics() {
       if (activeProfile.current !== profileKey) return;
       if ([403, 409].includes(error.response?.status)) { revoke(); rejectAdministration(); return; }
       console.error('Не удалось выполнить запрос Kafka.');
-      toast.error('Ошибка удаления топика');
+      toast.error(odysseyI18n.t('interface.couldNotDeleteTopic'));
     }
   }, [profileKey, selectedTopic, currentCluster, fetchTopics, permissions.deleteTopic, rejectAdministration, revoke]);
 
@@ -502,7 +504,7 @@ export function useTopics() {
         : topics;
 
     const content = selected
-      .map((t) => `${t.name} (партиций: ${t.partitions})`)
+      .map((t) => odysseyI18n.t('interface.partitions3', { v0: t.name, v1: t.partitions }))
       .join('\n');
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -514,7 +516,7 @@ export function useTopics() {
     window.URL.revokeObjectURL(url);
 
     setShowExportMenu(false);
-    toast.success(`Экспортировано ${selected.length} топиков`);
+    toast.success(odysseyI18n.t('interface.exportedTopics', { v0: selected.length }));
   }, [topics, selectedTopics]);
 
   /**
@@ -563,10 +565,10 @@ export function useTopics() {
       window.URL.revokeObjectURL(url);
 
       setShowExportMenu(false);
-      toast.success(`Экспортировано ${selected.length} топиков`);
+      toast.success(odysseyI18n.t('interface.exportedTopics', { v0: selected.length }));
     } catch (error) {
       console.error('Не удалось выполнить запрос Kafka.');
-      toast.error('Ошибка экспорта конфигурации');
+      toast.error(odysseyI18n.t('interface.couldNotExportConfiguration'));
     }
   }, [currentCluster, topics, selectedTopics]);
 

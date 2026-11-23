@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -30,6 +32,7 @@ interface Props {
 }
 
 export default function ClusterStatusScreen({ status }: Props): JSX.Element {
+  useInterfaceLanguage();
   const checking = status === 'checking' || status === 'unknown';
 
   return (
@@ -44,11 +47,11 @@ export default function ClusterStatusScreen({ status }: Props): JSX.Element {
           {checking ? <FiLoader /> : <FiAlertTriangle />}
         </div>
 
-        <h2>{checking ? 'Подключение к кластеру' : 'Кластер не доступен'}</h2>
+        <h2>{checking ? odysseyI18n.t('interface.connectingToCluster') : odysseyI18n.t('interface.clusterUnavailable')}</h2>
         <p>
           {checking
-            ? 'Проверяем доступность выбранного Kafka-кластера и получаем данные.'
-            : 'Выберите другой кластер или проверьте параметры подключения.'}
+            ? odysseyI18n.t('interface.checkingTheSelectedKafkaClusterAndLoadingData')
+            : odysseyI18n.t('interface.selectAnotherClusterOrCheckTheConnectionSettings')}
         </p>
       </div>
     </div>

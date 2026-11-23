@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -25,11 +27,12 @@ export default function TopicConfigEdit({
   handleSaveEdit,
   handleCancelEdit,
 }) {
+  useInterfaceLanguage();
   if (!editingParam) return null;
 
   return (
     <div className="config-edit-box">
-      <h4>Редактирование: {editingParam}</h4>
+      <h4>{odysseyI18n.t('interface.editing')} {editingParam}</h4>
       <input
         type="text"
         value={editValue}
@@ -41,12 +44,8 @@ export default function TopicConfigEdit({
         autoFocus
       />
       <div className="config-edit-actions">
-        <button className="save-btn" onClick={handleSaveEdit}>
-          Сохранить
-        </button>
-        <button className="cancel-btn" onClick={handleCancelEdit}>
-          Отмена
-        </button>
+        <button className="save-btn" onClick={handleSaveEdit}> {odysseyI18n.t('interface.save')} </button>
+        <button className="cancel-btn" onClick={handleCancelEdit}> {odysseyI18n.t('interface.cancel')} </button>
       </div>
     </div>
   );

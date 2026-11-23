@@ -1,3 +1,6 @@
+import { useLanguage } from '../contexts/LanguageContext';
+import { serverMessage } from '../i18n/serverMessage';
+import odysseyI18n from '../i18n';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -52,7 +55,7 @@ const THEMES_LIST = [
 ];
 
 const LANGUAGES = [
-  { id: 'ru', name: 'Русский' },
+  { id: 'ru', get name() { return odysseyI18n.t('interface.russian'); } },
   { id: 'en', name: 'English' },
 ];
 
@@ -73,6 +76,7 @@ interface UpdateEvent {
 }
 
 export default function Settings() {
+  const { changeLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { i18n } = useTranslation();
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
@@ -86,8 +90,8 @@ export default function Settings() {
   const currentLanguageObj = LANGUAGES.find((item) => item.id === i18n.language) || LANGUAGES[0];
 
   const handleLanguageSelect = (selected: { id: string }) => {
-    void i18n.changeLanguage(selected.id);
-    localStorage.setItem('ksc_language', selected.id);
+    changeLanguage(selected.id);
+
   };
 
   const handleThemeSelect = (selected: { id: string }) => setTheme(selected.id);
@@ -99,9 +103,9 @@ export default function Settings() {
       const response = await fetch('/api/version/check', { cache: 'no-store' });
       const result = await response.json();
       setVersionInfo(result);
-      if (!response.ok) setUpdateError(result.message || 'Не удалось проверить версию.');
+      if (!response.ok) setUpdateError(result.message || odysseyI18n.t('interface.couldNotCheckTheVersion'));
     } catch {
-      setUpdateError('Не удалось связаться с сервером проверки обновлений.');
+      setUpdateError(odysseyI18n.t('interface.couldNotReachTheUpdateServer'));
     } finally {
       setChecking(false);
     }
@@ -120,7 +124,7 @@ export default function Settings() {
       const response = await fetch('/api/version/update', { method: 'POST' });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || 'Не удалось запустить обновление.');
+        throw new Error(result.error || odysseyI18n.t('interface.couldNotStartTheUpdate'));
       }
       const source = new EventSource(result.eventsUrl || '/api/version/update/events');
       source.onmessage = (event) => {
@@ -136,11 +140,11 @@ export default function Settings() {
       source.onerror = () => {
         source.close();
         setUpdating(false);
-        setUpdateError('Потеряно соединение с потоком обновления. Проверьте состояние сервера перед повторным запуском.');
+        setUpdateError(odysseyI18n.t('interface.lostConnectionToTheUpdateStreamCheckThe'));
       };
     } catch (error) {
       setUpdating(false);
-      setUpdateError(error instanceof Error ? error.message : 'Ошибка запуска обновления.');
+      setUpdateError(error instanceof Error ? error.message : odysseyI18n.t('interface.updateFailedToStart'));
     }
   };
 
@@ -152,16 +156,16 @@ export default function Settings() {
       <div className="settings-card">
         <div className="settings-block">
           <div className="settings-block-info">
-            <h3>Тема оформления</h3>
-            <p>Выберите цветовую тему интерфейса Odyssey.</p>
+            <h3>{odysseyI18n.t('interface.theme')}</h3>
+            <p>{odysseyI18n.t('interface.chooseTheOdysseyInterfaceTheme')}</p>
           </div>
           <ThemeDropdown selectedItem={currentThemeObj} items={THEMES_LIST} onSelect={handleThemeSelect} />
         </div>
 
         <div className="settings-block">
           <div className="settings-block-info">
-            <h3>Язык</h3>
-            <p>Язык интерфейса приложения.</p>
+            <h3>{odysseyI18n.t('interface.language')}</h3>
+            <p>{odysseyI18n.t('interface.applicationDisplayLanguage')}</p>
           </div>
           <Dropdown
             floating
@@ -177,8 +181,8 @@ export default function Settings() {
 
         <div className="settings-block version-settings-block">
           <div className="settings-block-info">
-            <h3>Обновление версии</h3>
-            <p>Проверьте наличие релиза и запустите обновление, если сервер поддерживает автоматическое развёртывание.</p>
+            <h3>{odysseyI18n.t('interface.versionUpdates')}</h3>
+            <p>{odysseyI18n.t('interface.checkForReleasesAndUpdateIfTheServer')}</p>
           </div>
           <div className="version-update-controls">
             <div className={`version-check-result ${versionInfo?.checked ? (versionInfo.updateAvailable ? 'is-update' : 'is-current') : ''}`}>
@@ -186,53 +190,52 @@ export default function Settings() {
                 versionInfo.updateAvailable ? <FiDownloadCloud /> : <FiCheckCircle />
               ) : <FiAlertTriangle />}
               <div>
-                <strong>{versionInfo?.checked ? (versionInfo.updateAvailable ? 'Доступна новая версия' : 'Актуальная версия') : (checking ? 'Проверка версии…' : 'Версия не проверена')}</strong>
-                <span>{versionInfo?.checked ? `Установлена ${versionInfo.currentVersion}${versionInfo.latestVersion ? ` · Последняя ${versionInfo.latestVersion}` : ''}` : (versionInfo?.message || 'Проверьте соединение с источником релизов.')}</span>
+                <strong>{versionInfo?.checked ? (versionInfo.updateAvailable ? odysseyI18n.t('interface.newVersionAvailable2') : odysseyI18n.t('interface.upToDate2')) : (checking ? odysseyI18n.t('interface.checkingVersion') : odysseyI18n.t('interface.versionNotChecked'))}</strong>
+                <span>{versionInfo?.checked ? odysseyI18n.t('interface.installed', { v0: versionInfo.currentVersion, v1: versionInfo.latestVersion ? ' ' + odysseyI18n.t('interface.latest', {v0:versionInfo.latestVersion}) : '' }) : (serverMessage(versionInfo?.message || '') || odysseyI18n.t('interface.checkTheConnectionToTheReleaseSource'))}</span>
               </div>
             </div>
             <div className="version-update-actions">
               <button type="button" className="settings-action-button" onClick={() => void checkVersion()} disabled={checking || updating}>
                 <FiRefreshCw className={checking ? 'is-spinning' : ''} />
-                {checking ? 'Проверка…' : 'Проверить обновления'}
+                {checking ? odysseyI18n.t('interface.checking') : odysseyI18n.t('interface.checkForUpdates')}
               </button>
               {versionInfo?.checked && versionInfo.updateAvailable && (
                 <button type="button" className="settings-action-button primary" onClick={() => setConfirmUpdate(true)} disabled={updating}>
-                  <FiDownloadCloud /> Обновить до новой версии
-                </button>
+                  <FiDownloadCloud /> {odysseyI18n.t('interface.updateToLatestVersion')} </button>
               )}
             </div>
           </div>
         </div>
-        {updateError && <div className="version-update-error"><FiAlertTriangle />{updateError}</div>}
+        {updateError && <div className="version-update-error"><FiAlertTriangle />{serverMessage(updateError)}</div>}
       </div>
 
       {confirmUpdate && (
         <div className="update-modal-backdrop" role="presentation">
           <div className="update-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="update-confirm-title">
-            <button type="button" className="update-modal-close" onClick={() => setConfirmUpdate(false)} aria-label="Закрыть"><FiX /></button>
+            <button type="button" className="update-modal-close" onClick={() => setConfirmUpdate(false)} aria-label={odysseyI18n.t('interface.close')}><FiX /></button>
             <FiDownloadCloud className="update-modal-icon" />
-            <h2 id="update-confirm-title">Запустить обновление?</h2>
-            <p>Odyssey запустит процесс обновления на сервере. Во время операции интерфейс может временно потерять соединение. Продолжить?</p>
+            <h2 id="update-confirm-title">{odysseyI18n.t('interface.startUpdate')}</h2>
+            <p>{odysseyI18n.t('interface.odysseyWillStartTheServerUpdateTheInterface')}</p>
             <div className="update-modal-actions">
-              <button type="button" className="settings-action-button" onClick={() => setConfirmUpdate(false)}>Отмена</button>
-              <button type="button" className="settings-action-button primary" onClick={() => void startUpdate()}>Запустить обновление</button>
+              <button type="button" className="settings-action-button" onClick={() => setConfirmUpdate(false)}>{odysseyI18n.t('interface.cancel')}</button>
+              <button type="button" className="settings-action-button primary" onClick={() => void startUpdate()}>{odysseyI18n.t('interface.startUpdate2')}</button>
             </div>
           </div>
         </div>
       )}
 
       {updating && (
-        <div className="update-progress-backdrop" role="dialog" aria-modal="true" aria-label="Ход обновления">
+        <div className="update-progress-backdrop" role="dialog" aria-modal="true" aria-label={odysseyI18n.t('interface.updateProgress')}>
           <div className="update-progress-panel">
             <div className="update-progress-brand"><img src="/logo.svg" alt="Odyssey" /><FiArrowDown className="update-progress-arrow" /></div>
-            <h2>Обновление Odyssey</h2>
-            <p>Не закрывайте страницу, пока выполняется обновление.</p>
+            <h2>{odysseyI18n.t('interface.odysseyUpdate')}</h2>
+            <p>{odysseyI18n.t('interface.keepThisPageOpenWhileTheUpdateRuns')}</p>
             <div className="update-progress-track"><span style={{ width: `${progress}%` }} /></div>
-            <div className="update-progress-summary"><strong>{progress}%</strong><span>{latestEvent?.stage || 'Подготовка'}</span></div>
+            <div className="update-progress-summary"><strong>{progress}%</strong><span>{serverMessage(latestEvent?.stage || '') || odysseyI18n.t('interface.preparation')}</span></div>
             <div className="update-progress-log">
               {updateEvents.map((event, index) => (
                 <div className={`update-log-line ${event.status}`} key={`${index}-${event.progress}`}>
-                  <span>{event.progress}%</span><span>{event.message}</span>
+                  <span>{event.progress}%</span><span>{serverMessage(event.message)}</span>
                 </div>
               ))}
             </div>

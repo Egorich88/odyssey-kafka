@@ -12,7 +12,7 @@ const source = vi.hoisted(() => ({ cluster: { id: 'a', brokers: 'test.invalid:90
 vi.mock('../../contexts/ClusterContext', () => ({ useCluster: () => ({ currentCluster: source.cluster }) }));
 vi.mock('axios', () => ({ default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
 vi.mock('react-hot-toast', () => ({ default: { error: vi.fn(), success: vi.fn() } }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({
   t: (key: string) => key.split('.').reduce((value: any, part) => value?.[part], ru) ?? key,
 }) }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); vi.restoreAllMocks(); });

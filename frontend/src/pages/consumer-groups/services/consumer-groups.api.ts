@@ -1,3 +1,5 @@
+import { serverMessage } from '../../../i18n/serverMessage';
+import odysseyI18n from '../../../i18n';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -45,7 +47,7 @@ export async function fetchConsumerGroups(
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Ошибка загрузки групп: ${response.status}`);
+        throw new Error(serverMessage(data.error) || odysseyI18n.t('interface.couldNotLoadGroups', { v0: response.status }));
     }
 
     return response.json();
@@ -68,7 +70,7 @@ export async function fetchConsumerGroupDetails(
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || `Ошибка загрузки группы: ${response.status}`);
+        throw new Error(serverMessage(data.error) || odysseyI18n.t('interface.couldNotLoadGroup', { v0: response.status }));
     }
 
     return response.json();

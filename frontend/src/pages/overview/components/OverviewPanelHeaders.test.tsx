@@ -10,7 +10,7 @@ import EventsPanel from './EventsPanel';
 
 vi.mock('../../../contexts/ClusterContext', () => ({ useCluster: () => ({ currentCluster: {id:'fixture'} }) }));
 vi.mock('axios', () => ({ default: { get: vi.fn(() => new Promise(() => {})) } }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ i18n: { language: 'ru' }, t: (key:string) => key }) }));
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({ i18n: { language: 'ru' }, t: (key:string) => key }) }));
 afterEach(cleanup);
 
 it('сохраняет i и управление, добавляет ровно одну тематическую иконку каждому заголовку', () => {

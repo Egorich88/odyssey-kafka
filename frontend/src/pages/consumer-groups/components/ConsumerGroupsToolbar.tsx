@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -70,6 +72,7 @@ export default function ConsumerGroupsToolbar({
     onResetOffsets,
     refreshing = false
 }: Props) {
+  useInterfaceLanguage();
     const [showExportMenu, setShowExportMenu] = useState(false);
     const exportRef = useRef<HTMLDivElement>(null);
 
@@ -100,7 +103,7 @@ export default function ConsumerGroupsToolbar({
                     <FiSearch className="consumer-toolbar-search-icon" />
                     <input
                         className="consumer-toolbar-search"
-                        placeholder="Поиск по группам..."
+                        placeholder={odysseyI18n.t('interface.searchGroups')}
                         value={search}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
                             onSearchChange(e.target.value)
@@ -110,11 +113,11 @@ export default function ConsumerGroupsToolbar({
 
                 {/* Пункт 2: Статус: Все / Stable / … */}
                 <KSCSelect
-                    label="Статус:"
+                    label={odysseyI18n.t('interface.status')}
                     value={stateFilter}
                     onChange={onStateFilterChange}
                     options={[
-                        { value: 'all', label: 'Все' },
+                        { value: 'all', label: odysseyI18n.t('interface.all') },
                         { value: 'Stable', label: 'Stable' },
                         { value: 'Rebalancing', label: 'Rebalancing' },
                         { value: 'Empty', label: 'Empty' },
@@ -124,16 +127,16 @@ export default function ConsumerGroupsToolbar({
 
                 {/* Пункт 3: Сортировка */}
                 <KSCSelect
-                    label="Сортировка:"
+                    label={odysseyI18n.t('interface.sortBy')}
                     value={sortBy}
                     onChange={(v) => onSortChange(v as SortOption)}
                     options={[
                         { value: 'lag-desc', label: 'Lag (desc)' },
                         { value: 'lag-asc', label: 'Lag (asc)' },
-                        { value: 'name-asc', label: 'Имя (A–Z)' },
-                        { value: 'name-desc', label: 'Имя (Z–A)' },
-                        { value: 'members-desc', label: 'Участники (desc)' },
-                        { value: 'state-asc', label: 'Состояние' }
+                        { value: 'name-asc', label: odysseyI18n.t('interface.nameAZ') },
+                        { value: 'name-desc', label: odysseyI18n.t('interface.nameZA') },
+                        { value: 'members-desc', label: odysseyI18n.t('interface.membersDescending') },
+                        { value: 'state-asc', label: odysseyI18n.t('interface.state') }
                     ]}
                 />
             </div>
@@ -145,10 +148,10 @@ export default function ConsumerGroupsToolbar({
                     className="consumer-toolbar-button secondary"
                     onClick={onRefresh}
                     disabled={refreshing}
-                    title="Обновить список групп"
+                    title={odysseyI18n.t('interface.refreshGroupList')}
                 >
                     <FiRefreshCw className={refreshing ? 'spinning' : ''} />
-                    <span>Обновить</span>
+                    <span>{odysseyI18n.t('interface.refresh')}</span>
                 </button>
 
                 {/* Пункт 5: Экспорт JSON / CSV / TXT */}
@@ -159,7 +162,7 @@ export default function ConsumerGroupsToolbar({
                         onClick={() => setShowExportMenu(!showExportMenu)}
                     >
                         <FiDownload />
-                        <span>Экспорт</span>
+                        <span>{odysseyI18n.t('interface.export')}</span>
                         {showExportMenu
                             ? <FiChevronUp className="export-chevron" />
                             : <FiChevronDown className="export-chevron" />
@@ -185,12 +188,9 @@ export default function ConsumerGroupsToolbar({
                     type="button"
                     className="consumer-toolbar-button primary"
                     onClick={onResetOffsets}
-                >
-                    Сбросить оффсеты
-                </button>
+                > {odysseyI18n.t('interface.resetOffsets')} </button>
 
-                <div className="consumer-toolbar-counter">
-                    Всего групп: {totalGroups}
+                <div className="consumer-toolbar-counter"> {odysseyI18n.t('interface.totalGroups2')} {totalGroups}
                 </div>
             </div>
         </div>

@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -112,6 +114,7 @@ export default function ConsumerGroupDetails({
     details
 
 }: Props) {
+  useInterfaceLanguage();
 
     /*
      * =========================================================================
@@ -135,11 +138,7 @@ export default function ConsumerGroupDetails({
 
         return (
 
-            <div className="consumer-details consumer-details-empty">
-
-                Выберите группу потребителей
-
-            </div>
+            <div className="consumer-details consumer-details-empty"> {odysseyI18n.t('interface.selectAConsumerGroup')} </div>
 
         );
 
@@ -159,7 +158,7 @@ export default function ConsumerGroupDetails({
 
         {
             id: 'details',
-            label: 'Детали'
+            label: odysseyI18n.t('interface.details')
         },
 
         {
@@ -232,11 +231,7 @@ export default function ConsumerGroupDetails({
 
                 <div className="consumer-details-content">
 
-                    <div className="consumer-details-section-title consumer-details-info-title">
-
-                        Информация о группе
-
-                    </div>
+                    <div className="consumer-details-section-title consumer-details-info-title"> {odysseyI18n.t('interface.groupInformation')} </div>
 
 
                     <div className="consumer-details-header">
@@ -259,9 +254,7 @@ export default function ConsumerGroupDetails({
 
                         <div className="consumer-details-row">
 
-                            <span className="consumer-details-label">
-                                Отставание
-                            </span>
+                            <span className="consumer-details-label"> {odysseyI18n.t('interface.lag')} </span>
 
                             <span className="consumer-details-value">
                                 {formatLag(group.lag)}
@@ -272,9 +265,7 @@ export default function ConsumerGroupDetails({
 
                         <div className="consumer-details-row">
 
-                            <span className="consumer-details-label">
-                                Участники
-                            </span>
+                            <span className="consumer-details-label"> {odysseyI18n.t('interface.members')} </span>
 
                             <span className="consumer-details-value">
                                 {group.members}
@@ -285,9 +276,7 @@ export default function ConsumerGroupDetails({
 
                         <div className="consumer-details-row">
 
-                            <span className="consumer-details-label">
-                                Топики
-                            </span>
+                            <span className="consumer-details-label"> {odysseyI18n.t('interface.topics')} </span>
 
                             <span className="consumer-details-value">
                                 {group.topics?.length ?? 0}
@@ -298,9 +287,7 @@ export default function ConsumerGroupDetails({
 
                         <div className="consumer-details-row">
 
-                            <span className="consumer-details-label">
-                                Партиции
-                            </span>
+                            <span className="consumer-details-label"> {odysseyI18n.t('interface.partitions')} </span>
 
                             <span className="consumer-details-value">
                                 {group.partitions ?? '—'}
@@ -311,9 +298,7 @@ export default function ConsumerGroupDetails({
 
                         <div className="consumer-details-row">
 
-                            <span className="consumer-details-label">
-                                Протокол
-                            </span>
+                            <span className="consumer-details-label"> {odysseyI18n.t('interface.protocol')} </span>
 
                             <span className="consumer-details-value">
                                 {group.protocol ?? '—'}
@@ -324,9 +309,7 @@ export default function ConsumerGroupDetails({
 
                         <div className="consumer-details-row">
 
-                            <span className="consumer-details-label">
-                                Координатор
-                            </span>
+                            <span className="consumer-details-label"> {odysseyI18n.t('interface.coordinator')} </span>
 
                             <span className="consumer-details-value">
                                 {group.coordinator}
@@ -350,9 +333,7 @@ export default function ConsumerGroupDetails({
                 details ? (
                     <ConsumerMembers group={details} />
                 ) : (
-                    <div className="consumer-details-loading">
-                        Загрузка участников...
-                    </div>
+                    <div className="consumer-details-loading"> {odysseyI18n.t('interface.loadingMembers')} </div>
                 )
 
             )}
@@ -367,9 +348,7 @@ export default function ConsumerGroupDetails({
                 details ? (
                     <ConsumerOffsets group={details} />
                 ) : (
-                    <div className="consumer-details-loading">
-                        Загрузка offsets...
-                    </div>
+                    <div className="consumer-details-loading"> {odysseyI18n.t('interface.loadingOffsets')} </div>
                 )
 
             )}
@@ -383,11 +362,7 @@ export default function ConsumerGroupDetails({
 
                 <div className="consumer-details-section">
 
-                    <div className="consumer-details-section-title">
-
-                        Топики группы
-
-                    </div>
+                    <div className="consumer-details-section-title"> {odysseyI18n.t('interface.groupTopics')} </div>
 
 
                     <ul className="consumer-topics-list">
@@ -417,11 +392,7 @@ export default function ConsumerGroupDetails({
 
                 <div className="consumer-details-section">
 
-                    <div className="consumer-details-section-title">
-
-                        История ребалансировок
-
-                    </div>
+                    <div className="consumer-details-section-title"> {odysseyI18n.t('interface.rebalanceHistory')} </div>
 
 
                     <table className="rebalance-table">
@@ -430,21 +401,15 @@ export default function ConsumerGroupDetails({
 
                             <tr>
 
-                                <th>
-                                    Время
-                                </th>
+                                <th> {odysseyI18n.t('interface.time')} </th>
 
-                                <th>
-                                    Причина
-                                </th>
+                                <th> {odysseyI18n.t('interface.reason')} </th>
 
                                 <th>
                                     Members
                                 </th>
 
-                                <th>
-                                    Длительность
-                                </th>
+                                <th> {odysseyI18n.t('interface.duration')} </th>
 
                             </tr>
 

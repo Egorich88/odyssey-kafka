@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 /** Общие функции для синхронизации графиков по абсолютному времени. */
 export function nearestTime(points: Array<{timestamp?: number}>, target: number | null): number | null {
   if (target === null || !Number.isFinite(target) || !points.length) return null;
@@ -11,5 +12,5 @@ export function cursorTime(state: {activeLabel?: unknown, activePayload?: Array<
 }
 export function formatTimestamp(value: unknown): string {
   const date = new Date(Number(value));
-  return Number.isFinite(date.getTime()) ? date.toLocaleString('ru-RU') : '—';
+  return Number.isFinite(date.getTime()) ? date.toLocaleString(i18n.language || 'ru') : '—';
 }

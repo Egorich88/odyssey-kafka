@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 import { nearestTime, cursorTime, formatTimestamp } from './overviewTime';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
@@ -37,6 +39,7 @@ import {
 } from 'recharts';
 
 function ThroughputTooltip({ active, payload, label }) {
+  useInterfaceLanguage();
   if (!active || !payload || !payload.length) return null;
 
   const incomingItem = payload.find(p => p.dataKey === 'incoming');
@@ -44,15 +47,13 @@ function ThroughputTooltip({ active, payload, label }) {
 
   return (
     <div className="throughput-tooltip">
-      <div className="throughput-tooltip-title">Время: {new Date(Number(label)).toLocaleTimeString('ru-RU')}</div>
+      <div className="throughput-tooltip-title">{odysseyI18n.t('interface.time2')} {new Date(Number(label)).toLocaleTimeString(odysseyI18n.language)}</div>
       {incomingItem && (
-        <div className="throughput-tooltip-row" style={{ color: '#3b82f6' }}>
-          Входящие сообщения: <strong>{incomingItem.value} msg/s</strong>
+        <div className="throughput-tooltip-row" style={{ color: '#3b82f6' }}> {odysseyI18n.t('interface.incomingMessages')} <strong>{incomingItem.value} msg/s</strong>
         </div>
       )}
       {outgoingItem && (
-        <div className="throughput-tooltip-row" style={{ color: '#8b5cf6' }}>
-          Исходящие сообщения: <strong>{outgoingItem.value} msg/s</strong>
+        <div className="throughput-tooltip-row" style={{ color: '#8b5cf6' }}> {odysseyI18n.t('interface.outgoingMessages')} <strong>{outgoingItem.value} msg/s</strong>
         </div>
       )}
     </div>
@@ -60,6 +61,7 @@ function ThroughputTooltip({ active, payload, label }) {
 }
 
 export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
+  useInterfaceLanguage();
   const [showIncoming, setShowIncoming] = useState(true);
   const [showOutgoing, setShowOutgoing] = useState(true);
 
@@ -85,7 +87,7 @@ export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
 
   // Данные для отображения (если нет данных - подставляем заглушку с 0)
   const chartData = (!data || data.length === 0)
-    ? [{ time: 'Нет данных', timestamp: 0, incoming: 0, outgoing: 0 }]
+    ? [{ time: odysseyI18n.t('interface.noData'), timestamp: 0, incoming: 0, outgoing: 0 }]
     : data;
 
   const hasData = data && data.length > 0;
@@ -96,21 +98,17 @@ export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
           <div className="throughput-title">
               <FiActivity aria-hidden="true" />
               <PanelInfo
-                  title="Пропускная способность кластера"
-                  description="Показывает скорость обработки сообщений Kafka-кластером во времени. Входящие значения отражают поток сообщений, поступающих в кластер, исходящие — поток сообщений, покидающих его. Используется для оценки текущей нагрузки и динамики трафика."
+                  title={odysseyI18n.t('interface.clusterThroughput')}
+                  description={odysseyI18n.t('interface.messageRatesOverTimeIncomingAndOutgoingRates')}
               />
 
-              <span>
-                  Пропускная способность кластера
-              </span>
+              <span> {odysseyI18n.t('interface.clusterThroughput')} </span>
           </div>
 
           <div className="throughput-current-values">
-          <span className="incoming-value">
-            Входящие: {latestPoint?.incoming?.toFixed(1) ?? 0} msg/s
+          <span className="incoming-value"> {odysseyI18n.t('interface.incoming')} {latestPoint?.incoming?.toFixed(1) ?? 0} msg/s
           </span>
-          <span className="outgoing-value">
-            Исходящие: {latestPoint?.outgoing?.toFixed(1) ?? 0} msg/s
+          <span className="outgoing-value"> {odysseyI18n.t('interface.outgoing')} {latestPoint?.outgoing?.toFixed(1) ?? 0} msg/s
           </span>
         </div>
 
@@ -142,7 +140,7 @@ export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
                   type="number"
                   scale="time"
                   domain={['dataMin', 'dataMax']}
-                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString('ru-RU')}
+                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString(odysseyI18n.language)}
               height={22}
               tickMargin={3}
               tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
@@ -169,7 +167,7 @@ export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
               <Line
                 type="monotone"
                 dataKey="incoming"
-                name="Входящие сообщения"
+                name={odysseyI18n.t('interface.incomingMessages2')}
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
@@ -183,7 +181,7 @@ export default function ThroughputPanel({ data, hoverTime, onHoverTime }) {
               <Line
                 type="monotone"
                 dataKey="outgoing"
-                name="Исходящие сообщения"
+                name={odysseyI18n.t('interface.outgoingMessages2')}
                 stroke="#8b5cf6"
                 strokeWidth={2}
                 dot={false}

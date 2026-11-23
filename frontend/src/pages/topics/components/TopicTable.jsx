@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -29,6 +31,7 @@ export default function TopicTable({
   handleRowClick,
   toggleTopicSelection,
 }) {
+  useInterfaceLanguage();
   return (
     <div className="topics-table-wrapper">
       <table className="topics-table">
@@ -44,9 +47,9 @@ export default function TopicTable({
                 onChange={toggleSelectAll}
               />
             </th>
-            <th>Название</th>
-            <th>Партиции</th>
-            <th>Репликация</th>
+            <th>{odysseyI18n.t('interface.name')}</th>
+            <th>{odysseyI18n.t('interface.partitions')}</th>
+            <th>{odysseyI18n.t('interface.replication')}</th>
             <th>Cleanup</th>
             <th>Retention</th>
           </tr>
@@ -55,18 +58,14 @@ export default function TopicTable({
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan="6" className="topics-loading">
-                Загрузка топиков...
-              </td>
+              <td colSpan="6" className="topics-loading"> {odysseyI18n.t('interface.loadingTopics')} </td>
             </tr>
           ) : filteredTopics.length === 0 ? (
             <tr>
               <td colSpan="6" className="topics-empty-cell">
                 <div className="topics-empty">
-                  <h3>Топики отсутствуют</h3>
-                  <p>
-                    В выбранном кластере нет топиков либо кластер недоступен.
-                  </p>
+                  <h3>{odysseyI18n.t('interface.noTopics')}</h3>
+                  <p> {odysseyI18n.t('interface.theSelectedClusterHasNoTopicsOrIs')} </p>
                 </div>
               </td>
             </tr>

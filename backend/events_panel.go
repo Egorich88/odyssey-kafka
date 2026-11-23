@@ -40,14 +40,16 @@ const (
 )
 
 type DashboardEvent struct {
-	Time      string     `json:"time"`
-	Timestamp int64      `json:"timestamp"`
-	Level     EventLevel `json:"level"`
-	Group     string     `json:"group,omitempty"`
-	Topic     string     `json:"topic,omitempty"`
-	Status    string     `json:"status,omitempty"`
-	Message   string     `json:"message"`
-	Source    string     `json:"source"`
+	MessageKey  string     `json:"messageKey,omitempty"`
+	MessageArgs []any      `json:"messageArgs,omitempty"`
+	Time        string     `json:"time"`
+	Timestamp   int64      `json:"timestamp"`
+	Level       EventLevel `json:"level"`
+	Group       string     `json:"group,omitempty"`
+	Topic       string     `json:"topic,omitempty"`
+	Status      string     `json:"status,omitempty"`
+	Message     string     `json:"message"`
+	Source      string     `json:"source"`
 }
 
 type EventsResponse struct {
@@ -191,13 +193,16 @@ func (ec *EventCollector) getControllerAddress() string {
 	return controller.Addr()
 }
 
-func (ec *EventCollector) addEvent(timeStr string, level EventLevel, msg, source string) {
+func (ec *EventCollector) addEvent(timeStr string, level EventLevel, source, key, format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
 	e := DashboardEvent{
-		Time:      timeStr,
-		Timestamp: time.Now().UnixMilli(),
-		Level:     level,
-		Message:   msg,
-		Source:    source,
+		Time:        timeStr,
+		Timestamp:   time.Now().UnixMilli(),
+		Level:       level,
+		Message:     msg,
+		MessageKey:  key,
+		MessageArgs: args,
+		Source:      source,
 	}
 	ec.buffer.Add(e)
 	log.Printf("[Event] %s %s %s (source: %s)", timeStr, level, msg, source)
@@ -212,16 +217,19 @@ func (ec *EventCollector) addConsumerGroupEvent(
 	status string,
 	msg string,
 	source string,
+	previousStatus string,
 ) {
 	e := DashboardEvent{
-		Time:      timeStr,
-		Timestamp: time.Now().UnixMilli(),
-		Level:     level,
-		Group:     group,
-		Topic:     topic,
-		Status:    status,
-		Message:   msg,
-		Source:    source,
+		Time:        timeStr,
+		Timestamp:   time.Now().UnixMilli(),
+		Level:       level,
+		Group:       group,
+		Topic:       topic,
+		Status:      status,
+		Message:     msg,
+		MessageKey:  "groupState",
+		MessageArgs: []any{group, topic, previousStatus, status},
+		Source:      source,
 	}
 	ec.buffer.Add(e)
 	log.Printf("[Event] %s %s group=%s topic=%s status=%s %s",
@@ -297,18 +305,18 @@ func (ec *EventCollector) collect() {
 		for topic, repl := range currentTopics {
 			prevRepl, exists := ec.prevTopics[topic]
 			if !exists {
-				ec.addEvent(timeStr, INFO, fmt.Sprintf("Топик создан: %s (репликация: %d, партиций: %d)", topic, repl, ec.getTopicPartitions(topic)), source)
+				ec.addEvent(timeStr, INFO, source, "topicCreated", "Топик создан: %s (репликация: %d, партиций: %d)", topic, repl, ec.getTopicPartitions(topic))
 				delete(ec.zeroSpeedNotified, topic)
 				delete(ec.hadTraffic, topic)
 			} else if repl != prevRepl {
-				ec.addEvent(timeStr, WARN, fmt.Sprintf("Изменена репликация топика %s: %d -> %d", topic, prevRepl, repl), source)
+				ec.addEvent(timeStr, WARN, source, "replicationChanged", "Изменена репликация топика %s: %d -> %d", topic, prevRepl, repl)
 			}
 			ec.prevTopics[topic] = repl
 		}
 
 		for topic := range ec.prevTopics {
 			if _, exists := currentTopics[topic]; !exists {
-				ec.addEvent(timeStr, WARN, fmt.Sprintf("Топик удалён: %s", topic), source)
+				ec.addEvent(timeStr, WARN, source, "topicDeleted", "Топик удалён: %s", topic)
 				delete(ec.prevTopics, topic)
 				delete(ec.zeroSpeedNotified, topic)
 				delete(ec.hadTraffic, topic)
@@ -331,14 +339,14 @@ func (ec *EventCollector) collect() {
 			// Проверяем все изменения конфигураций
 			for key, value := range configs {
 				if prevVal, ok := prevConfigs[key]; ok && prevVal != value {
-					ec.addEvent(timeStr, WARN, fmt.Sprintf("Изменена конфигурация топика %s: %s = %s (было %s)", topic, key, value, prevVal), source)
+					ec.addEvent(timeStr, WARN, source, "configChanged", "Изменена конфигурация топика %s: %s = %s (было %s)", topic, key, value, prevVal)
 				}
 			}
 
 			// Проверяем удалённые параметры (были в prev, нет в current)
 			for key, prevVal := range prevConfigs {
 				if _, ok := configs[key]; !ok {
-					ec.addEvent(timeStr, WARN, fmt.Sprintf("Удалён параметр конфигурации топика %s: %s (было %s)", topic, key, prevVal), source)
+					ec.addEvent(timeStr, WARN, source, "configRemoved", "Удалён параметр конфигурации топика %s: %s (было %s)", topic, key, prevVal)
 				}
 			}
 
@@ -371,12 +379,12 @@ func (ec *EventCollector) collect() {
 
 			if delta == 0 && prev > 0 {
 				if ec.hadTraffic[topic] && !ec.zeroSpeedNotified[topic] {
-					ec.addEvent(timeStr, WARN, fmt.Sprintf("Скорость записи в топик %s упала до нуля", topic), source)
+					ec.addEvent(timeStr, WARN, source, "trafficStopped", "Скорость записи в топик %s упала до нуля", topic)
 					ec.zeroSpeedNotified[topic] = true
 				}
 			} else if delta > 0 && ec.zeroSpeedNotified[topic] {
 				ec.zeroSpeedNotified[topic] = false
-				ec.addEvent(timeStr, INFO, fmt.Sprintf("Скорость записи в топик %s восстановлена", topic), source)
+				ec.addEvent(timeStr, INFO, source, "trafficResumed", "Скорость записи в топик %s восстановлена", topic)
 			}
 
 			ec.prevTopicOffsets[topic] = current
@@ -391,25 +399,25 @@ func (ec *EventCollector) collect() {
 		for group, lag := range currentLags {
 			prev, exists := ec.prevLags[group]
 			if !exists {
-				ec.addEvent(timeStr, INFO, fmt.Sprintf("Обнаружена новая группа потребителей: %s (lag: %d)", group, lag), source)
+				ec.addEvent(timeStr, INFO, source, "groupDiscovered", "Обнаружена новая группа потребителей: %s (lag: %d)", group, lag)
 				ec.prevLags[group] = lag
 				continue
 			}
 
 			diff := lag - prev
 			if diff > 0 {
-				ec.addEvent(timeStr, ERROR, fmt.Sprintf("Увеличилось отставание потребителя %s: %d -> %d", group, prev, lag), source)
+				ec.addEvent(timeStr, ERROR, source, "lagIncreased", "Увеличилось отставание потребителя %s: %d -> %d", group, prev, lag)
 			} else if diff < 0 && lag == 0 {
-				ec.addEvent(timeStr, INFO, fmt.Sprintf("Отставание потребителя %s полностью устранено (было %d)", group, prev), source)
+				ec.addEvent(timeStr, INFO, source, "lagCleared", "Отставание потребителя %s полностью устранено (было %d)", group, prev)
 			} else if diff < 0 && lag > 0 && lag < 10 {
-				ec.addEvent(timeStr, INFO, fmt.Sprintf("Отставание потребителя %s значительно снизилось: %d -> %d", group, prev, lag), source)
+				ec.addEvent(timeStr, INFO, source, "lagReduced", "Отставание потребителя %s значительно снизилось: %d -> %d", group, prev, lag)
 			}
 			ec.prevLags[group] = lag
 		}
 
 		for group := range ec.prevLags {
 			if _, exists := currentLags[group]; !exists {
-				ec.addEvent(timeStr, INFO, fmt.Sprintf("Группа потребителей %s удалена", group), source)
+				ec.addEvent(timeStr, INFO, source, "groupDeleted", "Группа потребителей %s удалена", group)
 				delete(ec.prevLags, group)
 			}
 		}
@@ -451,6 +459,7 @@ func (ec *EventCollector) collect() {
 					row.Status,
 					message,
 					source,
+					previousStatus,
 				)
 			}
 
@@ -501,9 +510,9 @@ func (ec *EventCollector) observeBrokerStatuses(timeStr string, revision uint64,
 			continue
 		}
 		if status == brokerOffline {
-			ec.addEvent(timeStr, ERROR, fmt.Sprintf("Брокер %s недоступен", endpoint.address), endpoint.address)
+			ec.addEvent(timeStr, ERROR, endpoint.address, "brokerOffline", "Брокер %s недоступен", endpoint.address)
 		} else {
-			ec.addEvent(timeStr, INFO, fmt.Sprintf("Брокер %s восстановлен", endpoint.address), endpoint.address)
+			ec.addEvent(timeStr, INFO, endpoint.address, "brokerOnline", "Брокер %s восстановлен", endpoint.address)
 		}
 	}
 }

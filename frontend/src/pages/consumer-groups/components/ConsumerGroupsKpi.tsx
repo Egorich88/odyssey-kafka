@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -52,6 +54,7 @@ import {
 import { LuSkull } from "react-icons/lu";
 
 export default function ConsumerGroupsKpi({ groups }: { groups: import('../types/consumer-groups.types').ConsumerGroup[] }) {
+  useInterfaceLanguage();
 
     /*
      * KPI считаются из тех же реальных данных, которые пришли от backend.
@@ -72,17 +75,17 @@ export default function ConsumerGroupsKpi({ groups }: { groups: import('../types
         <div className="consumer-kpi-grid">
 
             <ConsumerKpiCard
-                title="Всего групп"
+                title={odysseyI18n.t('interface.totalGroups')}
                 value={total}
-                description="Всего"
+                description={odysseyI18n.t('interface.total')}
                 color="#3B82F6"
                 icon={FiUsers}
             />
 
             <ConsumerKpiCard
-                title="Активных"
+                title={odysseyI18n.t('interface.activeGroups')}
                 value={active}
-                description="Работают"
+                description={odysseyI18n.t('interface.running')}
                 color="#22C55E"
                 icon={FiUsers}
             />
@@ -90,7 +93,7 @@ export default function ConsumerGroupsKpi({ groups }: { groups: import('../types
             <ConsumerKpiCard
                 title="Empty"
                 value={empty}
-                description="Без участников"
+                description={odysseyI18n.t('interface.noMembers')}
                 color="#94A3B8"
                 icon={FiMinusCircle}
             />
@@ -98,7 +101,7 @@ export default function ConsumerGroupsKpi({ groups }: { groups: import('../types
             <ConsumerKpiCard
                 title="Stable"
                 value={stable}
-                description="Стабильные"
+                description={odysseyI18n.t('interface.stable')}
                 color="#22C55E"
                 icon={FiShield}
             />
@@ -106,7 +109,7 @@ export default function ConsumerGroupsKpi({ groups }: { groups: import('../types
             <ConsumerKpiCard
                 title="Rebalancing"
                 value={rebalancing}
-                description="Перебалансировка"
+                description={odysseyI18n.t('interface.rebalancing')}
                 color="#F59E0B"
                 icon={FiRefreshCw}
             />
@@ -114,7 +117,7 @@ export default function ConsumerGroupsKpi({ groups }: { groups: import('../types
             <ConsumerKpiCard
                 title="Dead"
                 value={dead}
-                description="Неактивные"
+                description={odysseyI18n.t('interface.inactive')}
                 color="#EF4444"
                 icon={LuSkull}
             />
