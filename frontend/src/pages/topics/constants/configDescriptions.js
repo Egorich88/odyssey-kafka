@@ -1,3 +1,4 @@
+import odysseyI18n from '../../../i18n';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -20,21 +21,21 @@
  */
 
 export const CONFIG_DESCRIPTIONS = {
-  'cleanup.policy': 'Политика очистки топика (delete, compact, compact,delete)',
-  'retention.ms': 'Время хранения сообщений в миллисекундах',
-  'min.insync.replicas': 'Минимальное количество синхронных реплик для записи',
-  'segment.bytes': 'Максимальный размер сегмента лога в байтах',
-  'segment.ms': 'Время жизни сегмента лога в миллисекундах',
-  'compression.type': 'Тип сжатия сообщений (gzip, snappy, lz4, zstd)',
-  'max.message.bytes': 'Максимальный размер сообщения в байтах',
-  'message.timestamp.type': 'Тип временной метки (CreateTime, LogAppendTime)',
-  'unclean.leader.election.enable': 'Разрешить выбор лидера из несинхронных реплик',
-  'delete.retention.ms': 'Время хранения удалённых записей',
-  'file.delete.delay.ms': 'Задержка удаления файлов сегментов',
-  'flush.messages': 'Количество сообщений для принудительной записи на диск',
-  'flush.ms': 'Интервал принудительной записи на диск',
-  'segment.index.bytes': 'Размер индексного файла сегмента',
-  'segment.jitter.ms': 'Случайное отклонение времени ротации сегмента',
-  'retention.bytes': 'Максимальный размер данных топика',
-  'message.max.bytes': 'Максимальный размер сообщения',
+  get 'cleanup.policy'() { return odysseyI18n.t('interface.topicCleanupPolicyDeleteCompactCompactDelete'); },
+  get 'retention.ms'() { return odysseyI18n.t('interface.messageRetentionTimeInMilliseconds'); },
+  get 'min.insync.replicas'() { return odysseyI18n.t('interface.minimumNumberOfInSyncReplicasRequiredFor'); },
+  get 'segment.bytes'() { return odysseyI18n.t('interface.maximumLogSegmentSizeInBytes'); },
+  get 'segment.ms'() { return odysseyI18n.t('interface.logSegmentLifetimeInMilliseconds'); },
+  get 'compression.type'() { return odysseyI18n.t('interface.messageCompressionTypeGzipSnappyLz4Zstd'); },
+  get 'max.message.bytes'() { return odysseyI18n.t('interface.maximumMessageSizeInBytes'); },
+  get 'message.timestamp.type'() { return odysseyI18n.t('interface.timestampTypeCreateTimeLogAppendTime'); },
+  get 'unclean.leader.election.enable'() { return odysseyI18n.t('interface.allowOutOfSyncReplicasToBecomeLeader'); },
+  get 'delete.retention.ms'() { return odysseyI18n.t('interface.retentionPeriodForDeletedRecords'); },
+  get 'file.delete.delay.ms'() { return odysseyI18n.t('interface.delayBeforeDeletingSegmentFiles'); },
+  get 'flush.messages'() { return odysseyI18n.t('interface.messageCountBeforeFlushingToDisk'); },
+  get 'flush.ms'() { return odysseyI18n.t('interface.intervalBetweenDiskFlushes'); },
+  get 'segment.index.bytes'() { return odysseyI18n.t('interface.segmentIndexFileSize'); },
+  get 'segment.jitter.ms'() { return odysseyI18n.t('interface.randomVariationInSegmentRollTime'); },
+  get 'retention.bytes'() { return odysseyI18n.t('interface.maximumTopicDataSize'); },
+  get 'message.max.bytes'() { return odysseyI18n.t('interface.maximumMessageSize'); },
 };

@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 import { getStableTopicColor } from './topicColor';
 import { nearestTime, cursorTime, formatTimestamp } from './overviewTime';
 /*
@@ -49,22 +51,22 @@ const STATUS_META = {
   Stable: {
     label: 'Stable',
     className: 'consumer-status-stable',
-    short: 'группа работает'
+    get short() { return odysseyI18n.t('interface.groupIsRunning'); }
   },
   Rebalancing: {
     label: 'Rebalancing',
     className: 'consumer-status-rebalancing',
-    short: 'идёт перераспределение'
+    get short() { return odysseyI18n.t('interface.rebalanceInProgress'); }
   },
   Empty: {
     label: 'Empty',
     className: 'consumer-status-empty',
-    short: 'нет активных консьюмеров'
+    get short() { return odysseyI18n.t('interface.noActiveConsumers'); }
   },
   Dead: {
     label: 'Dead',
     className: 'consumer-status-dead',
-    short: 'группа удаляется'
+    get short() { return odysseyI18n.t('interface.groupIsBeingDeleted'); }
   }
 };
 
@@ -72,7 +74,7 @@ const STATUS_META = {
 const getTopicColor = (topic: string, _topics?: string[]) => getStableTopicColor(topic);
 
 const formatLag = (value) =>
-  new Intl.NumberFormat('ru-RU').format(Number(value || 0));
+  new Intl.NumberFormat(odysseyI18n.language).format(Number(value || 0));
 
 const formatChange = (value) => {
   const change = Number(value || 0);
@@ -82,7 +84,8 @@ const formatChange = (value) => {
 };
 
 function LagTooltip({ active, payload, label }) {
-  label = new Date(Number(label)).toLocaleTimeString('ru-RU');
+  useInterfaceLanguage();
+  label = new Date(Number(label)).toLocaleTimeString(odysseyI18n.language);
   if (!active || !payload?.length) return null;
 
   const filtered = payload.filter((entry) => Number(entry.value) > 0);
@@ -90,7 +93,7 @@ function LagTooltip({ active, payload, label }) {
 
   return (
     <div className="topics-tooltip">
-      <div className="topics-tooltip-title">Время: {formatTimestamp(label)}</div>
+      <div className="topics-tooltip-title">{odysseyI18n.t('interface.time2')} {formatTimestamp(label)}</div>
       {filtered.map((entry) => (
         <div
           key={entry.dataKey}
@@ -107,6 +110,7 @@ function LagTooltip({ active, payload, label }) {
 interface ConsumerLagPanelProps { timeRange?: string; refreshKey: number; hoverTime?: number | null; onHoverTime?: (value: number | null) => void; }
 
 export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverTime = null, onHoverTime = () => {} }: ConsumerLagPanelProps): JSX.Element {
+  useInterfaceLanguage();
   const { currentCluster } = useCluster();
 
   const [visibleLines, setVisibleLines] = useState([]);
@@ -272,14 +276,14 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
           <div className="panel-title-with-info">
             <FiUsers aria-hidden="true" />
             <PanelInfo
-              title="Группы потребителей"
-              description="Показывает историю consumer lag по связке Consumer Group + Topic. Статус группы помогает сразу определить причину проблемы: Stable — группа работает; Rebalancing — идёт перераспределение; Empty — нет активных консьюмеров; Dead — группа удаляется."
+              title={odysseyI18n.t('interface.consumerGroups')}
+              description={odysseyI18n.t('interface.consumerLagHistoryByGroupAndTopicStable')}
             />
-            <span>Группы потребителей</span>
+            <span>{odysseyI18n.t('interface.consumerGroups')}</span>
           </div>
 
           <div className="consumer-status-filter" ref={statusMenuRef}>
-            <span>Статус:</span>
+            <span>{odysseyI18n.t('interface.status')}</span>
             <button
               type="button"
               className={`consumer-status-filter-button ${statusMenuOpen ? 'is-open' : ''}`}
@@ -287,13 +291,13 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
               aria-haspopup="listbox"
               aria-expanded={statusMenuOpen}
             >
-              <span>{statusFilter === 'ALL' ? 'Все' : statusFilter}</span>
+              <span>{statusFilter === 'ALL' ? odysseyI18n.t('interface.all') : statusFilter}</span>
               <FiChevronDown />
             </button>
             {statusMenuOpen && (
               <div className="consumer-status-menu" role="listbox">
                 {['ALL', ...Object.keys(STATUS_META)].map((value) => {
-                  const label = value === 'ALL' ? 'Все' : value;
+                  const label = value === 'ALL' ? odysseyI18n.t('interface.all') : value;
                   return (
                     <button
                       type="button"
@@ -319,11 +323,9 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
       <div className="consumer-lag-content">
         <div className="consumer-lag-chart">
           {loading && chartData.length === 0 ? (
-            <div className="consumer-lag-placeholder">Загрузка данных...</div>
+            <div className="consumer-lag-placeholder">{odysseyI18n.t('interface.loadingData')}</div>
           ) : allLines.length === 0 ? (
-            <div className="consumer-lag-placeholder">
-              Нет данных о группах и топиках за выбранный период
-            </div>
+            <div className="consumer-lag-placeholder"> {odysseyI18n.t('interface.noGroupOrTopicDataForThisPeriod')} </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
@@ -347,7 +349,7 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
                   type="number"
                   scale="time"
                   domain={['dataMin', 'dataMax']}
-                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString('ru-RU')}
+                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString(odysseyI18n.language)}
                   height={35}
                   tickMargin={8}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
@@ -393,12 +395,12 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
         <div className="consumer-lag-table-wrap">
           <div className="consumer-lag-table">
             <div className="consumer-lag-table-header">
-              <span>Группа потребителей</span>
-              <span>Топик</span>
-              <span>Статус</span>
-              <span>Лаг</span>
-              <span>Изменение</span>
-              <span>Последняя активность</span>
+              <span>{odysseyI18n.t('interface.consumerGroup')}</span>
+              <span>{odysseyI18n.t('interface.topic')}</span>
+              <span>{odysseyI18n.t('interface.status2')}</span>
+              <span>{odysseyI18n.t('interface.lag2')}</span>
+              <span>{odysseyI18n.t('interface.change')}</span>
+              <span>{odysseyI18n.t('interface.lastActivity')}</span>
             </div>
 
             {rows.length ? (
@@ -406,7 +408,7 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
                 const status = STATUS_META[row.status] || {
                   label: row.status || 'Unknown',
                   className: 'consumer-status-unknown',
-                  short: 'состояние не определено'
+                  short: odysseyI18n.t('interface.stateUnknown')
                 };
 
                 const topicColor = getTopicColor(row.topic, topicNames);
@@ -453,9 +455,7 @@ export default function ConsumerLagPanel({ timeRange = '15m', refreshKey, hoverT
                 );
               })
             ) : (
-              <div className="consumer-lag-table-empty">
-                Нет данных для таблицы
-              </div>
+              <div className="consumer-lag-table-empty"> {odysseyI18n.t('interface.noTableData')} </div>
             )}
           </div>
         </div>

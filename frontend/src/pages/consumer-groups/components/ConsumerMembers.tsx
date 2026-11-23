@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -38,6 +40,7 @@ interface Props {
 }
 
 export default function ConsumerMembers({ group }: Props) {
+  useInterfaceLanguage();
 
     if (!group) {
         return null;
@@ -46,16 +49,12 @@ export default function ConsumerMembers({ group }: Props) {
     return (
         <div className="consumer-members">
 
-            <div className="consumer-members-title">
-                Участники группы
-            </div>
+            <div className="consumer-members-title"> {odysseyI18n.t('interface.groupMembers')} </div>
 
             <div className="consumer-members-list">
 
                 {group.membersDetail.length === 0 ? (
-                    <div className="consumer-members-empty">
-                        В группе сейчас нет активных участников
-                    </div>
+                    <div className="consumer-members-empty"> {odysseyI18n.t('interface.thisGroupHasNoActiveMembers')} </div>
                 ) : (
                     group.membersDetail.map(member => (
                         <div

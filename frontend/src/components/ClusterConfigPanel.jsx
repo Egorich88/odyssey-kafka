@@ -1,3 +1,5 @@
+import odysseyI18n from '../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -27,6 +29,7 @@ export default function ClusterConfigPanel({
   onDelete
 
 }) {
+  useInterfaceLanguage();
 
   const [collapsed, setCollapsed] =
     useState(false);
@@ -85,7 +88,7 @@ export default function ClusterConfigPanel({
     ) {
 
       alert(
-        'Заполните название и брокеры'
+        odysseyI18n.t('interface.enterANameAndBootstrapServers')
       );
 
       return;
@@ -101,7 +104,7 @@ export default function ClusterConfigPanel({
     const confirmed =
       window.confirm(
 
-        `Удалить кластер "${cluster.name}"?`
+        odysseyI18n.t('interface.deleteCluster', { v0: cluster.name })
       );
 
     if (confirmed) {
@@ -128,16 +131,16 @@ export default function ClusterConfigPanel({
           <h2>
 
             {cluster
-              ? 'Настройки кластера'
-              : 'Новый кластер'}
+              ? odysseyI18n.t('interface.clusterSettings')
+              : odysseyI18n.t('interface.newCluster')}
 
           </h2>
 
           <span>
 
             {cluster
-              ? 'Изменение параметров подключения'
-              : 'Создание нового подключения'}
+              ? odysseyI18n.t('interface.editConnectionSettings')
+              : odysseyI18n.t('interface.createAConnection')}
 
           </span>
 
@@ -173,9 +176,7 @@ export default function ClusterConfigPanel({
 
       <div className="cluster-config-body">
 
-        <label>
-          Название
-        </label>
+        <label> {odysseyI18n.t('interface.name')} </label>
 
         <input
           name="name"
@@ -183,9 +184,7 @@ export default function ClusterConfigPanel({
           onChange={handleChange}
         />
 
-        <label>
-          Брокеры
-        </label>
+        <label> {odysseyI18n.t('interface.brokers')} </label>
 
         <input
           name="brokers"
@@ -194,9 +193,7 @@ export default function ClusterConfigPanel({
           placeholder="host:9092"
         />
 
-        <label>
-          Аутентификация
-        </label>
+        <label> {odysseyI18n.t('interface.authentication')} </label>
 
         <select
           name="authType"

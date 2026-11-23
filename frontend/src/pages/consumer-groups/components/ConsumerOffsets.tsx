@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -27,6 +29,7 @@ interface Props {
 }
 
 export default function ConsumerOffsets({ group }: Props) {
+  useInterfaceLanguage();
 
     if (!group) {
         return null;
@@ -35,25 +38,21 @@ export default function ConsumerOffsets({ group }: Props) {
     return (
         <div className="consumer-offsets">
 
-            <div className="consumer-offsets-title">
-                Offsets по партициям
-            </div>
+            <div className="consumer-offsets-title"> {odysseyI18n.t('interface.partitionOffsets')} </div>
 
             <div className="consumer-offsets-scroll">
 
                 {group.offsets.length === 0 ? (
-                    <div className="consumer-offsets-empty">
-                        Для группы пока нет committed offsets
-                    </div>
+                    <div className="consumer-offsets-empty"> {odysseyI18n.t('interface.thisGroupHasNoCommittedOffsets')} </div>
                 ) : (
                     <table className="consumer-offsets-table">
 
                         <thead>
                             <tr>
-                                <th>Топик</th>
-                                <th>Партиция</th>
+                                <th>{odysseyI18n.t('interface.topic')}</th>
+                                <th>{odysseyI18n.t('interface.partition')}</th>
                                 <th>Offset</th>
-                                <th>Конец</th>
+                                <th>{odysseyI18n.t('interface.end')}</th>
                                 <th>Lag</th>
                             </tr>
                         </thead>

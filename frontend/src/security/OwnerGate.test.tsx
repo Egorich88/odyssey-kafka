@@ -5,7 +5,7 @@ import axios from 'axios';
 import OwnerGate from './OwnerGate';
 vi.mock('axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('./ownerSession', () => ({ setOwnerCSRF: vi.fn(), ownerExpiredEvent:'odyssey-owner-session-expired' }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t:(key:string)=>key }) }));
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({ t:(key:string)=>key }) }));
 afterEach(() => { cleanup();vi.resetAllMocks();localStorage.clear(); });
 it('не монтирует Kafka-интерфейс до входа, очищает пароль и позволяет выйти', async () => {
   vi.mocked(axios.get).mockRejectedValue(new Error('unauthorized'));

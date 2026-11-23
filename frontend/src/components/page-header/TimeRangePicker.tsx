@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -54,9 +56,9 @@ function fromInputValue(value: string): string {
 
 function formatAbsolute(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Абсолютный диапазон';
+  if (Number.isNaN(date.getTime())) return odysseyI18n.t('interface.absoluteRange');
 
-  return new Intl.DateTimeFormat('ru-RU', {
+  return new Intl.DateTimeFormat(odysseyI18n.language, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -66,6 +68,7 @@ function formatAbsolute(value: string): string {
 }
 
 export default function TimeRangePicker({ value, onChange }: Props) {
+  useInterfaceLanguage();
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
   const tooltipId = useId();
@@ -100,7 +103,7 @@ export default function TimeRangePicker({ value, onChange }: Props) {
   }, [open]);
 
   const label = value.type === 'relative'
-    ? value.label
+    ? RELATIVE_TIME_RANGES.find(range => range.id === value.id)?.label ?? value.label
     : `${formatAbsolute(value.from)} — ${formatAbsolute(value.to)}`;
 
   const applyAbsolute = () => {
@@ -138,9 +141,9 @@ export default function TimeRangePicker({ value, onChange }: Props) {
       <OdysseyTooltip id={tooltipId} place="bottom" hidden={open} />
 
       {open && (
-        <div className="page-header-time-menu" role="dialog" aria-label="Выбор периода">
+        <div className="page-header-time-menu" role="dialog" aria-label={odysseyI18n.t('interface.selectTimeRange')}>
           <div className="page-header-menu-title">
-            <span>Период</span>
+            <span>{odysseyI18n.t('interface.period')}</span>
           </div>
 
           <div className="page-header-range-list">
@@ -161,11 +164,11 @@ export default function TimeRangePicker({ value, onChange }: Props) {
 
           <div className="page-header-menu-divider" />
 
-          <div className="page-header-absolute-title">Абсолютный диапазон</div>
+          <div className="page-header-absolute-title">{odysseyI18n.t('interface.absoluteRange')}</div>
 
           <div className="page-header-datetime-grid">
             <label>
-              <span>От</span>
+              <span>{odysseyI18n.t('interface.from')}</span>
               <input
                 type="datetime-local"
                 value={from}
@@ -173,7 +176,7 @@ export default function TimeRangePicker({ value, onChange }: Props) {
               />
             </label>
             <label>
-              <span>До</span>
+              <span>{odysseyI18n.t('interface.to')}</span>
               <input
                 type="datetime-local"
                 value={to}
@@ -187,9 +190,7 @@ export default function TimeRangePicker({ value, onChange }: Props) {
             className="page-header-apply-button"
             onClick={applyAbsolute}
             disabled={!from || !to || new Date(from) >= new Date(to)}
-          >
-            Применить
-          </button>
+          > {odysseyI18n.t('interface.apply')} </button>
         </div>
       )}
     </div>

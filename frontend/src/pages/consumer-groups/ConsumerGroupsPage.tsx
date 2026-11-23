@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -86,6 +88,7 @@ import './styles/consumer-groups.css';
 
 
 export default function ConsumerGroupsPage() {
+  useInterfaceLanguage();
 
     const { currentCluster } = useCluster();
     const profileKey = currentCluster ? `${currentCluster.id}:${currentCluster.revision ?? 0}` : '';
@@ -158,7 +161,7 @@ export default function ConsumerGroupsPage() {
             if (showToast) {
 
                 toast.success(
-                    'Список Consumer Groups обновлён'
+                    odysseyI18n.t('interface.consumerGroupListRefreshed')
                 );
             }
 
@@ -168,7 +171,7 @@ export default function ConsumerGroupsPage() {
             const message =
                 error instanceof Error
                     ? error.message
-                    : 'Не удалось загрузить Consumer Groups';
+                    : odysseyI18n.t('interface.couldNotLoadConsumerGroups');
 
             toast.error(message);
 
@@ -254,7 +257,7 @@ export default function ConsumerGroupsPage() {
                     toast.error(
                         error instanceof Error
                             ? error.message
-                            : 'Не удалось загрузить детали группы'
+                            : odysseyI18n.t('interface.couldNotLoadGroupDetails')
                     );
                 }
 
@@ -402,7 +405,7 @@ export default function ConsumerGroupsPage() {
         if (filteredGroups.length === 0) {
 
             toast.error(
-                'Нет групп для экспорта'
+                odysseyI18n.t('interface.noGroupsToExport')
             );
 
             return;
@@ -414,7 +417,7 @@ export default function ConsumerGroupsPage() {
         );
 
         toast.success(
-            `Экспорт ${format.toUpperCase()} выполнен`
+            odysseyI18n.t('interface.exported', { v0: format.toUpperCase() })
         );
     };
 
@@ -430,7 +433,7 @@ export default function ConsumerGroupsPage() {
         if (!selectedGroup) {
 
             toast.error(
-                'Сначала выберите Consumer Group'
+                odysseyI18n.t('interface.selectAConsumerGroupFirst')
             );
 
             return;
@@ -520,7 +523,7 @@ export default function ConsumerGroupsPage() {
             }
 
             toast.success(
-                `Данные «${group.name}» обновлены`
+                odysseyI18n.t('interface.refreshed', { v0: group.name })
             );
 
         } catch (error) {
@@ -528,7 +531,7 @@ export default function ConsumerGroupsPage() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : 'Не удалось обновить группу'
+                    : odysseyI18n.t('interface.couldNotRefreshGroup')
             );
         }
     };
@@ -547,7 +550,7 @@ export default function ConsumerGroupsPage() {
     ) => {
 
         toast(
-            `Удаление Kafka Consumer Group «${group.name}» пока не подключено`
+            odysseyI18n.t('interface.deletingKafkaConsumerGroupIsCurrentlyUnavailable', { v0: group.name })
         );
     };
 

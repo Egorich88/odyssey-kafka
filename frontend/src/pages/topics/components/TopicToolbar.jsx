@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -36,6 +38,7 @@ export default function TopicToolbar({
   handleDeleteTopic,
   permissions = {},
 }) {
+  useInterfaceLanguage();
   const { t } = useTranslation();
   return (
     <div className="topics-toolbar">
@@ -43,7 +46,7 @@ export default function TopicToolbar({
         {/* Поле поиска */}
         <input
           type="text"
-          placeholder="Поиск топика..."
+          placeholder={odysseyI18n.t('interface.searchTopics')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           className="filter-input"
@@ -55,28 +58,21 @@ export default function TopicToolbar({
             className="action-btn export-btn"
             onClick={() => setShowExportMenu(!showExportMenu)}
           >
-            <FiDownload className="export-icon" />
-            Экспорт ({selectedTopics.length})
+            <FiDownload className="export-icon" /> {odysseyI18n.t('interface.export2')}{selectedTopics.length})
             {showExportMenu ? <FiChevronUp className="export-chevron" /> : <FiChevronDown className="export-chevron" />}
           </button>
 
           {showExportMenu && (
             <div className="export-menu">
-              <button className="export-item" onClick={exportTopicsList}>
-                📄 Список топиков
-              </button>
-              <button className="export-item" onClick={exportTopicsConfig}>
-                📄 Конфигурация топиков
-              </button>
+              <button className="export-item" onClick={exportTopicsList}> {odysseyI18n.t('interface.topicList')} </button>
+              <button className="export-item" onClick={exportTopicsConfig}> {odysseyI18n.t('interface.topicConfiguration')} </button>
             </div>
           )}
         </div>
 
         {/* Кнопка создания топика */}
         <button className="action-btn" onClick={() => setShowCreateModal(true)}
-          disabled={!permissions.createTopic} title={!permissions.createTopic ? t('adminPermissions.readOnly') : undefined}>
-          Создать
-        </button>
+          disabled={!permissions.createTopic} title={!permissions.createTopic ? t('adminPermissions.readOnly') : undefined}> {odysseyI18n.t('interface.create')} </button>
 
         {/* Кнопка удаления топика */}
         <button
@@ -84,9 +80,7 @@ export default function TopicToolbar({
           onClick={handleDeleteTopic}
           disabled={!selectedTopic || !permissions.deleteTopic}
           title={!permissions.deleteTopic ? t('adminPermissions.readOnly') : undefined}
-        >
-          Удалить
-        </button>
+        > {odysseyI18n.t('interface.delete')} </button>
       </div>
     </div>
   );

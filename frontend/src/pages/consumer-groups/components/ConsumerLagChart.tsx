@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -53,10 +55,10 @@ const RANGE_OPTIONS: {
     value: TimeRange;
     label: string;
 }[] = [
-    { value: '15m', label: 'Последние 15 минут' },
-    { value: '1h', label: 'Последний 1 час' },
-    { value: '6h', label: 'Последние 6 часов' },
-    { value: '24h', label: 'Последние 24 часа' }
+    { value: '15m', get label() { return odysseyI18n.t('interface.last15Minutes'); } },
+    { value: '1h', get label() { return odysseyI18n.t('interface.lastHour'); } },
+    { value: '6h', get label() { return odysseyI18n.t('interface.last6Hours'); } },
+    { value: '24h', get label() { return odysseyI18n.t('interface.last24Hours2'); } }
 ];
 
 interface Props {
@@ -70,6 +72,7 @@ interface LagPoint {
 }
 
 export default function ConsumerLagChart({ group }: Props) {
+  useInterfaceLanguage();
 
     const { currentCluster } = useCluster();
 
@@ -109,7 +112,7 @@ export default function ConsumerLagChart({ group }: Props) {
 
                 if (!response.ok) {
                     throw new Error(
-                        `Ошибка Consumer Lag: ${response.status}`
+                        odysseyI18n.t('interface.consumerLagError', { v0: response.status })
                     );
                 }
 
@@ -164,9 +167,7 @@ export default function ConsumerLagChart({ group }: Props) {
                         Consumer Lag
                     </div>
                 </div>
-                <div className="consumer-chart-empty">
-                    Выберите группу
-                </div>
+                <div className="consumer-chart-empty"> {odysseyI18n.t('interface.selectAGroup')} </div>
             </div>
         );
     }
@@ -197,13 +198,9 @@ export default function ConsumerLagChart({ group }: Props) {
             <div className="consumer-chart-body">
 
                 {loading && chartData.length === 0 ? (
-                    <div className="consumer-chart-empty">
-                        Загрузка данных...
-                    </div>
+                    <div className="consumer-chart-empty"> {odysseyI18n.t('interface.loadingData')} </div>
                 ) : chartData.length === 0 ? (
-                    <div className="consumer-chart-empty">
-                        История lag пока не накоплена
-                    </div>
+                    <div className="consumer-chart-empty"> {odysseyI18n.t('interface.noLagHistoryYet')} </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={chartData}>

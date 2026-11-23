@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -60,6 +62,7 @@ interface DonutPanelProps {
 }
 
 function DonutPanel({ title, data, totalLabel }: DonutPanelProps) {
+  useInterfaceLanguage();
     const total = data.reduce((s, d) => s + d.value, 0);
 
     return (
@@ -87,7 +90,7 @@ function DonutPanel({ title, data, totalLabel }: DonutPanelProps) {
                     </ResponsiveContainer>
                     <div className="donut-center">
                         <span className="donut-center-value">{totalLabel}</span>
-                        <span className="donut-center-label">Всего</span>
+                        <span className="donut-center-label">{odysseyI18n.t('interface.total')}</span>
                     </div>
                 </div>
                 <ul className="donut-legend">
@@ -113,6 +116,7 @@ function DonutPanel({ title, data, totalLabel }: DonutPanelProps) {
 }
 
 export default function ConsumerDonutCharts({ groups }: Props) {
+  useInterfaceLanguage();
     const topicsData = useMemo(() => {
         const map = new Map<string, number>();
         groups.forEach(g => {
@@ -160,17 +164,17 @@ export default function ConsumerDonutCharts({ groups }: Props) {
     return (
         <div className="consumer-donut-grid">
             <DonutPanel
-                title="Топики"
+                title={odysseyI18n.t('interface.topics')}
                 data={topicsData}
                 totalLabel={String(topicsData.length)}
             />
             <DonutPanel
-                title="Распределение Lag"
+                title={odysseyI18n.t('interface.lagDistribution')}
                 data={lagData}
                 totalLabel={formatLag(totalLag)}
             />
             <DonutPanel
-                title="Состояние групп"
+                title={odysseyI18n.t('interface.groupStates')}
                 data={stateData}
                 totalLabel={String(groups.length)}
             />

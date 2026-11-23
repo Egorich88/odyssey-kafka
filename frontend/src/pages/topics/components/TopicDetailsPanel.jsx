@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -36,31 +38,30 @@ export default function TopicDetailsPanel({
   handleCancelEdit,
   canEditConfig = false,
 }) {
+  useInterfaceLanguage();
   const { t } = useTranslation();
   return (
     <div className="topic-details-panel" ref={panelRef}>
       {/* Заголовок панели */}
       <div className="topic-details-header">
-        <h2>Детали топика</h2>
-        <button className="topic-hide-btn" onClick={closePanel}>
-          Скрыть
-        </button>
+        <h2>{odysseyI18n.t('interface.topicDetails')}</h2>
+        <button className="topic-hide-btn" onClick={closePanel}> {odysseyI18n.t('interface.hide')} </button>
       </div>
 
       <div className="topic-details-body">
         {/* Основная информация */}
         <div className="topic-summary">
           <div>
-            <strong>Имя топика:</strong> {detailTopic.name}
+            <strong>{odysseyI18n.t('interface.topicName2')}</strong> {detailTopic.name}
           </div>
           <div>
-            <strong>Сообщений:</strong> {detailTopic.messageCount ?? '-'}
+            <strong>{odysseyI18n.t('interface.messages2')}</strong> {detailTopic.messageCount ?? '-'}
           </div>
           <div>
-            <strong>Фактор репликации:</strong> {detailTopic.replicationFactor}
+            <strong>{odysseyI18n.t('interface.replicationFactor2')}</strong> {detailTopic.replicationFactor}
           </div>
           <div>
-            <strong>Партиций:</strong> {detailTopic.partitions?.length ?? 0}
+            <strong>{odysseyI18n.t('interface.partitions2')}</strong> {detailTopic.partitions?.length ?? 0}
           </div>
         </div>
 

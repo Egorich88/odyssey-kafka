@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -50,6 +52,7 @@ export default function SearchToolbar({
   searchKeyword,
   setSearchKeyword
 }) {
+  useInterfaceLanguage();
   const [focusedField, setFocusedField] = useState(null);
 
   // Флаг: выбран ли топик
@@ -59,7 +62,7 @@ export default function SearchToolbar({
     <form className="search-toolbar" onSubmit={handleSearch}>
       {/* Топик – уменьшенная ширина через CSS-класс */}
       <div className="search-field topic-field">
-        <label>Топик</label>
+        <label>{odysseyI18n.t('interface.topic')}</label>
         <div ref={topicDropdownRef} className="topic-dropdown-wrapper">
           <div
             className={`topic-dropdown-trigger ${isTopicDropdownOpen ? 'open' : ''}`}
@@ -69,7 +72,7 @@ export default function SearchToolbar({
             <input
               type="text"
               className="topic-dropdown-input"
-              placeholder={isTopicDropdownOpen ? 'Поиск топика...' : 'Выберите топик'}
+              placeholder={isTopicDropdownOpen ? odysseyI18n.t('interface.searchTopics') : odysseyI18n.t('interface.selectATopic')}
               value={isTopicDropdownOpen ? topicSearch : (selectedTopic || '')}
               onChange={(e) => {
                 setTopicSearch(e.target.value)
@@ -99,7 +102,7 @@ export default function SearchToolbar({
                     </div>
                   ))
                 ) : (
-                  <div className="topic-dropdown-item">Ничего не найдено</div>
+                  <div className="topic-dropdown-item">{odysseyI18n.t('interface.nothingFound')}</div>
                 )}
               </div>
             </div>
@@ -109,7 +112,7 @@ export default function SearchToolbar({
 
       {/* Партиция – если топик не выбран, дропдаун заблокирован */}
       <div className="search-field">
-        <label>Партиция</label>
+        <label>{odysseyI18n.t('interface.partition')}</label>
         <div ref={partitionDropdownRef} className="topic-dropdown-wrapper">
           <div
             className={`topic-dropdown-trigger ${isPartitionDropdownOpen ? 'open' : ''} ${!hasTopic ? 'disabled' : ''}`}
@@ -120,7 +123,7 @@ export default function SearchToolbar({
             style={{ opacity: hasTopic ? 1 : 0.5, cursor: hasTopic ? 'pointer' : 'not-allowed' }}
           >
             <span className="topic-dropdown-value">
-              {partition === "all" ? "Все партиции" : `Партиция ${partition}`}
+              {partition === "all" ? odysseyI18n.t('interface.allPartitions2') : odysseyI18n.t('interface.partition3', { v0: partition })}
             </span>
             <div className="topic-dropdown-chevron">
               {isPartitionDropdownOpen ? <FiChevronUp /> : <FiChevronDown />}
@@ -132,16 +135,13 @@ export default function SearchToolbar({
                 <div
                   className={`topic-dropdown-item ${partition === "all" ? "active" : ""}`}
                   onClick={() => { setPartition("all"); setIsPartitionDropdownOpen(false) }}
-                >
-                  Все партиции
-                </div>
+                > {odysseyI18n.t('interface.allPartitions2')} </div>
                 {partitions.map((p) => (
                   <div
                     key={p}
                     className={`topic-dropdown-item ${partition === String(p) ? "active" : ""}`}
                     onClick={() => { setPartition(String(p)); setCurrentPage(1); setIsPartitionDropdownOpen(false) }}
-                  >
-                    Партиция {p}
+                  > {odysseyI18n.t('interface.partition')} {p}
                   </div>
                 ))}
               </div>
@@ -152,12 +152,12 @@ export default function SearchToolbar({
 
       {/* Поиск по ключу или значению */}
       <div className={`search-field ${focusedField === 'searchKeyword' ? 'focused' : ''}`}>
-        <label>Поиск в сообщениях</label>
+        <label>{odysseyI18n.t('interface.searchMessages')}</label>
         <input
           type="text"
           value={searchKeyword}
           onChange={(e) => setSearchKeyword(e.target.value)}
-          placeholder="Ключ или текст в значении..."
+          placeholder={odysseyI18n.t('interface.keyOrTextInValue')}
           onFocus={() => setFocusedField('searchKeyword')}
           onBlur={() => setFocusedField(null)}
         />
@@ -165,7 +165,7 @@ export default function SearchToolbar({
 
       {/* Остальные поля */}
       <div className={`search-field ${focusedField === 'startOffset' ? 'focused' : ''}`}>
-        <label>Начальный offset</label>
+        <label>{odysseyI18n.t('interface.startingOffset')}</label>
         <input
           type="number"
           value={startOffset}
@@ -176,7 +176,7 @@ export default function SearchToolbar({
       </div>
 
       <div className={`search-field ${focusedField === 'endOffset' ? 'focused' : ''}`}>
-        <label>Конечный offset</label>
+        <label>{odysseyI18n.t('interface.endingOffset')}</label>
         <input
           type="number"
           value={endOffset}
@@ -187,7 +187,7 @@ export default function SearchToolbar({
       </div>
 
       <div className={`search-field ${focusedField === 'maxMessages' ? 'focused' : ''}`}>
-        <label>Макс. сообщений</label>
+        <label>{odysseyI18n.t('interface.maxMessages')}</label>
         <input
           type="number"
           value={maxMessages}
@@ -203,7 +203,7 @@ export default function SearchToolbar({
         className="search-submit-btn"
         disabled={searching || !selectedTopic || !currentCluster}
       >
-        {searching ? 'Поиск...' : <><FiSearch /> Найти</>}
+        {searching ? odysseyI18n.t('interface.searching') : <><FiSearch /> {odysseyI18n.t('interface.search')}</>}
       </button>
     </form>
   )

@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -28,16 +30,17 @@ export default function TopicConfigTable({
   handleConfigDoubleClick,
   canEdit = false,
 }) {
+  useInterfaceLanguage();
   return (
     <div className="topic-section topic-config-section">
-      <h3>Конфигурация</h3>
+      <h3>{odysseyI18n.t('interface.configuration')}</h3>
 
       <div className="topic-config-wrapper">
         <table className="topic-config-table">
           <thead>
             <tr>
-              <th>Параметр</th>
-              <th>Значение</th>
+              <th>{odysseyI18n.t('interface.parameter')}</th>
+              <th>{odysseyI18n.t('interface.value2')}</th>
             </tr>
           </thead>
           <tbody>

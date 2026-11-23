@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import Sidebar from './Sidebar';
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock('../../contexts/ClusterContext', () => ({ useCluster: () => ({clusters:[{id:'synthetic',name:'Test'}],currentCluster:{id:'synthetic',name:'Test'},changeCluster:vi.fn()}) }));
 vi.mock('../../services/versionService', () => ({ getLatestVersion: async () => null }));
 vi.mock('./ThemeToggle', () => ({default:()=> <button>Theme</button>}));

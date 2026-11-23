@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 import { getStableTopicColor } from './topicColor';
 import { nearestTime, cursorTime, formatTimestamp } from './overviewTime';
 /*
@@ -55,7 +57,7 @@ interface TopicPoint { time: string; timestamp?: number; topic: string; value: n
 // Кастомный тултип – показывает только положительные значения
 // =========================================================================
 const TopicsTooltip = ({ active, payload, label }) => {
-  label = new Date(Number(label)).toLocaleTimeString('ru-RU');
+  label = new Date(Number(label)).toLocaleTimeString(odysseyI18n.language);
   if (!active || !payload || !payload.length) return null;
 
   // Отфильтровываем нулевые и отрицательные
@@ -64,14 +66,14 @@ const TopicsTooltip = ({ active, payload, label }) => {
 
   return (
     <div className="topics-tooltip">
-      <div className="topics-tooltip-title">Время: {formatTimestamp(label)}</div>
+      <div className="topics-tooltip-title">{odysseyI18n.t('interface.time2')} {formatTimestamp(label)}</div>
       {filtered.map((entry) => (
         <div
           key={entry.dataKey}
           className="topics-tooltip-row"
           style={{ color: entry.color || 'var(--text-primary)' }}
         >
-          {entry.name}: <strong>{entry.value.toFixed(1)} сообщений/сек</strong>
+          {entry.name}: <strong>{entry.value.toFixed(1)} {odysseyI18n.t('interface.messagesSec')}</strong>
         </div>
       ))}
     </div>
@@ -84,6 +86,7 @@ const getTopicColor = (topic: string, _index?: number) => getStableTopicColor(to
 interface TopicsPanelProps { timeRange?: string; refreshKey: number; hoverTime?: number | null; onHoverTime?: (value: number | null) => void; }
 
 export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime = null, onHoverTime = () => {} }: TopicsPanelProps): JSX.Element {
+  useInterfaceLanguage();
   const { currentCluster } = useCluster();
 
   const [visibleTopics, setVisibleTopics] = useState([]);
@@ -224,18 +227,16 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
                   <div className="topics-panel-title">
                       <FiBarChart2 aria-hidden="true" />
                       <PanelInfo
-                          title="Пропускная способность по топикам"
-                          description="Показывает скорость обработки сообщений для отдельных Kafka-топиков за выбранный период. Позволяет определить наиболее активные топики, сравнить их нагрузку и быстро увидеть изменения интенсивности трафика."
+                          title={odysseyI18n.t('interface.topicThroughput')}
+                          description={odysseyI18n.t('interface.messageRatesByKafkaTopicForTheSelected')}
                       />
 
-                      <span>
-                          Пропускная способность по топикам
-                      </span>
+                      <span> {odysseyI18n.t('interface.topicThroughput')} </span>
                   </div>
 
         <PanelFullscreenButton />
       </div>
-        <div className="panel-body topics-placeholder">Загрузка данных...</div>
+        <div className="panel-body topics-placeholder">{odysseyI18n.t('interface.loadingData')}</div>
       </div>
     );
   }
@@ -247,19 +248,15 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
           <div className="topics-panel-title">
             <FiBarChart2 aria-hidden="true" />
             <PanelInfo
-              title="Пропускная способность по топикам"
-              description="Показывает скорость обработки сообщений для отдельных Kafka-топиков за выбранный период. Позволяет определить наиболее активные топики, сравнить их нагрузку и быстро увидеть изменения интенсивности трафика."
+              title={odysseyI18n.t('interface.topicThroughput')}
+              description={odysseyI18n.t('interface.messageRatesByKafkaTopicForTheSelected')}
             />
 
-            <span>
-              Пропускная способность по топикам
-            </span>
+            <span> {odysseyI18n.t('interface.topicThroughput')} </span>
           </div>
         </div>
 
-        <div className="panel-body topics-placeholder">
-          Нет данных о топиках за выбранный период
-        </div>
+        <div className="panel-body topics-placeholder"> {odysseyI18n.t('interface.noTopicDataForThisPeriod')} </div>
       </div>
     );
   }
@@ -273,13 +270,11 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
         <div className="topics-panel-title">
           <FiBarChart2 aria-hidden="true" />
           <PanelInfo
-            title="Пропускная способность по топикам"
-            description="Показывает скорость обработки сообщений для отдельных Kafka-топиков за выбранный период. Позволяет определить наиболее активные топики, сравнить их нагрузку и быстро увидеть изменения интенсивности трафика."
+            title={odysseyI18n.t('interface.topicThroughput')}
+            description={odysseyI18n.t('interface.messageRatesByKafkaTopicForTheSelected')}
           />
 
-          <span>
-            Пропускная способность по топикам
-          </span>
+          <span> {odysseyI18n.t('interface.topicThroughput')} </span>
         </div>
         <PanelFullscreenButton />
       </div>
@@ -312,7 +307,7 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
                   type="number"
                   scale="time"
                   domain={['dataMin', 'dataMax']}
-                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString('ru-RU')}
+                  tickFormatter={(value) => new Date(Number(value)).toLocaleTimeString(odysseyI18n.language)}
                   height={22}
                   tickMargin={3}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
@@ -355,12 +350,12 @@ export default function TopicsPanel({ timeRange = '15m', refreshKey, hoverTime =
           {/* Легенда – показывает только активные топики */}
           <div className="topics-legend">
             <div className="topics-legend-header" role="row">
-              <button type="button" onClick={() => toggleLegendSort('topic')} aria-label="Сортировать по топику" aria-sort={legendSort?.key === 'topic' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>Топик {sortIcon('topic')}</button>
-              <button type="button" onClick={() => toggleLegendSort('current')} aria-label="Сортировать по текущему значению" aria-sort={legendSort?.key === 'current' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>Текущее {sortIcon('current')}</button>
-              <button type="button" onClick={() => toggleLegendSort('max')} aria-label="Сортировать по максимальному значению" aria-sort={legendSort?.key === 'max' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>Макс. {sortIcon('max')}</button>
+              <button type="button" onClick={() => toggleLegendSort('topic')} aria-label={odysseyI18n.t('interface.sortByTopic')} aria-sort={legendSort?.key === 'topic' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>{odysseyI18n.t('interface.topic')} {sortIcon('topic')}</button>
+              <button type="button" onClick={() => toggleLegendSort('current')} aria-label={odysseyI18n.t('interface.sortByCurrentValue')} aria-sort={legendSort?.key === 'current' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>{odysseyI18n.t('interface.current')} {sortIcon('current')}</button>
+              <button type="button" onClick={() => toggleLegendSort('max')} aria-label={odysseyI18n.t('interface.sortByMaximumValue')} aria-sort={legendSort?.key === 'max' ? (legendSort.asc ? 'ascending' : 'descending') : 'none'}>{odysseyI18n.t('interface.max')} {sortIcon('max')}</button>
             </div>
             {visibleTopics.length === 0 ? (
-              <div className="topics-legend-placeholder">Нет активных топиков за выбранный период</div>
+              <div className="topics-legend-placeholder">{odysseyI18n.t('interface.noActiveTopicsForThisPeriod')}</div>
             ) : (
               sortedVisibleTopics.map(topic => (
                 <div

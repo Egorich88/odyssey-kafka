@@ -5,7 +5,7 @@ import Dropdown from './Dropdown';
 import ThemeDropdown from './ThemeDropdown';
 import ru from '../../locales/ru/common.json';
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({
   t: (key: string) => key.split('.').reduce((value: any, part) => value?.[part], ru) ?? key,
 }) }));
 

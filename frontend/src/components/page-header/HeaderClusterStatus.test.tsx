@@ -15,7 +15,7 @@ vi.mock('../../contexts/ClusterHealthContext', () => ({ useClusterHealth: () => 
 vi.mock('../../contexts/DashboardControlsContext', () => ({ useDashboardControls: () => controls }));
 vi.mock('./TimeRangePicker', () => ({ default: () => <span>Диапазон</span> }));
 vi.mock('./RefreshIntervalPicker', () => ({ default: () => <span>Автообновление</span> }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({
   t: (key: string) => key.split('.').reduce((value: any, part) => value?.[part], source.language === 'en' ? en : ru) ?? key,
 }) }));
 // jsdom не рассчитывает геометрию; наблюдатель нужен библиотеке позиционирования tooltip.

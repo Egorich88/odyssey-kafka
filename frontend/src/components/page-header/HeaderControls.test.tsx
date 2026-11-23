@@ -10,7 +10,7 @@ const controls = vi.hoisted(() => ({
 }));
 vi.mock('../../contexts/DashboardControlsContext', () => ({ useDashboardControls: () => controls }));
 vi.mock('./HeaderClusterStatus', () => ({ default: () => null }));
-vi.mock('react-i18next', () => ({ useTranslation: () => ({
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(), useTranslation: () => ({
   t: (key: string) => key.split('.').reduce((value: any, part) => value?.[part], ru),
 }) }));
 beforeEach(() => vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} }));

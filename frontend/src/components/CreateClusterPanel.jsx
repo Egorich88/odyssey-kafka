@@ -1,3 +1,5 @@
+import odysseyI18n from '../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -12,6 +14,7 @@ export default function CreateClusterPanel({
   onCancel
 
 }) {
+  useInterfaceLanguage();
 
   const [config, setConfig] = useState({
 
@@ -53,7 +56,7 @@ export default function CreateClusterPanel({
     ) {
 
       alert(
-        'Заполните название и брокеры'
+        odysseyI18n.t('interface.enterANameAndBootstrapServers')
       );
 
       return;
@@ -70,20 +73,14 @@ export default function CreateClusterPanel({
 
         <div>
 
-          <h2>
-            Новый кластер
-          </h2>
+          <h2> {odysseyI18n.t('interface.newCluster')} </h2>
 
         </div>
 
         <button
           className="modal-hide-btn"
           onClick={onCancel}
-        >
-
-          Скрыть
-
-        </button>
+        > {odysseyI18n.t('interface.hide')} </button>
 
       </div>
 
@@ -91,22 +88,18 @@ export default function CreateClusterPanel({
 
         {/* NAME */}
 
-        <label>
-          Название
-        </label>
+        <label> {odysseyI18n.t('interface.name')} </label>
 
         <input
           name="name"
-          placeholder="Введите название кластера"
+          placeholder={odysseyI18n.t('interface.enterAClusterName')}
           value={config.name}
           onChange={handleChange}
         />
 
         {/* BROKERS */}
 
-        <label>
-          Брокеры (host:port, через запятую)
-        </label>
+        <label> {odysseyI18n.t('interface.brokersHostPortCommaSeparated')} </label>
 
         <input
           name="brokers"
@@ -117,11 +110,7 @@ export default function CreateClusterPanel({
 
         {/* AUTH */}
 
-        <div className="auth-section-title">
-
-          Аутентификация
-
-        </div>
+        <div className="auth-section-title"> {odysseyI18n.t('interface.authentication')} </div>
 
         {/* PLAINTEXT */}
 
@@ -148,14 +137,9 @@ export default function CreateClusterPanel({
 
           <div>
 
-            <h4>
-              PLAINTEXT (без аутентификации)
-            </h4>
+            <h4> {odysseyI18n.t('interface.plaintextNoAuthentication')} </h4>
 
-            <p>
-              Доступ без логина и пароля.
-              Только для локальной разработки.
-            </p>
+            <p> {odysseyI18n.t('interface.noUsernameOrPasswordForLocalDevelopmentOnly')} </p>
 
           </div>
 
@@ -185,17 +169,11 @@ export default function CreateClusterPanel({
 
           <div>
 
-            <h4>
-              SASL (логин/пароль)
-            </h4>
+            <h4> {odysseyI18n.t('interface.saslUsernamePassword')} </h4>
 
-            <p>
-              Логин/пароль по TLS; доступен PLAIN и SCRAM.
-            </p>
+            <p> {odysseyI18n.t('interface.usernameAndPasswordOverTLSSupportsPLAINAnd')} </p>
 
-            <p>
-              Для production предпочтительнее SCRAM-SHA-512 поверх TLS.
-            </p>
+            <p> {odysseyI18n.t('interface.forProductionPreferSCRAMSHA512OverTLS')} </p>
 
           </div>
 
@@ -220,14 +198,14 @@ export default function CreateClusterPanel({
               onChange={handleChange}
             />
 
-            <label>Механизм SASL</label>
+            <label>{odysseyI18n.t('interface.saslMechanism')}</label>
             <select name="saslMechanism" value={config.saslMechanism || 'PLAIN'} onChange={handleChange}>
-              <option value="PLAIN">PLAIN (совместимость)</option>
+              <option value="PLAIN">{odysseyI18n.t('interface.plainCompatibility')}</option>
               <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
-              <option value="SCRAM-SHA-512">SCRAM-SHA-512 (рекомендуется)</option>
+              <option value="SCRAM-SHA-512">{odysseyI18n.t('interface.scramSHA512Recommended')}</option>
             </select>
 
-            <label>CA-сертификат сервера (необязательно для системного CA)</label>
+            <label>{odysseyI18n.t('interface.serverCACertificateOptionalForASystemCA')}</label>
             <textarea rows="3" name="ca" placeholder="-----BEGIN CERTIFICATE-----" value={config.ca || ''} onChange={handleChange} />
 
           </div>
@@ -258,19 +236,11 @@ export default function CreateClusterPanel({
 
           <div>
 
-            <h4>
-              mTLS (взаимные сертификаты)
-            </h4>
+            <h4> {odysseyI18n.t('interface.mtlsMutualAuthentication')} </h4>
 
-            <p>
-              Клиент и сервер подтверждают
-              личность цифровыми сертификатами.
-            </p>
+            <p> {odysseyI18n.t('interface.theClientAndServerAuthenticateEachOtherUsing')} </p>
 
-            <p>
-              Самый безопасный метод,
-              рекомендуется для production.
-            </p>
+            <p> {odysseyI18n.t('interface.recommendedForProduction')} </p>
 
           </div>
 
@@ -314,20 +284,12 @@ export default function CreateClusterPanel({
         <button
           className="secondary-btn"
           onClick={onCancel}
-        >
-
-          Отмена
-
-        </button>
+        > {odysseyI18n.t('interface.cancel')} </button>
 
         <button
           className="primary-btn"
           onClick={handleSubmit}
-        >
-
-          Сохранить
-
-        </button>
+        > {odysseyI18n.t('interface.save')} </button>
 
       </div>
 

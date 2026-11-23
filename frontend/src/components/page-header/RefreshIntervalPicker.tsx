@@ -1,3 +1,5 @@
+import odysseyI18n from '../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -24,6 +26,7 @@ interface Props {
 }
 
 export default function RefreshIntervalPicker({ value, onChange }: Props): JSX.Element {
+  useInterfaceLanguage();
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
   const tooltipId = useId();
@@ -58,7 +61,7 @@ export default function RefreshIntervalPicker({ value, onChange }: Props): JSX.E
       <OdysseyTooltip id={tooltipId} place="bottom" hidden={open} />
 
       {open && (
-        <div className="page-header-refresh-menu" role="listbox" aria-label="Интервал обновления">
+        <div className="page-header-refresh-menu" role="listbox" aria-label={odysseyI18n.t('interface.refreshInterval')}>
           {REFRESH_INTERVALS.map((item: RefreshInterval) => (
             <button
               type="button"

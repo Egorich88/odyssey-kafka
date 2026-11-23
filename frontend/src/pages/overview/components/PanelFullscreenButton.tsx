@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -21,6 +23,7 @@ export default function PanelFullscreenButton({ expandLabel, collapseLabel, onFu
   collapseLabel?: string;
   onFullscreenChange?: (isOpen: boolean) => void;
 } = {}): JSX.Element {
+  useInterfaceLanguage();
   const [fullscreen, setFullscreen] = useState(false);
   const activePanel = useRef<HTMLElement | null>(null);
   const notify = useRef(onFullscreenChange);
@@ -69,8 +72,8 @@ export default function PanelFullscreenButton({ expandLabel, collapseLabel, onFu
     <button
       type="button"
       className="panel-fullscreen-button"
-      title={label ?? (fullscreen ? 'Свернуть панель' : 'Увеличить панель')}
-      aria-label={label ?? (fullscreen ? 'Свернуть панель' : 'Увеличить панель')}
+      title={label ?? (fullscreen ? odysseyI18n.t('interface.collapsePanel') : odysseyI18n.t('interface.expandPanel'))}
+      aria-label={label ?? (fullscreen ? odysseyI18n.t('interface.collapsePanel') : odysseyI18n.t('interface.expandPanel'))}
       onClick={toggle}
     >
       {fullscreen ? <FiMinimize2 /> : <FiMaximize2 />}

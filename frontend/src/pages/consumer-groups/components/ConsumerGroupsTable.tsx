@@ -1,3 +1,5 @@
+import odysseyI18n from '../../../i18n';
+import { useTranslation as useInterfaceLanguage } from 'react-i18next';
 /*
  * Copyright 2026 Egor Khomenko (Egorich88)
  *
@@ -107,6 +109,7 @@ export default function ConsumerGroupsTable({
     onDeleteGroup
 
 }: Props) {
+  useInterfaceLanguage();
 
     /*
      * =========================================================================
@@ -135,11 +138,7 @@ export default function ConsumerGroupsTable({
 
         return (
 
-            <div className="consumer-table-empty">
-
-                Группы не найдены
-
-            </div>
+            <div className="consumer-table-empty"> {odysseyI18n.t('interface.noGroupsFound')} </div>
 
         );
 
@@ -156,33 +155,19 @@ export default function ConsumerGroupsTable({
 
                     <tr>
 
-                        <th>
-                            Группа
-                        </th>
+                        <th> {odysseyI18n.t('interface.group')} </th>
 
-                        <th>
-                            Состояние
-                        </th>
+                        <th> {odysseyI18n.t('interface.state')} </th>
 
-                        <th>
-                            Участники
-                        </th>
+                        <th> {odysseyI18n.t('interface.members')} </th>
 
-                        <th>
-                            Топики
-                        </th>
+                        <th> {odysseyI18n.t('interface.topics')} </th>
 
-                        <th>
-                            Отставание (Lag)
-                        </th>
+                        <th> {odysseyI18n.t('interface.consumerLag')} </th>
 
-                        <th>
-                            Координатор
-                        </th>
+                        <th> {odysseyI18n.t('interface.coordinator')} </th>
 
-                        <th>
-                            Действия
-                        </th>
+                        <th> {odysseyI18n.t('interface.actions')} </th>
 
                     </tr>
 
@@ -356,8 +341,8 @@ export default function ConsumerGroupsTable({
                                         className="action-icon-btn"
                                         title={
                                             group.hidden
-                                                ? 'Показать группу'
-                                                : 'Скрыть группу из списка'
+                                                ? odysseyI18n.t('interface.showGroup')
+                                                : odysseyI18n.t('interface.hideGroupFromList')
                                         }
                                         onClick={() =>
                                             onToggleHidden(
@@ -381,7 +366,7 @@ export default function ConsumerGroupsTable({
                                     <button
                                         type="button"
                                         className="action-icon-btn"
-                                        title="Обновить данные группы"
+                                        title={odysseyI18n.t('interface.refreshGroupData')}
                                         onClick={() =>
                                             onRefreshGroup(group)
                                         }
@@ -399,7 +384,7 @@ export default function ConsumerGroupsTable({
                                     <button
                                         type="button"
                                         className="action-icon-btn danger"
-                                        title="Удалить группу"
+                                        title={odysseyI18n.t('interface.deleteGroup')}
                                         onClick={() =>
                                             onDeleteGroup(group)
                                         }

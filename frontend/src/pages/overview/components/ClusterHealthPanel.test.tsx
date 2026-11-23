@@ -14,7 +14,7 @@ const { profile } = vi.hoisted(() => ({
   profile: { current: { id: 'a', brokers: 'a.test:9092', connectionStatus: 'connected' } },
 }));
 const language = vi.hoisted(() => ({ current: 'ru' }));
-vi.mock('react-i18next', () => ({
+vi.mock('react-i18next', async (original) => ({ ...await original<typeof import('react-i18next')>(),
   useTranslation: () => ({
     i18n: { language: language.current },
     t: (key: string) => key.split('.').reduce((value: any, part) => value?.[part], language.current === 'ru' ? ru : en) ?? key,
