@@ -3,8 +3,15 @@ name: Deploy Docs
 on:
   push:
     branches: [main]
-    paths: [docs/**, mkdocs.yml, README.md]
+    paths: [docs/**, README.md, README_ENG.md, .github/workflows/docs.yml]
+  workflow_run:
+    workflows: ["CI/CD для Odyssey"]
+    types: [completed]
   workflow_dispatch:
+
+concurrency:
+  group: odyssey-pages
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -13,14 +20,26 @@ permissions:
 
 jobs:
   deploy:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - run: pip install mkdocs-material mkdocs-include-markdown-plugin
+      - run: pip install mkdocs-material
+      - name: Синхронизировать опубликованные версии
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: python docs/render_releases.py
       - run: mkdocs build --strict -f docs/mkdocs.yml
+      - run: mkdocs build --strict -f docs/mkdocs.en.yml
+      - run: mv site-en site/en
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site

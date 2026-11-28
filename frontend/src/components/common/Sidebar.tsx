@@ -37,6 +37,7 @@ import { BrokerIcon } from './BrokerIcon';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   FiHome,
+  FiBookOpen,
   FiPlus,
   FiLayers,
   FiUsers,
@@ -52,6 +53,7 @@ import { SiApache } from 'react-icons/si';
 import packageJson from '../../../package.json';
 import Dropdown from '../common/Dropdown';
 import { getLatestVersion } from '../../services/versionService';
+import { documentationUrl } from '../../services/documentationUrl';
 import { useCluster } from '../../contexts/ClusterContext';
 import ThemeToggle from '../common/ThemeToggle';
 import { enterpriseSidebarItems } from '@odyssey/registry';
@@ -378,7 +380,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
           </NavLink>
         </nav>
 
-        {/* Футер: одна строка; иконки — только когда кластер выбран */}
+        {/* Документация доступна при любом состоянии кластера. */}
         <div className={`sidebar-footer ${!hasCluster ? 'sidebar-footer--solo' : ''}`}>
           {showVersionHint && latestVersion && (
             <NavLink
@@ -395,7 +397,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
               href="https://github.com/Egorich88"
               target="_blank"
               rel="noopener noreferrer"
-              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-id="sidebar-owner-tooltip"
               data-tooltip-content={odysseyI18n.t('interface.productOwner')}
               aria-label={odysseyI18n.t('interface.productOwner')}
             >
@@ -419,38 +421,51 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             >
               <span className="version-label">{`ver. ${version}`}</span>
             </NavLink>
+            <a
+              href={documentationUrl(odysseyI18n.resolvedLanguage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-icon-link sidebar-docs-link"
+              data-tooltip-id="sidebar-footer-tooltip"
+              data-tooltip-content={odysseyI18n.t('interface.openDocumentation')}
+              aria-label={odysseyI18n.t('interface.openDocumentation')}
+            >
+              <FiBookOpen className="footer-docs-icon" aria-hidden="true" />
+            </a>
           </div>
 
-          {hasCluster && (
+          {(hasCluster || collapsed) && (
             <div className="footer-links-row">
               <a
                 href="https://github.com/Egorich88/odyssey-kafka"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="footer-icon-link"
-                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-id="sidebar-footer-tooltip"
                 data-tooltip-content={t('sidebar.github')}
                 aria-label={t('sidebar.github')}
               >
                 <FiGithub className="footer-github-icon" />
               </a>
 
-              <a
+              {!collapsed && <a
                 href="https://www.apache.org/licenses/LICENSE-2.0"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="footer-icon-link"
-                data-tooltip-id="sidebar-tooltip"
+                data-tooltip-id="sidebar-footer-tooltip"
                 data-tooltip-content={t('sidebar.apache')}
                 aria-label={t('sidebar.apache')}
               >
                 <SiApache className="footer-license-icon" />
-              </a>
+              </a>}
             </div>
           )}
         </div>
       </div>
       <OdysseyTooltip id="sidebar-tooltip" place="right" />
+      <OdysseyTooltip id="sidebar-footer-tooltip" place="top" />
+      <OdysseyTooltip id="sidebar-owner-tooltip" place="top-start" />
     </aside>
   );
 }

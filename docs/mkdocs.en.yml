@@ -1,0 +1,30 @@
+INHERIT: mkdocs.yml
+site_name: Odyssey Documentation
+site_url: https://Egorich88.github.io/odyssey-kafka/en/
+docs_dir: en
+site_dir: ../site-en
+exclude_docs: ''
+theme:
+  language: en
+  palette:
+    - scheme: slate
+      primary: blue grey
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: blue grey
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+plugins:
+  - search:
+      lang: en
+nav:
+  - Home: index.md
+  - Installation and security: getting-started.md
+  - User guide: guide.md
+  - Architecture: architecture.md
+  - What's New: whats-new.md

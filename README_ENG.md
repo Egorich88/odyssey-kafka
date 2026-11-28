@@ -43,30 +43,16 @@ The tool is designed with strict requirements for security, performance and usab
 
 Positioning Odyssey as **Kafka Monitoring & Management** immediately states that it is a visual, lightweight yet powerful tool for comprehensive control, analysis and management of message queues.
 
-## ✨ Features and Development Status
+## Odyssey Core features
 
-### 📌 Implemented
+- Russian and English UI, light and dark themes, Kafka profile switching, and a permanent Sidebar documentation link.
+- Overview, Brokers, Topics, Consumer Groups, message search, and Kafka ACLs.
+- PLAINTEXT, mTLS, and SASL PLAIN or SCRAM over TLS. GSSAPI is temporarily disabled.
+- A local owner account, server sessions, encrypted profiles, and a server-side Kafka address policy.
+- A Docker HTTPS wizard with a local CA, custom PEM, or Let's Encrypt for eligible public domains.
 
-- ✅ **Intuitive UI** — dark/light theme support, ergonomic sidebar, switching between multiple Kafka clusters.
-- ✅ **Multi-cluster support** — adding clusters with support for various authentication types.
-- ✅ **Topic management** — view, create, delete, dynamically change configurations (`retention.ms`, `cleanup.policy`, etc.).
-- ✅ **Message search and filtering** — reading messages from a selected partition with filtering by offset, time range and limit.
-- ✅ **Kafka certificate monitoring** — a full-featured panel for tracking expiration dates and metadata for JKS, PKCS12, PFX, P12, PEM, CRT, DER, KEY, P8 types (with filtering and visual statuses).
-- ✅ **Release notifications** — automatic broadcast to Telegram and corporate channels on new version (with screenshot and changelog).
-- ✅ **Release automation (CI/CD)** — fully automated build, code validation, publishing ready images to Docker Hub and generating changelogs on tag push.
-- ✅ **Infrastructure packaging** — optimized Docker images for backend/frontend, ready-to-use Docker Compose and Terraform scripts for Kubernetes deployment (Yandex Cloud).
+[English documentation](https://egorich88.github.io/odyssey-kafka/en/) · [Документация RU](https://egorich88.github.io/odyssey-kafka/)
 
-### 🔄 In progress
-
-- 🛠️ **Overview (dashboard)** — ~90% done. Completing backend integration with the certificates panel, customizing criticality levels (`critical`) for the recent events panel.
-- 🛠️ **Interactive topics** — extending functionality with direct message publishing via UI / Message Search.
-- 🛠️ **Localization** — expanding language packs (currently Russian interface).
-
-### 📝 In development
-
-- ⏳ **"Brokers" page** (detailed monitoring of cluster node state).
-- ⏳ **ACL** — visual management of access control lists.
-- ⏳ **Consumer groups** — advanced view and offset reset.
 
 ## 🏗️ Architecture
 
@@ -74,48 +60,18 @@ Positioning Odyssey as **Kafka Monitoring & Management** immediately states that
 
 | Component | Technologies |
 |---|---|
-| **Frontend** | React, Vite, Axios, CSS Modules, TypeScript |
+| **Frontend** | React, Vite, TypeScript, CSS |
 | **Backend** | Go, Sarama (Kafka Admin API), net/http |
 | **Infrastructure** | Docker, Docker Compose, GitHub Actions, Docker Hub, Terraform, Yandex Cloud |
 | **Orchestration** | Kubernetes (Yandex Managed Kubernetes) |
 | **Notifications** | Telegram Bot API, MAX Bot API |
 
-## 🚀 Quick Start
+## Quick start
 
-### Local development
+Use the source tree for the target tag and follow the [Docker HTTPS setup guide](docs/en/getting-started.md). The default setup wizard is at `http://localhost:8787/setup/`; the application opens at `https://localhost:8443`. Create the owner interactively on the Docker host and allow the bootstrap and advertised Kafka endpoints before connecting.
 
-1. Clone the repository:
+Preserve private volumes and the separate encryption key during upgrades. If older profiles still live in the browser, migrate them on the original origin first.
 
-    ```bash
-    git clone https://github.com/Egorich88/odyssey-kafka.git
-    cd odyssey-kafka
-    ```
-
-2. Start the backend (requires running Kafka on `localhost:9092`):
-
-    ```bash
-    cd backend
-    go run main.go
-    ```
-
-3. Start the frontend (in another terminal):
-
-    ```bash
-    cd frontend
-    npm install
-    npm run dev
-    ```
-
-4. Open `http://localhost:5173` — the interface is ready.
-
-### Docker Compose (all-in-one)
-
-```bash
-docker-compose up --build
-```
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8080/api/topics`
 
 ## 🔁 CI/CD (GitHub Actions)
 

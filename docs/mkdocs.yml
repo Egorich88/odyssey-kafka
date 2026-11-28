@@ -9,36 +9,56 @@ theme:
   language: ru
   palette:
     - scheme: slate
-      primary: indigo
+      primary: blue grey
       accent: teal
       toggle:
         icon: material/brightness-4
-        name: Switch to light mode
+        name: Светлая тема
     - scheme: default
-      primary: indigo
+      primary: blue grey
       accent: teal
       toggle:
         icon: material/brightness-7
-        name: Switch to dark mode
+        name: Тёмная тема
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.top
+    - toc.follow
     - search.suggest
     - search.highlight
     - content.code.copy
 
 plugins:
-  - search
-  - include-markdown
+  - search:
+      lang: [ru, en]
 
 docs_dir: .
 site_dir: ../site
+exclude_docs: |
+  /en/
+  /frontend/loading.md
+  /frontend/ui-refactor.md
+  /release-v4.3.2.md
+  /mkdocs*.yml
+  /render_releases.py
+
+extra:
+  alternate:
+    - name: Русский
+      link: /odyssey-kafka/
+      lang: ru
+    - name: English
+      link: /odyssey-kafka/en/
+      lang: en
 
 nav:
   - Главная: index.md
   - Быстрый старт: getting-started.md
+  - Установка и безопасность:
+      - Мастер HTTPS: https-first-run.md
+      - Docker и хранилище: docker-owner.md
+      - Миграция: security-owner-migration.md
+  - Руководство: guide.md
   - Архитектура: architecture.md
-  - Frontend:
-      - Overview: frontend/overview.md
-      - Consumer Groups: frontend/consumer-groups.md
-      - UI Refactor: frontend/ui-refactor.md
+  - Что нового: whats-new.md
