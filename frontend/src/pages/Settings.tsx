@@ -1,4 +1,5 @@
 import { useLanguage } from '../contexts/LanguageContext';
+import HttpsSettings from '../security/HttpsSettings';
 import { serverMessage } from '../i18n/serverMessage';
 import odysseyI18n from '../i18n';
 /*
@@ -179,6 +180,7 @@ export default function Settings() {
           />
         </div>
 
+        <HttpsSettings />
         <div className="settings-block version-settings-block">
           <div className="settings-block-info">
             <h3>{odysseyI18n.t('interface.versionUpdates')}</h3>

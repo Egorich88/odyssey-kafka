@@ -17,7 +17,16 @@ export default function OwnerGate({ children }: { children: ReactNode }) {
     void axios.get('/api/auth/session', { signal: request.signal, timeout: 7000 })
       .then(response => {
         if (!request.signal.aborted && typeof response.data.csrfToken === 'string') { setOwnerCSRF(response.data.csrfToken); setReady(true); }
-      }).catch(() => undefined).finally(() => { if (!request.signal.aborted) setChecking(false); });
+      }).catch(async error => {
+        if (![502, 503].includes(error.response?.status)) return;
+        try {
+          const opts = {signal: request.signal, cache: 'no-store' as const};
+          const context = await fetch('/setup/context.json', opts);
+          if (!context.ok || !(await context.json()).project) return;
+          const receipt = await fetch('/setup/status.json', opts);
+          if (receipt.status === 404) window.location.replace('/setup/');
+        } catch { /* Вне Docker остаётся обычный экран входа. */ }
+      }).finally(() => { if (!request.signal.aborted) setChecking(false); });
     const expired = () => { setReady(false); setPassword(''); };
     window.addEventListener(ownerExpiredEvent, expired);
     return () => { request.abort(); window.removeEventListener(ownerExpiredEvent, expired); setOwnerCSRF(''); };

@@ -42,6 +42,7 @@ else
     openssl req -new -newkey rsa:3072 -nodes -sha256 -subj '/CN=backend-service' -addext 'subjectAltName=DNS:backend-service' -addext 'extendedKeyUsage=serverAuth' -keyout "$backend/server.key" -out "$temporary/backend.csr" >/dev/null 2>&1 || fail
     openssl x509 -req -sha256 -days 365 -CA "$ca/ca.crt" -CAkey "$ca/ca.key" -CAcreateserial -copy_extensions copy -in "$temporary/backend.csr" -out "$backend/server.crt" >/dev/null 2>&1 || fail
     case "$host" in *[!0-9.]* ) san="DNS:$host";; *) san="IP:$host";; esac
+    if [ "$host" = localhost ]; then san="DNS:localhost,IP:127.0.0.1,IP:::1"; fi
     openssl req -new -newkey rsa:3072 -nodes -sha256 -subj '/CN=Odyssey frontend' -addext "subjectAltName=$san" -addext 'extendedKeyUsage=serverAuth' -keyout "$frontend/server.key" -out "$temporary/frontend.csr" >/dev/null 2>&1 || fail
     openssl x509 -req -sha256 -days 365 -CA "$ca/ca.crt" -CAkey "$ca/ca.key" -CAcreateserial -copy_extensions copy -in "$temporary/frontend.csr" -out "$frontend/server.crt" >/dev/null 2>&1 || fail
     cp "$ca/ca.crt" "$backend/ca.crt"
@@ -62,7 +63,15 @@ for directory in "$ca" "$backend" "$frontend"; do
     cmp -s "$temporary/key.pub" "$temporary/cert.pub" || fail
 done
 openssl verify -CAfile "$ca/ca.crt" -verify_hostname backend-service "$backend/server.crt" >/dev/null 2>&1 || fail
-case "$host" in *[!0-9.]* ) openssl verify -CAfile "$ca/ca.crt" -verify_hostname "$host" "$frontend/server.crt" >/dev/null 2>&1 || fail;; *) openssl verify -CAfile "$ca/ca.crt" -verify_ip "$host" "$frontend/server.crt" >/dev/null 2>&1 || fail;; esac
+active="$frontend"
+trust="$ca/ca.crt"
+if [ -L "$frontend/live" ] && [ "$(readlink "$frontend/live")" != . ]; then
+    active="$frontend/live"
+    trust="$active/trust.pem"
+fi
+case "$host" in *[!0-9.]* ) check=-verify_hostname;; *) check=-verify_ip;; esac
+openssl verify -purpose sslserver -CAfile "$trust" -untrusted "$active/server.crt" "$check" "$host" "$active/server.crt" >/dev/null || fail
 openssl x509 -in "$backend/server.crt" -checkend 86400 -noout >/dev/null || fail
-openssl x509 -in "$frontend/server.crt" -checkend 86400 -noout >/dev/null || fail
+openssl x509 -in "$active/server.crt" -checkend 86400 -noout >/dev/null || fail
+if [ ! -L "$frontend/live" ]; then ln -s . "$frontend/live"; fi
 echo 'TLS подготовлен: ключи находятся только в приватных томах.'
