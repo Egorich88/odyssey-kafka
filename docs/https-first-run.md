@@ -1,27 +1,27 @@
 # HTTPS в Docker
 
-Для проверки используйте отдельный проект Compose. Запускайте из корня этой ветки в Ubuntu/WSL с доступным Docker Engine и Python 3.
+Запускайте из корня исходников выбранного релиза на хосте с Docker Compose и Python 3. Выберите постоянное имя проекта для сохранения томов между запусками. Для отдельной проверки используйте другое имя проекта и свободные порты.
 
 ```bash
-export COMPOSE_PROJECT_NAME="odyssey-https-test-$(date +%s)"
-export ODYSSEY_SETUP_PORT=18787 ODYSSEY_HTTPS_PORT=19443
-export ODYSSEY_PUBLIC_HOST=localhost ODYSSEY_PUBLIC_ORIGIN=https://localhost:19443
+export COMPOSE_PROJECT_NAME=odyssey
+export ODYSSEY_SETUP_PORT=8787 ODYSSEY_HTTPS_PORT=8443
+export ODYSSEY_PUBLIC_HOST=localhost ODYSSEY_PUBLIC_ORIGIN=https://localhost:8443
 export ODYSSEY_HTTPS_BIND=127.0.0.1
-unset COMPOSE_PROFILES ODYSSEY_KAFKA_ALLOWED_NETWORKS ODYSSEY_KAFKA_ALLOWED_PORTS
 docker compose --profile setup build
 docker compose up -d frontend-service
 ```
 
-Откройте http://localhost:18787/setup/. В мастере выберите автоматическую настройку и выполните команду из мастера в WSL.
+Откройте http://localhost:8787/setup/. В мастере выберите автоматическую настройку и выполните показанную команду на Docker-хосте. Перед созданием Kafka-профилей задайте [политику адресов](docker-owner.md).
 
 ```bash
 python3 docker/https_setup.py --project "$COMPOSE_PROJECT_NAME"
 ```
 
-Введите новый тестовый пароль в терминале. В браузере появится шаг «Доверие сертификату». Скачайте публичный CA и сравните SHA-256 файла с выводом команды из мастера. На Windows используйте `Get-FileHash` в PowerShell. После сверки откройте сертификат и подтвердите установку для текущего пользователя в хранилище «Доверенные корневые центры сертификации». Chrome использует это хранилище для локального доверия. После установки нажмите «Повторно открыть Odyssey по HTTPS». После входа выберите «Настройки → Безопасность · HTTPS».
+Задайте пароль владельца в терминале Docker-хоста. В браузере появится шаг «Доверие сертификату». Скачайте публичный CA и сравните SHA-256 файла с выводом команды из мастера. На Windows используйте `Get-FileHash` в PowerShell. После сверки откройте сертификат и подтвердите установку для текущего пользователя в хранилище «Доверенные корневые центры сертификации». Chrome использует это хранилище для локального доверия. После установки нажмите «Повторно открыть Odyssey по HTTPS». После входа выберите «Настройки → Безопасность · HTTPS».
 
 ```bash
 docker compose restart
+docker compose exec -T frontend-service cat /run/tls/ca.crt > "/tmp/$COMPOSE_PROJECT_NAME-ca.crt"
 curl --fail --cacert "/tmp/$COMPOSE_PROJECT_NAME-ca.crt" "$ODYSSEY_PUBLIC_ORIGIN/api/health"
 ```
 
@@ -36,4 +36,4 @@ python3 docker/https_setup.py --project "$COMPOSE_PROJECT_NAME" --mode custom \
 
 **Восстановление после аварии.** Если предыдущий процесс CLI точно остановлен, выполните `python3 docker/https_setup.py --project "$COMPOSE_PROJECT_NAME" --recover`. Завершённая активация определяется по идентификатору поколения. Для незавершённой активации восстанавливается прежняя ссылка на сертификат и перечитывается конфигурация Nginx. После этого можно повторить выбранный способ настройки. Если HTTPS уже подтверждён, а ввод пароля прервался, используйте `docker compose run --rm owner-init`.
 
-Для остановки только тестовой установки используйте `docker compose stop` из того же терминала с тем же значением COMPOSE_PROJECT_NAME. Тома сохранятся.
+Для остановки выбранной установки используйте `docker compose stop` из того же терминала с тем же значением COMPOSE_PROJECT_NAME. Тома сохранятся.

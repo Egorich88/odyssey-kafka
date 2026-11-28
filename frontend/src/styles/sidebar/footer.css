@@ -19,8 +19,7 @@
  * @project Odyssey new 4.2.36
  * @description Стили нижней области боковой панели.
  * @changes Одна строка с разделителем сверху; плашка статуса справа над
- *           строкой. Без кластера — только ник и версия по центру.
- *           С кластером — ник · версия + иконки GitHub/Apache.
+ *           строкой. Ссылка на документацию всегда рядом с версией.
  */
 
 /* ============================================================
@@ -39,7 +38,7 @@
     font-size: 12px;
 }
 
-/* Нет кластера — в футере только ник и версия, по центру */
+/* Без кластера центрируем блок версии и документации. */
 .sidebar-footer--solo {
     justify-content: center;
 }
@@ -96,6 +95,16 @@
     color: var(--accent-hover);
 }
 
+.sidebar-docs-link {
+    flex-shrink: 0;
+}
+
+.sidebar-docs-link:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 1px;
+}
+
+.footer-docs-icon,
 .footer-github-icon,
 .footer-license-icon {
     width: 18px;
@@ -237,30 +246,22 @@
 
 .sidebar.collapsed .sidebar-footer {
     justify-content: center;
-    gap: 6px;
-    padding-left: 8px;
-    padding-right: 8px;
+    gap: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 .sidebar.collapsed .footer-links-row {
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .sidebar.collapsed .footer-icon-link {
-    width: 22px;
+    width: 18px;
 }
 
-/* С кластером: ник, разделитель, плашку и версию скрываем — только иконки. */
-.sidebar.collapsed .sidebar-author,
-.sidebar.collapsed .sidebar-meta-separator,
-.sidebar.collapsed .sidebar-version-hint,
-.sidebar.collapsed .sidebar-version {
+/* В свёрнутом футере остаётся ссылка на GitHub. */
+.sidebar.collapsed .sidebar-footer-meta,
+.sidebar.collapsed .sidebar-version-hint {
     display: none;
-}
-
-/* Без кластера: иконок нет — показываем только версию, по центру. */
-.sidebar.collapsed .sidebar-footer--solo .sidebar-version {
-    display: inline-flex;
-    font-size: 9px;
 }

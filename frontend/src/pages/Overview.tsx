@@ -27,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import OdysseyTooltip from '../components/common/OdysseyTooltip';
 import { FiBookOpen, FiGithub } from 'react-icons/fi';
+import { documentationUrl } from '../services/documentationUrl';
 import { SiApache } from 'react-icons/si';
 import './overview/styles/overview.css';
 import { useCluster } from '../contexts/ClusterContext';
@@ -188,7 +189,7 @@ export default function Overview(): JSX.Element {
       <div className="welcome-page">
         <div className="welcome-card">
           <a
-            href="https://egorich88.github.io/odyssey-kafka/"
+            href={documentationUrl(odysseyI18n.resolvedLanguage)}
             target="_blank"
             rel="noreferrer"
             className="welcome-docs-link"
