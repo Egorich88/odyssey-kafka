@@ -381,7 +381,7 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
         </nav>
 
         {/* Документация доступна при любом состоянии кластера. */}
-        <div className={`sidebar-footer ${!hasCluster ? 'sidebar-footer--solo' : ''}`}>
+        <div className="sidebar-footer">
           {showVersionHint && latestVersion && (
             <NavLink
               to="/settings"
@@ -404,8 +404,6 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
               Egorich88
             </a>
 
-            <span className="sidebar-meta-separator" aria-hidden="true">·</span>
-
             <NavLink
               to="/settings"
               aria-label={hasUpdate ? odysseyI18n.t('interface.versionAvailableOpenUpdateSettings', { v0: latestVersion }) : odysseyI18n.t('interface.openVersionSettings')}
@@ -421,34 +419,35 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
             >
               <span className="version-label">{`ver. ${version}`}</span>
             </NavLink>
-            <a
-              href={documentationUrl(odysseyI18n.resolvedLanguage)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-icon-link sidebar-docs-link"
-              data-tooltip-id="sidebar-footer-tooltip"
-              data-tooltip-content={odysseyI18n.t('interface.openDocumentation')}
-              aria-label={odysseyI18n.t('interface.openDocumentation')}
-            >
-              <FiBookOpen className="footer-docs-icon" aria-hidden="true" />
-            </a>
           </div>
 
-          {(hasCluster || collapsed) && (
-            <div className="footer-links-row">
+          <div className="footer-links-row">
+            {!collapsed && (
               <a
-                href="https://github.com/Egorich88/odyssey-kafka"
+                href={documentationUrl(odysseyI18n.resolvedLanguage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="footer-icon-link"
+                className="footer-icon-link sidebar-docs-link"
                 data-tooltip-id="sidebar-footer-tooltip"
-                data-tooltip-content={t('sidebar.github')}
-                aria-label={t('sidebar.github')}
+                data-tooltip-content={odysseyI18n.t('interface.openDocumentation')}
+                aria-label={odysseyI18n.t('interface.openDocumentation')}
               >
-                <FiGithub className="footer-github-icon" />
+                <FiBookOpen className="footer-docs-icon" aria-hidden="true" />
               </a>
-
-              {!collapsed && <a
+            )}
+            <a
+              href="https://github.com/Egorich88/odyssey-kafka"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-icon-link"
+              data-tooltip-id="sidebar-footer-tooltip"
+              data-tooltip-content={t('sidebar.github')}
+              aria-label={t('sidebar.github')}
+            >
+              <FiGithub className="footer-github-icon" aria-hidden="true" />
+            </a>
+            {!collapsed && (
+              <a
                 href="https://www.apache.org/licenses/LICENSE-2.0"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -457,10 +456,10 @@ export default function Sidebar({ onAddCluster, onEditCluster, clusterUnavailabl
                 data-tooltip-content={t('sidebar.apache')}
                 aria-label={t('sidebar.apache')}
               >
-                <SiApache className="footer-license-icon" />
-              </a>}
-            </div>
-          )}
+                <SiApache className="footer-license-icon" aria-hidden="true" />
+              </a>
+            )}
+          </div>
         </div>
       </div>
       <OdysseyTooltip id="sidebar-tooltip" place="right" />

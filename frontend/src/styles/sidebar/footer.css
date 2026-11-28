@@ -38,39 +38,27 @@
     font-size: 12px;
 }
 
-/* Без кластера центрируем блок версии и документации. */
-.sidebar-footer--solo {
-    justify-content: center;
-}
-
 /* ============================================================
-   Левая часть: ник · версия
+   Левая часть: ник и версия в две строки
    ============================================================ */
 
 .sidebar-footer-meta {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
     min-width: 0;
 }
 
-.sidebar-meta-separator {
-    color: var(--text-secondary);
-    opacity: 0.35;
-    font-size: 11px;
-    line-height: 1;
-    user-select: none;
-}
-
 /* ============================================================
-   Правая часть: иконки GitHub и Apache
+   Правая часть: документация, GitHub и Apache
    ============================================================ */
 
 .footer-links-row {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 10px;
     flex-shrink: 0;
 }
 
@@ -78,7 +66,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
+    width: 16px;
     height: 24px;
     text-decoration: none;
     color: var(--text-secondary);
@@ -91,25 +79,17 @@
 }
 
 .footer-icon-link:focus-visible {
-    outline: none;
-    color: var(--accent-hover);
-}
-
-.sidebar-docs-link {
-    flex-shrink: 0;
-}
-
-.sidebar-docs-link:focus-visible {
     outline: 2px solid var(--accent-color);
     outline-offset: 1px;
+    color: var(--accent-hover);
 }
 
 .footer-docs-icon,
 .footer-github-icon,
 .footer-license-icon {
-    width: 18px;
-    height: 18px;
-    flex: 0 0 18px;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
     stroke-width: 1.8;
 }
 
@@ -249,15 +229,6 @@
     gap: 4px;
     padding-left: 4px;
     padding-right: 4px;
-}
-
-.sidebar.collapsed .footer-links-row {
-    justify-content: center;
-    gap: 4px;
-}
-
-.sidebar.collapsed .footer-icon-link {
-    width: 18px;
 }
 
 /* В свёрнутом футере остаётся ссылка на GitHub. */

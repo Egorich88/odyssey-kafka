@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import Sidebar from './Sidebar';
@@ -35,4 +35,11 @@ it('оставляет доступную ссылку на документац
   expect(link?.getAttribute('href')).toMatch(/^https:\/\/egorich88\.github\.io\/odyssey-kafka\/(en\/)?$/);
   expect(link?.getAttribute('target')).toBe('_blank');
   expect(link?.getAttribute('aria-label')).toBeTruthy();
+  const footer = container.querySelector('.sidebar-footer')!;
+  expect(Array.from(footer.querySelector('.sidebar-footer-meta')!.children, child => child.tagName)).toEqual(['A', 'A']);
+  expect(footer.querySelectorAll('.footer-links-row a')).toHaveLength(3);
+  fireEvent.click(container.querySelector('.sidebar-collapse-button')!);
+  expect(Array.from(footer.querySelectorAll('.footer-links-row a'), anchor => anchor.getAttribute('href'))).toEqual([
+    'https://github.com/Egorich88/odyssey-kafka',
+  ]);
 });
