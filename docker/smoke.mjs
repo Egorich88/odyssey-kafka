@@ -20,7 +20,7 @@ const temporary = mkdtempSync(join(tmpdir(), project));
 const emptyEnv = join(temporary, 'empty.env');
 const override = join(temporary, 'compose.yaml');
 writeFileSync(emptyEnv, '');
-writeFileSync(override, `services:\n  owner-storage-init:\n    image: ${project}-backend\n  owner-init:\n    image: ${project}-backend\n  backend-service:\n    image: ${project}-backend\n  frontend-service:\n    image: ${project}-frontend\n  tls-init:\n    image: ${project}-tls\n`);
+writeFileSync(override, `services:\n  owner-storage-init:\n    image: ${project}-backend\n  owner-init:\n    image: ${project}-backend\n  backend-service:\n    image: ${project}-backend\n  frontend-service:\n    image: ${project}-frontend\n  https-manager:\n    image: ${project}-tls\n  tls-init:\n    image: ${project}-tls\n`);
 const port = await new Promise((resolvePort, reject) => {
   const socket = createServer();
   socket.once('error', reject);
@@ -28,7 +28,7 @@ const port = await new Promise((resolvePort, reject) => {
 });
 const origin = `https://localhost:${port}`;
 const env = { ...process.env, COMPOSE_PROFILES: '', ODYSSEY_HTTPS_BIND: '127.0.0.1', ODYSSEY_HTTPS_PORT: String(port),
-  ODYSSEY_PUBLIC_HOST: 'localhost', ODYSSEY_PUBLIC_ORIGIN: origin,
+  ODYSSEY_SETUP_PORT: '0', ODYSSEY_PUBLIC_HOST: 'localhost', ODYSSEY_PUBLIC_ORIGIN: origin,
   ODYSSEY_KAFKA_ALLOWED_NETWORKS: '192.0.2.0/24', ODYSSEY_KAFKA_ALLOWED_PORTS: '9092' };
 const args = ['compose', '--env-file', emptyEnv, '-p', project, '-f', join(root, 'docker-compose.yml'), '-f', override];
 function compose(command, { input, allowFailure = false } = {}) {
@@ -77,6 +77,15 @@ async function waitHealthy() {
 try {
   compose(['build', 'backend-service', 'frontend-service', 'tls-init']);
   compose(['run', '--rm', 'owner-storage-init']);
+  assert.notEqual(compose(['--profile', 'setup', 'run', '--rm', '-T', 'owner-init'], {input: password + '\n', allowFailure:true}).status, 0);
+  compose(['up', '-d', 'frontend-service']);
+  const generation = randomUUID().replaceAll('-', '');
+  const manager = ['run', '--rm', '-T', '--no-deps', 'https-manager'];
+  compose([...manager, 'prepare', generation, 'local']);
+  compose(['exec', '-T', 'frontend-service', 'nginx', '-t']);
+  compose(['exec', '-T', 'frontend-service', 'nginx', '-s', 'reload']);
+  compose([...manager, 'finish', generation]);
+  compose([...manager, 'unlock', generation]);
   compose(['--profile', 'setup', 'run', '--rm', '-T', 'owner-init'], { input: password + '\n' });
   assert.notEqual(compose(['--profile', 'setup', 'run', '--rm', '-T', 'owner-init'], { input: password + '\n', allowFailure: true }).status, 0);
   compose(['up', '-d', 'frontend-service']);

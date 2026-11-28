@@ -5,6 +5,10 @@
 """
 import hashlib
 import os
+import json
+import socket
+import ssl
+import threading
 from pathlib import Path
 import subprocess
 import tempfile
@@ -14,6 +18,69 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InitTests(unittest.TestCase):
+    def test_https_activation_requires_served_candidate(self):
+        self.run_init()
+        public = self.root / "public"
+        public.mkdir()
+        receipt = public / "active.json"
+        env = dict(self.env, ODYSSEY_TLS_STATE=str(self.root),
+                   ODYSSEY_FRONTEND_OWNER=f"{os.getuid()}:{os.getgid()}",
+                   ODYSSEY_PUBLIC_ORIGIN="https://localhost:19443")
+        ident = "a" * 32
+        def manage(action, *args, success=True):
+            result = subprocess.run(["sh", str(ROOT / "docker/https-manager.sh"), action, ident, *args],
+                                    env=env, capture_output=True)
+            self.assertEqual(result.returncode == 0, success, result.stderr.decode())
+        def serve(certdir):
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ctx.load_cert_chain(certdir / "server.crt", certdir / "server.key")
+            listener = socket.socket()
+            listener.bind(("127.0.0.1", 0))
+            listener.listen()
+            env["ODYSSEY_TLS_PEER"] = "127.0.0.1:" + str(listener.getsockname()[1])
+            def accept():
+                with listener, listener.accept()[0] as conn, ctx.wrap_socket(conn, server_side=True) as peer:
+                    peer.recv(1)
+                    peer.unwrap().close()
+            threading.Thread(target=accept, daemon=True).start()
+        manage("prepare", "local")
+        serve(self.frontend)
+        manage("finish", success=False)
+        self.assertFalse(receipt.exists())
+        manage("rollback")
+        self.assertEqual(os.readlink(self.frontend / "live"), ".")
+        manage("unlock")
+        ident = "b" * 32
+        manage("prepare", "local")
+        serve(self.frontend / "live")
+        manage("finish")
+        manage("rollback")
+        self.assertEqual(os.readlink(self.frontend / "live"), "candidate-" + ident)
+        manage("unlock")
+        self.assertEqual(json.loads(receipt.read_text())["type"], "local")
+        before = (self.frontend / "live/server.crt").read_bytes()
+        self.run_init()
+        self.assertEqual((self.frontend / "live/server.crt").read_bytes(), before)
+
+        inputs = self.root / "input"
+        inputs.mkdir()
+        env["ODYSSEY_TLS_INPUT"] = str(inputs)
+        (inputs / "cert.pem").write_bytes(before)
+        (inputs / "ca.pem").write_bytes((self.ca / "ca.crt").read_bytes())
+        (inputs / "key.pem").write_bytes((self.backend / "server.key").read_bytes())
+        ident = "c" * 32
+        manage("prepare", "custom", success=False)
+        manage("rollback")
+        manage("unlock")
+        self.assertEqual((self.frontend / "live/server.crt").read_bytes(), before)
+        (inputs / "key.pem").write_bytes((self.frontend / "live/server.key").read_bytes())
+        ident = "d" * 32
+        manage("prepare", "custom")
+        serve(self.frontend / "live")
+        manage("finish")
+        manage("unlock")
+        self.assertEqual(json.loads(receipt.read_text())["type"], "custom")
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="odyssey-init-test-")
         self.addCleanup(self.temporary.cleanup)

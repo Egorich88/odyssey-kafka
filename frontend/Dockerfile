@@ -25,6 +25,7 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:stable-alpine
 
 # Конфигурация HTTPS и проверяемого TLS-соединения с backend.
+COPY --chmod=0555 https-context.sh /docker-entrypoint.d/35-odyssey-context.sh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Копируем собранную статику из первого стейджа в стандартную директорию Nginx

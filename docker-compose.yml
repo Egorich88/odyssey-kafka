@@ -3,13 +3,14 @@ name: odyssey
 x-backend: &backend
   build:
     context: ./backend
-  image: odyssey-backend:local
+  image: ${COMPOSE_PROJECT_NAME:-odyssey}-backend:local
   user: "1001:1001"
   read_only: true
   security_opt: [no-new-privileges:true]
   cap_drop: [ALL]
   tmpfs: [/tmp]
   environment: &owner-environment
+    ODYSSEY_HTTPS_RECEIPT: /run/https-status/active.json
     ODYSSEY_DATA_DIR: /var/lib/odyssey/data
     ODYSSEY_KEY_FILE: /var/lib/odyssey/keys/owner.key
     ODYSSEY_PUBLIC_ORIGIN: ${ODYSSEY_PUBLIC_ORIGIN:-https://localhost:8443}
@@ -50,6 +51,26 @@ services:
       - backend-tls:/state/backend
       - frontend-tls:/state/frontend
 
+  https-manager:
+    profiles: [setup]
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.tls-init
+    entrypoint: [/usr/local/bin/https-manager]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    environment:
+      ODYSSEY_PUBLIC_HOST: ${ODYSSEY_PUBLIC_HOST:-localhost}
+      ODYSSEY_PUBLIC_ORIGIN: ${ODYSSEY_PUBLIC_ORIGIN:-https://localhost:8443}
+    volumes:
+      - tls-ca:/state/ca:ro
+      - frontend-tls:/state/frontend
+      - https-status:/state/public
+    networks: [kafka-net]
+
   # Запускается вручную: docker compose --profile setup run --rm owner-init
   owner-init:
     <<: *backend
@@ -66,8 +87,11 @@ services:
       - owner-data:/var/lib/odyssey/data
       - owner-key:/var/lib/odyssey/keys
 
+      - https-status:/run/https-status:ro
+
   backend-service:
     <<: *backend
+    command: ["/bin/sh", "-ec", "while [ ! -s /var/lib/odyssey/data/owner.enc ]; do sleep 2; done; exec kafka-backend"]
     restart: unless-stopped
     depends_on:
       owner-storage-init:
@@ -78,6 +102,7 @@ services:
       - owner-data:/var/lib/odyssey/data
       - owner-key:/var/lib/odyssey/keys:ro
       - backend-tls:/run/tls:ro
+      - https-status:/run/https-status:ro
     expose: ["8080"]
     networks: [kafka-net]
     healthcheck:
@@ -90,20 +115,27 @@ services:
   frontend-service:
     build:
       context: ./frontend
-    image: odyssey-frontend:local
+    image: ${COMPOSE_PROJECT_NAME:-odyssey}-frontend:local
     user: "101:101"
     restart: unless-stopped
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
+    environment:
+      ODYSSEY_COMPOSE_PROJECT: ${COMPOSE_PROJECT_NAME:-odyssey}
+      ODYSSEY_PUBLIC_ORIGIN: ${ODYSSEY_PUBLIC_ORIGIN:-https://localhost:8443}
     ports:
+      - "127.0.0.1:${ODYSSEY_SETUP_PORT:-8787}:8081"
       - "${ODYSSEY_HTTPS_BIND:-127.0.0.1}:${ODYSSEY_HTTPS_PORT:-8443}:8443"
     depends_on:
       backend-service:
-        condition: service_healthy
+        condition: service_started
+      tls-init:
+        condition: service_completed_successfully
     volumes:
       - frontend-tls:/run/tls:ro
+      - https-status:/run/https-status:ro
     networks: [kafka-net]
 
   # Не запускается вместе с Odyssey автоматически и не затрагивает внешний Kafka.
@@ -135,6 +167,7 @@ networks:
     driver: bridge
 
 volumes:
+  https-status:
   owner-data:
   owner-key:
   tls-ca:

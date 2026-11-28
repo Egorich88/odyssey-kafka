@@ -24,6 +24,12 @@ func ownerCommand(args []string) (bool, error) {
 	if len(args) != 1 || args[0] != "owner-init" {
 		return true, errors.New("поддерживается только локальная команда owner-init")
 	}
+	if receipt := os.Getenv("ODYSSEY_HTTPS_RECEIPT"); receipt != "" {
+		info, err := os.Stat(receipt)
+		if err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			return true, errors.New("сначала завершите настройку HTTPS / complete HTTPS setup first")
+		}
+	}
 	// Пароль не принимается в аргументах или переменных окружения.
 	restore, err := hideOwnerInput()
 	if err != nil {

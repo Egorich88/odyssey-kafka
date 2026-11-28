@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Odyssey · HTTPS</title>
+<style>
+:root{color-scheme:light dark;font:16px/1.5 system-ui,sans-serif;--accent:#65b8e9}body{min-height:100svh;display:grid;place-items:center;margin:0;background:Canvas;color:CanvasText}main{box-sizing:border-box;width:min(42rem,100%);padding:clamp(1rem,5vw,3rem)}header,fieldset{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}header{justify-content:space-between;color:var(--accent);font-weight:650}h1{line-height:1.2}fieldset{border:0;padding:0;margin:1.5rem 0}input{accent-color:var(--accent)}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:color-mix(in srgb,CanvasText 7%,Canvas);padding:1rem;border-radius:.5rem}button,select{font:inherit;padding:.35rem .65rem}a{color:LinkText}
+</style><main><header>Odyssey<select id="lang" aria-label="Language"><option value="ru">Русский</option><option value="en">English</option></select></header>
+<h1 id="title"></h1><p id="intro"></p><fieldset><label><input type="radio" name="mode" checked value="auto"><span id="auto"></span></label><label><input type="radio" name="mode" value="custom"><span id="custom"></span></label></fieldset>
+<p id="help"></p><pre id="command"></pre><p role="status" id="status"></p>
+<section id="trust" hidden aria-labelledby="trust-title">
+  <h2 id="trust-title"></h2><p id="trust-intro"></p>
+  <a id="download" href="/setup/odyssey-local-ca.crt" download></a>
+  <pre id="fingerprint"></pre>
+  <ul><li id="windows"></li><li id="linux"></li><li id="macos"></li></ul>
+</section>
+<a hidden id="go"></a></main>
+<script>
+const words={
+ru:['Настройка HTTPS','Выберите сертификат для этой установки Odyssey.','Автоматическая настройка','Свой сертификат','На сервере Docker выполните команду из каталога проекта. Для localhost используется локальный CA, для публичного домена — Let’s Encrypt и HTTP-01.','Укажите локальные файлы PEM: полную цепочку и соответствующий приватный ключ. Для частного CA добавьте --ca /path/to/root.pem.','После проверки сертификата команда предложит создать владельца. Для локального CA сначала добавьте его публичный сертификат в доверенные.','HTTPS настроен','Перейти в Odyssey'],
+en:['Set up HTTPS','Choose a certificate for this Odyssey installation.','Automatic setup','Use my certificate','Run the command on the Docker host from the project directory. Localhost uses a local CA. Public domains use Let’s Encrypt with HTTP-01.','Supply local PEM files: the full certificate chain and matching private key. For a private CA add --ca /path/to/root.pem.','After verifying the certificate, the command prompts you to create the owner. For a local CA, trust its public certificate first.','HTTPS is ready','Open Odyssey']};
+const trustWords={
+ru:['Доверие сертификату','Скачайте публичный CA и перед установкой сравните SHA-256 файла с выводом этой команды на Docker-хосте. Окончательное решение о доверии принимает браузер.','Скачать публичный CA','Windows: в PowerShell выполните Get-FileHash для скачанного файла. После сверки откройте файл, выберите «Установить сертификат» → «Текущий пользователь» → «Доверенные корневые центры сертификации» и подтвердите установку.','Linux: сравните отпечаток через sha256sum, затем импортируйте CA в хранилище доверия вашего браузера или дистрибутива.','macOS: сравните отпечаток через shasum -a 256, затем импортируйте CA через «Связку ключей» и подтвердите доверие для SSL.','Повторно открыть Odyssey по HTTPS'],
+en:['Trust the certificate','Download the public CA and compare the file’s SHA-256 hash with the output of this command on the Docker host before installing it. Your browser determines whether to trust the certificate.','Download public CA','Windows: run Get-FileHash on the downloaded file in PowerShell. After verifying the hash, open the file, choose Install Certificate → Current User → Trusted Root Certification Authorities, and confirm.','Linux: verify the hash with sha256sum, then import the CA into your browser or distribution trust store.','macOS: verify the hash with shasum -a 256, then import the CA in Keychain Access and explicitly trust it for SSL.','Reopen Odyssey over HTTPS']};
+const el=id=>document.getElementById(id);let project='',ready=null,localCA=false;
+try{el('lang').value=localStorage.getItem('ksc_language')==='en'?'en':'ru'}catch{}
+function render(){const l=el('lang').value,w=words[l],custom=document.querySelector('input:checked').value==='custom';document.documentElement.lang=l;['title','intro','auto','custom'].forEach((id,i)=>el(id).textContent=w[i]);el('help').textContent=w[custom?5:4];el('command').textContent=project?'python3 docker/https_setup.py --project '+project+(custom?' --mode custom --cert /path/to/fullchain.pem --key /path/to/key.pem':''):'';el('status').textContent=w[ready?7:6];el('go').textContent=w[8]}
+el('lang').onchange=()=>{try{localStorage.setItem('ksc_language',el('lang').value)}catch{}render()};document.querySelectorAll('input').forEach(i=>i.onchange=render);
+function renderTrust(){
+  const labels=trustWords[el('lang').value];
+  ['trust-title','trust-intro','download','windows','linux','macos'].forEach((id,i)=>el(id).textContent=labels[i]);
+  el('fingerprint').textContent=project?'docker compose -p '+project+' exec -T frontend-service sha256sum /run/tls/ca.crt':'';
+  if(localCA) el('go').textContent=labels[6];
+}
+el('lang').addEventListener('change',renderTrust);
+async function poll(){
+  try {
+    if(!project){
+      const context=await fetch('/setup/context.json',{cache:'no-store'});
+      if(context.ok){
+        const data=await context.json();
+        if(typeof data.project==='string'&&/^[a-z0-9][a-z0-9_-]*$/.test(data.project))project=data.project;
+      }
+    }
+    const response=await fetch('/setup/status.json',{cache:'no-store'});
+    if(response.ok){
+      const data=await response.json();
+      const origin=new URL(data.origin);
+      if(origin.protocol==='https:'&&!origin.username&&!origin.password){
+        ready=origin;
+        localCA=data.type==='local'&&origin.hostname==='localhost';
+        el('go').href=origin.href;
+        el('go').hidden=false;
+        el('trust').hidden=!localCA;
+        render();
+        renderTrust();
+        if(!localCA&&data.type==='letsencrypt')location.replace(origin.href);
+        return;
+      }
+    }
+  }catch{}
+  render();
+  setTimeout(poll,2500);
+}
+render();poll();
+</script></html>

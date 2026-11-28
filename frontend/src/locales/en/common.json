@@ -623,5 +623,16 @@
     "lagCollector": "Lag collector is not initialized",
     "streaming": "Streaming is not supported by the server",
     "autoUpdate": "Automatic updates are not configured. Set ODYSSEY_UPDATE_COMMAND for this deployment."
+  },
+  "https": {
+    "security": "Security · HTTPS",
+    "details": "{{type}} · expires {{expires}}",
+    "local": "Local CA",
+    "custom": "Custom certificate",
+    "letsencrypt": "Let’s Encrypt",
+    "legacy": "No activation record is available.",
+    "replace": "Replace certificate",
+    "renew": "Reissue",
+    "localAction": "Run on the Docker host, then refresh this page."
   }
 }

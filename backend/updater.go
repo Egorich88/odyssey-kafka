@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	defaultOdysseyVersion = "4.3.3"
+	defaultOdysseyVersion = "4.3.4"
 	releaseAPIURL         = "https://api.github.com/repos/Egorich88/odyssey-kafka/releases/latest"
 )
 
